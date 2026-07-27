@@ -79,7 +79,28 @@ public static class ScriptCompiler
             }
             else
             {
-                // ... inchangé
+                var diagnostics = result.Diagnostics
+                    .Where(d => d.Severity == DiagnosticSeverity.Error)
+                    .ToList();
+
+                Status = $"Erreur de compilation ({diagnostics.Count} erreur(s)).";
+                Console.WriteLine($"[ScriptCompiler] {Status}");
+
+                foreach (var diag in diagnostics)
+                {
+                    var span = diag.Location.GetLineSpan();
+                    string? file = span.IsValid ? span.Path : null;
+                    int? line = span.IsValid ? span.StartLinePosition.Line + 1 : null;
+
+                    string message = file != null
+                        ? $"{Path.GetFileName(file)}({line}): {diag.GetMessage()}"
+                        : diag.GetMessage();
+
+                    Console.WriteLine($"  {message}");
+                    Logger.Error(message, file, line);
+                }
+
+                OnCompileError?.Invoke(string.Join("\n", diagnostics.Select(d => d.ToString())));
             }
         }
         catch (Exception e)
