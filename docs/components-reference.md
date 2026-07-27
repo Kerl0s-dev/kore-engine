@@ -9,7 +9,7 @@
 | `GameObject Owner` | `[HideInInspector]`. |
 | `virtual void Update(float dt)` | Chaque frame de simulation (si Playing, non Paused, sauf Step). |
 | `virtual void Render(Renderer, Camera?)` | Chaque frame de rendu, indépendamment de Playing. |
-| `virtual void Start()` | Appelé une seule fois quand Playing passe à `true`. **Renommé depuis `OnStart()`** dans une itération récente — utiliser `Start()` dans tout nouveau composant. |
+| `virtual void Start()` | Appelé une seule fois quand Playing passe à `true`. |
 | `virtual void OnDestroy()` | Retrait du composant ou déchargement de scène. Libérer les ressources natives ici. |
 | `virtual IEnumerable<InspectorField> GetInspectorFields()` | Vide par défaut → auto-draw par réflexion. |
 | `virtual IEnumerable<string> Serialize()` / `virtual void Deserialize(List<string>)` | Sérialisation personnalisée (listes, types complexes). |
