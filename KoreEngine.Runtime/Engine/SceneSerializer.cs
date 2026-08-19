@@ -146,6 +146,92 @@ public static class SceneSerializer
         var lines = File.ReadAllLines(path, Encoding.UTF8);
         var scene = new Scene();
 
+        foreach (var raw in lines)
+        {
+            string line = raw.Trim();
+            if (line.StartsWith("Scene:"))
+            {
+                scene.Name = line["Scene:".Length..].Trim();
+                break;
+            }
+        }
+
+        LoadObjectsInto(lines, scene);
+
+        // Résout automatiquement la caméra de la scène
+        scene.FindCamera();
+
+        // Réenregistre TOUS les colliders : chaque Scene.Add() (fait par
+        // ParseObject) a eu lieu AVANT que les composants (dont Collider)
+        // soient attachés, donc rien n'a pu être enregistré jusqu'ici.
+        scene.RefreshColliders();
+
+        return scene;
+    }
+
+    // ---------------------------------------------------------------
+    // Clonage d'un sous-arbre (GameObject.Instantiate) — même format texte
+    // que SaveScene/LoadScene, pour ne pas dupliquer la logique de clonage.
+    // ---------------------------------------------------------------
+
+    /// <summary>
+    /// Sérialise UN objet et toute sa hiérarchie d'enfants (mêmes règles que
+    /// SaveScene). Les références vers des objets HORS de cette
+    /// sous-arborescence (ex: un champ pointant vers la Camera de la scène)
+    /// sont silencieusement omises — elles ne peuvent pas survivre à un clone
+    /// partiel, exactement comme pour un prefab qui sortirait de sa scène.
+    /// </summary>
+    public static string SerializeObjectTree(GameObject root)
+    {
+        var sb = new StringBuilder();
+        var flat = FlattenTree(root).ToList();
+        var idMap = new Dictionary<GameObject, string>();
+        int counter = 0;
+
+        foreach (var obj in flat)
+            idMap[obj] = $"obj_{counter++}";
+
+        foreach (var obj in flat)
+            WriteObject(sb, obj, idMap);
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Réciproque de SerializeObjectTree : reconstruit la sous-arborescence
+    /// comme nouvel objet racine de targetScene, et retourne cette racine.
+    /// Utilisé par GameObject.Instantiate().
+    /// </summary>
+    public static GameObject? DeserializeObjectTree(string text, Scene targetScene)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        var root = LoadObjectsInto(lines, targetScene);
+
+        // Seuls les colliders de la NOUVELLE sous-arborescence doivent être
+        // (re)enregistrés ici — un RefreshColliders() global dupliquerait tous
+        // les colliders déjà enregistrés du reste de la scène à chaque appel.
+        if (root != null) targetScene.RegisterColliders(root);
+
+        return root;
+    }
+
+    static IEnumerable<GameObject> FlattenTree(GameObject root)
+    {
+        yield return root;
+        foreach (var child in root.Children)
+            foreach (var descendant in FlattenTree(child))
+                yield return descendant;
+    }
+
+    /// <summary>
+    /// Cœur commun à LoadScene (fichier .kscene complet) et
+    /// DeserializeObjectTree (sous-arborescence pour Instantiate) : parse les
+    /// blocs "Object:", reconstruit la hiérarchie et les composants, résout
+    /// les références internes. Retourne le premier objet créé sans parent
+    /// (la racine du bloc parsé).
+    /// </summary>
+    static GameObject? LoadObjectsInto(string[] lines, Scene scene)
+    {
         var objMap = new Dictionary<string, GameObject>();
         var parentMap = new Dictionary<string, string>(); // id -> parentId
         var compBlocks = new List<(string objId, string typeName, List<string> lines)>();
@@ -156,13 +242,7 @@ public static class SceneSerializer
             string line = lines[i].Trim();
 
             if (line.StartsWith("#") || line.Length == 0) { i++; continue; }
-
-            if (line.StartsWith("Scene:"))
-            {
-                scene.Name = line["Scene:".Length..].Trim();
-                i++;
-                continue;
-            }
+            if (line.StartsWith("Scene:")) { i++; continue; }
 
             if (line.StartsWith("Object:"))
             {
@@ -258,15 +338,14 @@ public static class SceneSerializer
             }
         }
 
-        // Résout automatiquement la caméra de la scène
-        scene.FindCamera();
+        // La racine du bloc parsé est le premier objet dont le Parent déclaré
+        // est "none" (donc resté objet racine de `scene` après la passe de
+        // hiérarchie ci-dessus).
+        foreach (var (id, parentId) in parentMap)
+            if (parentId == "none" && objMap.TryGetValue(id, out var rootObj))
+                return rootObj;
 
-        // Réenregistre les colliders : Scene.Add() a été appelé en passe 1
-        // AVANT que les composants (dont Collider) soient attachés en passe 3,
-        // donc rien n'a pu être enregistré dans CollisionSystem jusqu'ici.
-        scene.RefreshColliders();
-
-        return scene;
+        return objMap.Values.FirstOrDefault();
     }
 
     static int ParseObject(string[] lines, int i,

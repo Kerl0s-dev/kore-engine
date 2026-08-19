@@ -43,6 +43,12 @@ public class GameLoop
 
     public void Run()
     {
+        // Applique la scène de démarrage (chargée via SceneManager.LoadScene
+        // AVANT Run(), donc encore en attente dans "next") avant d'appeler
+        // Start() — sinon SceneManager.Current serait encore null ici et
+        // Start() ne ferait rien du tout sur aucun composant.
+        SceneManager.ApplyPendingScene();
+
         // Équivalent du premier "Play" en éditeur — ici la simulation
         // démarre immédiatement, il n'y a pas de mode édition à quitter.
         SceneManager.NotifyStart();

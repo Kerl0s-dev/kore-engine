@@ -1,0 +1,265 @@
+<Window x:Class="KoreEngine.Hub.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Kore Engine Hub" Height="620" Width="960" MinWidth="640" MinHeight="420"
+        Background="{DynamicResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResize"
+        SourceInitialized="Window_SourceInitialized">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="40" CornerRadius="0" GlassFrameThickness="0"
+                             ResizeBorderThickness="6" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===================== Barre de titre custom ===================== -->
+        <Grid Grid.Row="0" Background="{DynamicResource SidebarBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path = Title}" Foreground="{DynamicResource MutedTextBrush}"
+                       FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button Content="&#xE921;" Style="{StaticResource TitleBarButton}" Click="Minimize_Click"/>
+                <Button x:Name="MaximizeButton" Content="&#xE922;" Style="{StaticResource TitleBarButton}" Click="MaximizeRestore_Click"/>
+                <Button Content="&#xE8BB;" Style="{StaticResource TitleBarCloseButton}" Click="Close_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===================== Corps de la fenêtre ===================== -->
+        <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="210"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ===================== Sidebar ===================== -->
+        <Grid Grid.Column="0" Background="{DynamicResource SidebarBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Logo -->
+            <TextBlock Grid.Row="0" Text="Hub" Foreground="{DynamicResource TextBrush}"
+                       FontWeight="Bold" FontSize="18" Margin="20,20,0,20"/>
+
+            <!-- Navigation -->
+            <StackPanel Grid.Row="1">
+                <Border Background="{DynamicResource RowHoverBrush}" CornerRadius="4" Margin="10,0,10,2">
+                    <StackPanel Orientation="Horizontal" Margin="10,9">
+                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                   Foreground="{DynamicResource TextBrush}" Width="24"/>
+                        <TextBlock Text="Projets" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" FontSize="13"/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="20,10,10,10" Opacity="0.45">
+                    <TextBlock Text="&#xE80A;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Modèles" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="20,10,10,10" Opacity="0.45">
+                    <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Installations" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="20,10,10,10" Opacity="0.45">
+                    <TextBlock Text="&#xE7BE;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Découvrir" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="20,10,10,10" Opacity="0.45">
+                    <TextBlock Text="&#xE8A4;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Ressources" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="20,10,10,10" Opacity="0.45">
+                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Licences" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Bas de sidebar : réglages + version -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,14">
+                <StackPanel Orientation="Horizontal" Margin="20,0,10,14" Cursor="Hand"
+                            MouseLeftButtonUp="ChangeEngineDir_Click">
+                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{DynamicResource MutedTextBrush}" Width="24"/>
+                    <TextBlock Text="Réglages" Foreground="{DynamicResource MutedTextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,10"/>
+
+                <TextBlock Text="KoreEngine" Foreground="{DynamicResource MutedTextBrush}" FontSize="12"
+                           Opacity="0.6" Margin="20,0,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===================== Contenu principal ===================== -->
+        <Grid Grid.Column="1" Margin="28,22,28,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Titre + recherche + actions -->
+            <Grid Grid.Row="0" Margin="0,0,0,22">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Projets" Foreground="{DynamicResource TextBrush}"
+                           FontSize="26" FontWeight="Bold" VerticalAlignment="Center"/>
+
+                <Border Grid.Column="1" Background="{DynamicResource PanelBrush}" CornerRadius="4" Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   Foreground="{DynamicResource MutedTextBrush}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" x:Name="SearchBox" Background="Transparent" Foreground="{DynamicResource TextBrush}"
+                                 BorderThickness="0" Padding="8,7" FontSize="13" TextChanged="SearchBox_TextChanged"
+                                 CaretBrush="{DynamicResource TextBrush}"/>
+                    </Grid>
+                </Border>
+
+                <Button Grid.Column="2" Content="Add" Click="ImportProject_Click" Margin="0,0,10,0"
+                        Padding="14,8" Background="{DynamicResource PanelBrush}" Foreground="{DynamicResource TextBrush}"/>
+
+                <Button Grid.Column="3" Content="+ Nouveau projet" Click="NewProject_Click"
+                        Padding="14,8" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"/>
+            </Grid>
+
+            <!-- En-têtes de colonnes -->
+            <Grid Grid.Row="1" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="36"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="24"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="1" Text="NOM" Foreground="{DynamicResource MutedTextBrush}"
+                           FontSize="11" FontWeight="SemiBold" Margin="12,0,0,8" VerticalAlignment="Bottom"/>
+                <TextBlock Grid.Column="2" Text="MODIFIÉ ↓" Foreground="{DynamicResource MutedTextBrush}"
+                           FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8" VerticalAlignment="Bottom"/>
+                <TextBlock Grid.Column="3" Text="VERSION MOTEUR" Foreground="{DynamicResource MutedTextBrush}"
+                           FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8" VerticalAlignment="Bottom"/>
+                <TextBlock Grid.Column="4" Text="TAILLE" Foreground="{DynamicResource MutedTextBrush}"
+                           FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8" VerticalAlignment="Bottom"/>
+                <Border Grid.ColumnSpan="6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                        VerticalAlignment="Bottom"/>
+            </Grid>
+
+            <!-- Liste des projets -->
+            <ListBox Grid.Row="2" x:Name="ProjectsList"
+                     Background="Transparent" BorderThickness="0"
+                     ItemContainerStyle="{StaticResource ProjectRow}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     MouseDoubleClick="ProjectsList_MouseDoubleClick">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Opacity="{Binding Exists, Converter={StaticResource ExistsToOpacityConverter}}">
+                            <Grid.ContextMenu>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="Refresh Dependencies" Click="RefreshDependencies_Click"/>
+                                </ContextMenu>
+                            </Grid.ContextMenu>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="36"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="24"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="4"
+                                    Background="{Binding Name, Converter={StaticResource NameToColorConverter}}">
+                                <TextBlock Text="{Binding Name, Converter={StaticResource NameToInitialConverter}}"
+                                           Foreground="White" FontWeight="Bold" FontSize="13"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextBrush}"/>
+                                <TextBlock Text="{Binding Path}" FontSize="11"
+                                           Foreground="{DynamicResource MutedTextBrush}" Margin="0,2,0,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="2" Text="{Binding LastOpened, StringFormat='{}{0:d MMM, HH:mm}'}"
+                                       FontSize="12" Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Column="3" Text="{Binding EditorVersion}"
+                                       FontSize="12" Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Column="4" Text="{Binding Size}"
+                                       FontSize="12" Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <Button Grid.Column="5" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                                    Width="22" Height="22" Padding="0" FontSize="11"
+                                    Background="Transparent" Foreground="{DynamicResource MutedTextBrush}"
+                                    Click="RemoveProject_Click" ToolTip="Retirer de la liste"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- État vide -->
+            <StackPanel Grid.Row="2" x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="Collapsed">
+                <Canvas Width="64" Height="64" HorizontalAlignment="Center" Margin="0,0,0,16">
+                    <Polygon Points="32,4 58,19 58,45 32,60 6,45 6,19"
+                             Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" Fill="Transparent"/>
+                    <Line X1="32" Y1="32" X2="32" Y2="4" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5"/>
+                    <Line X1="32" Y1="32" X2="58" Y2="45" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5"/>
+                    <Line X1="32" Y1="32" X2="6" Y2="45" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5"/>
+                </Canvas>
+                <TextBlock Text="Aucun projet" Foreground="{DynamicResource TextBrush}" FontWeight="Bold"
+                           FontSize="15" HorizontalAlignment="Center"/>
+                <TextBlock Text="Crée un nouveau projet ou importe un projet existant pour commencer."
+                           Foreground="{DynamicResource MutedTextBrush}" FontSize="12" Margin="0,4,0,16"
+                           HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Importer un projet" Click="ImportProject_Click" Margin="0,0,10,0"
+                            Padding="14,8" Background="Transparent" Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"/>
+                    <Button Content="+ Nouveau projet" Click="NewProject_Click"
+                            Padding="14,8" Background="Transparent" Foreground="{DynamicResource AccentBrush}"
+                            BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    Version unique du moteur, appliquée automatiquement à tous les .csproj
+    du repo (KoreEngine.Runtime, KoreEngine.Editor, KoreEngine.Hub...) par
+    MSBuild — pas besoin de la dupliquer dans chaque projet.
+
+    À incrémenter ici avant chaque version notable du moteur.
+    ProjectInfoService.GetEngineVersion (dans KoreEngine.Hub) lit ensuite ce
+    numéro directement depuis le KoreEngine.Runtime.dll compilé.
+  -->
+  <PropertyGroup>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+  </PropertyGroup>
+
+</Project>

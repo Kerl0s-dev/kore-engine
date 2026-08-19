@@ -339,6 +339,13 @@ public class ProjectPanel
             string ext = Path.GetExtension(path).ToLowerInvariant();
             if (ext == ".kscene" && ImGui.MenuItem("Open Scene"))
                 SceneManager.LoadSceneFromFile(path);
+            if (ext == ".kscene" && ImGui.MenuItem("Set as Startup Scene"))
+            {
+                ProjectSettings.StartupScene = Path.GetFileNameWithoutExtension(path);
+                ProjectSettings.Save();
+            }
+            if (ext == ".kprefab" && ImGui.MenuItem("Instantiate"))
+                InstantiatePrefab(path);
             if (ext == ".cs" && ImGui.MenuItem("Edit"))
                 OpenInEditor(path);
         }
@@ -657,7 +664,21 @@ public class {newItemName.Trim()} : Component
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
         if (ext == ".kscene") SceneManager.LoadSceneFromFile(path);
+        else if (ext == ".kprefab") InstantiatePrefab(path);
         else OpenInEditor(path);
+    }
+
+    /// <summary>
+    /// Instancie un prefab dans la scène couramment ouverte, à sa racine.
+    /// Ne fait rien si aucune scène n'est chargée (le Project Panel reste
+    /// utilisable même sans scène ouverte, ex: juste pour renommer des fichiers).
+    /// </summary>
+    void InstantiatePrefab(string path)
+    {
+        if (SceneManager.Current == null) return;
+
+        var obj = PrefabManager.Instantiate(path, SceneManager.Current);
+        EditorSelection.Selected = obj;
     }
 
     void OnFileDialogResult(IntPtr userdata, IntPtr filelist, int filter)

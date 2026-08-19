@@ -441,6 +441,25 @@ public class EditorWindow
             stepRequested = true;
         ImGui.EndDisabled();
 
+        // --- Droite : Build ---
+        string buildLabel = BuildService.IsBuilding ? "Building..." : "Build";
+        float buildWidth = ImGui.CalcTextSize(buildLabel).X + 24f;
+        ImGui.SameLine(ImGui.GetWindowWidth() - buildWidth - 12f);
+
+        ImGui.BeginDisabled(BuildService.IsBuilding);
+        if (ImGui.Button(buildLabel))
+        {
+            string projectRoot = ProjectPanel.FindProjectRoot();
+            Logger.Log("[Build] Démarrage du build (Release, win-x64, self-contained)...");
+
+            BuildService.Build(projectRoot, Title, onLogLine: Logger.Log, onFinished: success =>
+            {
+                if (success) Logger.Sucess("[Build] Build terminé avec succès — voir le dossier Build/ du projet.");
+                else Logger.Error("[Build] Échec du build — voir les lignes ci-dessus dans la Console.");
+            });
+        }
+        ImGui.EndDisabled();
+
         ImGui.EndChild();
     }
 

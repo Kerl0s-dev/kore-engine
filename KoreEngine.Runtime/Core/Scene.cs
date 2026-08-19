@@ -139,7 +139,15 @@ public class Scene
             RegisterColliders(obj);
     }
 
-    void RegisterColliders(GameObject obj)
+    /// <summary>
+    /// Enregistre récursivement les colliders de CET objet et de ses
+    /// descendants (pas ceux du reste de la scène). Utilisé par
+    /// RefreshColliders() (tout réenregistrer après un chargement complet)
+    /// et par SceneSerializer.DeserializeObjectTree (n'enregistrer QUE le
+    /// sous-arbre nouvellement cloné, sans toucher aux colliders déjà
+    /// enregistrés du reste de la scène).
+    /// </summary>
+    public void RegisterColliders(GameObject obj)
     {
         var collider = obj.GetComponent<Collider>();
         if (collider != null) Collisions.Register(collider);

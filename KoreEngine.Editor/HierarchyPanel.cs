@@ -144,6 +144,14 @@ public class HierarchyPanel
 
             ImGui.Separator();
 
+            if (ImGui.MenuItem("Duplicate"))
+                DuplicateObject(obj, scene);
+
+            if (ImGui.MenuItem("Create Prefab"))
+                CreatePrefab(obj);
+
+            ImGui.Separator();
+
             if (ImGui.MenuItem("Delete"))
                 pendingDelete = obj;
 
@@ -158,6 +166,35 @@ public class HierarchyPanel
 
             ImGui.TreePop();
         }
+    }
+
+    /// <summary>
+    /// Duplique un objet (et sa hiérarchie d'enfants) via GameObject.Instantiate,
+    /// puis le rattache au même parent que l'original — Instantiate() root
+    /// par défaut sur la scène, ce qui conviendrait pour un spawn en jeu mais
+    /// surprendrait ici : "Dupliquer" doit garder l'objet à côté de sa source.
+    /// </summary>
+    void DuplicateObject(GameObject obj, Scene scene)
+    {
+        var clone = obj.Instantiate(scene);
+
+        if (obj.Parent != null)
+            clone.SetParent(obj.Parent, scene);
+
+        EditorSelection.Selected = clone;
+    }
+
+    /// <summary>
+    /// Sauvegarde l'objet (et ses enfants) dans Assets/Prefabs/{Name}.kprefab,
+    /// réutilisable ensuite via "Create > Instantiate Prefab" sur n'importe
+    /// quelle scène. Chemin fixe pour rester simple — utilise "Rename" dans
+    /// le Project Panel pour déplacer/renommer le fichier après coup.
+    /// </summary>
+    void CreatePrefab(GameObject obj)
+    {
+        string dir = Path.Combine(SceneManager.AssetsDirectory, "Prefabs");
+        string path = Path.Combine(dir, $"{obj.Name}.kprefab");
+        PrefabManager.Save(obj, path);
     }
 
     /// <summary>
@@ -196,6 +233,27 @@ public class HierarchyPanel
 
         if (ImGui.MenuItem("UI Image"))
             CreatePredefined("UIImage", scene, parent);
+
+        ImGui.Separator();
+
+        if (ImGui.BeginMenu("Instantiate Prefab"))
+        {
+            var prefabs = PrefabManager.PrefabFiles().ToList();
+
+            if (prefabs.Count == 0)
+                ImGui.TextDisabled("Aucun prefab (clic droit sur un objet > Create Prefab)");
+
+            foreach (var path in prefabs)
+            {
+                if (ImGui.MenuItem(Path.GetFileNameWithoutExtension(path)))
+                {
+                    var obj = PrefabManager.Instantiate(path, scene, parent);
+                    EditorSelection.Selected = obj;
+                }
+            }
+
+            ImGui.EndMenu();
+        }
 
         ImGui.EndMenu();
     }
