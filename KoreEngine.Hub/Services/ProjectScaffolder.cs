@@ -358,17 +358,24 @@ EndGlobal
         Directory.CreateDirectory(playerDir);
 
         string programContent =
-$@"using KoreEngine.Engine;
+$@"using System;
+using System.IO;
+using System.Reflection;
+using System.Linq;
+using KoreEngine.Engine;
 
 class Program
 {{
-    static async Task Main()
+    static void Main()
     {{
-        // Compile les scripts une seule fois au lancement (pas de watch —
-        // ça, c'est un besoin d'éditeur, pas d'un jeu buildé).
-        var scripts = Directory.GetFiles(SceneManager.AssetsDirectory, ""*.cs"", SearchOption.AllDirectories);
-        await ScriptCompiler.CompileAsync(scripts);
+        // 1. Charge la DLL de scripts précompilée au build (ex: GameScripts.dll)
+        string scriptsDllPath = Path.Combine(AppContext.BaseDirectory, ""GameScripts.dll"");
+        if (File.Exists(scriptsDllPath))
+        {{
+            Assembly.LoadFrom(scriptsDllPath);
+        }}
 
+        // 2. Initialise et lance la boucle de jeu sans AUCUNE compilation
         SceneManager.ScanAndRegisterScenes();
         ProjectSettings.Load();
 

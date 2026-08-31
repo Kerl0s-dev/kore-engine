@@ -106,7 +106,7 @@ public class ConsolePanel
 
                     if (ImGui.IsItemHovered())
                     {
-                        ImGui.SetTooltip($"Double-clic pour ouvrir dans Visual Studio\n{entry.FilePath}:{entry.Line}");
+                        ImGui.SetTooltip($"Double-click to open in Visual Studio\n{entry.FilePath}:{entry.Line}");
                         if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                             ExternalEditor.OpenFileAtLine(entry.FilePath, entry.Line.Value);
                     }
