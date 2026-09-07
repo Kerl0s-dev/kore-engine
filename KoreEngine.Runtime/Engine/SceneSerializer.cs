@@ -13,7 +13,9 @@ public static class SceneSerializer
     {
         typeof(int), typeof(float), typeof(double), typeof(bool),
         typeof(string), typeof(byte), typeof(long),
-        typeof(Vector2), typeof(Rectangle)
+        typeof(Vector2),
+        typeof(Rectangle),
+        typeof(Color)
     };
 
     // ---------------------------------------------------------------
@@ -56,8 +58,9 @@ public static class SceneSerializer
         sb.AppendLine($"  Scale: {obj.LocalScale.X.ToString(inv)}, {obj.LocalScale.Y.ToString(inv)}");
         sb.AppendLine($"  Parent: {parent}");
 
-        foreach (var c in obj.Components)
+        foreach (var c in obj.Components) {
             WriteComponent(sb, c, idMap);
+        }
 
         sb.AppendLine("}");
     }
@@ -122,7 +125,12 @@ public static class SceneSerializer
         if (type == typeof(Rectangle))
         {
             var r = (Rectangle)value;
-            return $"{r.X} {r.Y} {r.Width} {r.Height}";
+            return $"{r.X.ToString(inv)} {r.Y.ToString(inv)} {r.Width.ToString(inv)} {r.Height.ToString(inv)}";
+        }
+        if (type == typeof(Color))
+        {
+            var col = (Color)value;
+            return $"{col.R.ToString(inv)} {col.G.ToString(inv)} {col.B.ToString(inv)}";
         }
         if (type == typeof(bool))
             return value.ToString()!.ToLower();
@@ -504,7 +512,8 @@ public static class SceneSerializer
             var p = value.Split(',');
             return new Vector2(
                 float.Parse(p[0].Trim(), inv),
-                float.Parse(p[1].Trim(), inv));
+                float.Parse(p[1].Trim(), inv)
+            );
         }
 
         if (type == typeof(Rectangle))
@@ -512,7 +521,18 @@ public static class SceneSerializer
             var p = value.Split(' ');
             return new Rectangle(
                 int.Parse(p[0]), int.Parse(p[1]),
-                int.Parse(p[2]), int.Parse(p[3]));
+                int.Parse(p[2]), int.Parse(p[3])
+            );
+        }
+
+        if (type == typeof(Color))
+        {
+            var p = value.Split(' ');
+            return new Color(
+                int.Parse(p[0].Trim()),
+                int.Parse(p[1].Trim()),
+                int.Parse(p[2].Trim())
+            );
         }
 
         if (type.IsEnum) return Enum.Parse(type, value);

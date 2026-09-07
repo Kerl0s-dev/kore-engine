@@ -27,8 +27,8 @@ public class Camera : Component
         }
     }
 
-    public Camera() : this(800, 600) { }
-    public Camera(int viewWidth = 800, int viewHeight = 600)
+    public Camera() : this(1920, 1080) { }
+    public Camera(int viewWidth = 1920, int viewHeight = 1080)
     {
         ViewWidth = viewWidth;
         ViewHeight = viewHeight;

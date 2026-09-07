@@ -386,13 +386,22 @@ namespace KoreEngine.Editor
                 activeDrag = DragMode.None;
         }
 
+        // ---------------------------------------------------------------
+        // Gizmos de transform (Style Moderne Unity/Unreal)
+        // ---------------------------------------------------------------
+
         void DrawMoveGizmo(GameObject obj, ImDrawListPtr dl, Vector2 originWorld,
             System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
             ImGuiIOPtr io, bool overViewport)
         {
-            uint red = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.25f, 0.25f, 1f));
-            uint green = ImGui.GetColorU32(new System.Numerics.Vector4(0.25f, 1f, 0.25f, 1f));
-            uint white = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 1f));
+            // Couleurs modernes (Style Unity : X = Rouge, Y = Vert)
+            bool isDraggingX = activeDrag == DragMode.MoveX;
+            bool isDraggingY = activeDrag == DragMode.MoveY;
+            bool isDraggingFree = activeDrag == DragMode.MoveFree;
+
+            uint colorX = isDraggingX ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.95f, 0.25f, 0.25f, 1f));
+            uint colorY = isDraggingY ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 1f));
+            uint colorCenter = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.9f));
 
             Vector2 xDir = GetAxisDir(obj, true);
             Vector2 yDir = GetAxisDir(obj, false);
@@ -403,20 +412,49 @@ namespace KoreEngine.Editor
             var xTipScreen = WorldToAbsScreen(xTipWorld, imageScreenPos);
             var yTipScreen = WorldToAbsScreen(yTipWorld, imageScreenPos);
 
-            dl.AddLine(originScreen, xTipScreen, red, LineThickness);
-            dl.AddLine(originScreen, yTipScreen, green, LineThickness);
+            // 1. Têtes de flèches (Triangles orientés selon l'axe)
+            float arrowSize = 12f * (EditorCamera.Zoom * 0.25f + 0.75f);
+            System.Numerics.Vector2 xNorm = System.Numerics.Vector2.Normalize(xTipScreen - originScreen);
+            System.Numerics.Vector2 yNorm = System.Numerics.Vector2.Normalize(yTipScreen - originScreen);
+            System.Numerics.Vector2 xPerp = new System.Numerics.Vector2(-xNorm.Y, xNorm.X);
+            System.Numerics.Vector2 yPerp = new System.Numerics.Vector2(-yNorm.Y, yNorm.X);
 
+            // Lignes des axes
+            dl.AddLine(originScreen, xTipScreen - xNorm * arrowSize, colorX, 2.5f);
+            dl.AddLine(originScreen, yTipScreen - yNorm * arrowSize, colorY, 2.5f);
+
+            // Triangles X & Y
+            dl.AddTriangleFilled(
+                xTipScreen,
+                xTipScreen - xNorm * arrowSize + xPerp * (arrowSize * 0.4f),
+                xTipScreen - xNorm * arrowSize - xPerp * (arrowSize * 0.4f),
+                colorX);
+
+            dl.AddTriangleFilled(
+                yTipScreen,
+                yTipScreen - yNorm * arrowSize + yPerp * (arrowSize * 0.4f),
+                yTipScreen - yNorm * arrowSize - yPerp * (arrowSize * 0.4f),
+                colorY);
+
+            // 2. Carré de déplacement libre au centre (Plane Handle)
+            float quadSize = 12f;
+            System.Numerics.Vector2 q1 = originScreen + xNorm * quadSize;
+            System.Numerics.Vector2 q2 = originScreen + xNorm * quadSize + yNorm * quadSize;
+            System.Numerics.Vector2 q3 = originScreen + yNorm * quadSize;
+
+            uint quadFill = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 0.5f)) : ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.2f));
+            dl.AddQuadFilled(originScreen, q1, q2, q3, quadFill);
+            dl.AddQuad(originScreen, q1, q2, q3, colorCenter, 1.5f);
+
+            // Logique d'interaction
             float tipR = HandleSize * EditorCamera.Zoom * 0.5f;
-            float centerR = tipR * 0.7f;
-            dl.AddCircleFilled(xTipScreen, tipR, red);
-            dl.AddCircleFilled(yTipScreen, tipR, green);
-            dl.AddCircleFilled(originScreen, centerR, white);
+            float centerR = quadSize;
 
             if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
             {
                 if (IsNear(io.MousePos, xTipScreen, tipR + HitPadding)) StartDrag(DragMode.MoveX, obj, io, imageScreenPos);
                 else if (IsNear(io.MousePos, yTipScreen, tipR + HitPadding)) StartDrag(DragMode.MoveY, obj, io, imageScreenPos);
-                else if (IsNear(io.MousePos, originScreen, centerR + HitPadding)) StartDrag(DragMode.MoveFree, obj, io, imageScreenPos);
+                else if (IsNear(io.MousePos, originScreen + (q2 - originScreen) * 0.5f, centerR + HitPadding)) StartDrag(DragMode.MoveFree, obj, io, imageScreenPos);
             }
 
             if (activeDrag is DragMode.MoveX or DragMode.MoveY or DragMode.MoveFree)
@@ -431,9 +469,6 @@ namespace KoreEngine.Editor
                     _ => delta
                 };
 
-                // NOTE : suppose que le parent (s'il existe) n'a ni rotation ni scale
-                // — cohérent avec le reste du moteur actuel (SetParent fait la même
-                // hypothèse). À revoir si un jour les parents peuvent tourner/scaler.
                 obj.LocalPosition = new Vector2(
                     dragStartPosition.X + worldDelta.X,
                     dragStartPosition.Y + worldDelta.Y);
@@ -444,9 +479,13 @@ namespace KoreEngine.Editor
             System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
             ImGuiIOPtr io, bool overViewport)
         {
-            uint red = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.25f, 0.25f, 1f));
-            uint green = ImGui.GetColorU32(new System.Numerics.Vector4(0.25f, 1f, 0.25f, 1f));
-            uint white = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 1f));
+            bool isDraggingX = activeDrag == DragMode.ScaleX;
+            bool isDraggingY = activeDrag == DragMode.ScaleY;
+            bool isDraggingFree = activeDrag == DragMode.ScaleFree;
+
+            uint colorX = isDraggingX ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.95f, 0.25f, 0.25f, 1f));
+            uint colorY = isDraggingY ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 1f));
+            uint colorCenter = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.8f, 0.8f, 0.8f, 1f));
 
             Vector2 xDir = GetAxisDir(obj, true);
             Vector2 yDir = GetAxisDir(obj, false);
@@ -457,14 +496,20 @@ namespace KoreEngine.Editor
             var xTipScreen = WorldToAbsScreen(xTipWorld, imageScreenPos);
             var yTipScreen = WorldToAbsScreen(yTipWorld, imageScreenPos);
 
-            dl.AddLine(originScreen, xTipScreen, red, 2f);
-            dl.AddLine(originScreen, yTipScreen, green, 2f);
+            // Lignes des axes
+            dl.AddLine(originScreen, xTipScreen, colorX, 2f);
+            dl.AddLine(originScreen, yTipScreen, colorY, 2f);
+
+            // Cube au bout des axes
+            float boxSize = 8f;
+            DrawSquare(dl, xTipScreen, boxSize * 2f, colorX);
+            DrawSquare(dl, yTipScreen, boxSize * 2f, colorY);
+
+            // Cube central pour le Scale uniforme
+            DrawSquare(dl, originScreen, boxSize * 2.2f, colorCenter);
 
             float handlePx = HandleSize * EditorCamera.Zoom;
             float centerPx = handlePx * 0.7f;
-            DrawSquare(dl, xTipScreen, handlePx, red);
-            DrawSquare(dl, yTipScreen, handlePx, green);
-            DrawSquare(dl, originScreen, centerPx, white);
 
             if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
             {
@@ -486,7 +531,7 @@ namespace KoreEngine.Editor
                     newScale = new Vector2(MathF.Max(0.01f, dragStartScale.X + dx), dragStartScale.Y);
                 else if (activeDrag == DragMode.ScaleY)
                     newScale = new Vector2(dragStartScale.X, MathF.Max(0.01f, dragStartScale.Y + dy));
-                else // ScaleFree — uniforme, garde le ratio initial, piloté par dx
+                else
                 {
                     float uniform = MathF.Max(0.01f, dragStartScale.X + dx);
                     float ratio = dragStartScale.X > 0.0001f ? dragStartScale.Y / dragStartScale.X : 1f;
@@ -501,13 +546,26 @@ namespace KoreEngine.Editor
             System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
             ImGuiIOPtr io, bool overViewport)
         {
-            uint orange = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.7f, 0f, 1f));
+            bool isDragging = activeDrag == DragMode.Rotate;
+
+            uint ringColor = isDragging
+                ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f))
+                : ImGui.GetColorU32(new System.Numerics.Vector4(0.2f, 0.6f, 1f, 0.9f));
+
+            uint trackColor = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.15f));
 
             Vector2 rimWorld = new Vector2(originWorld.X + ArmLength, originWorld.Y);
             var rimScreen = WorldToAbsScreen(rimWorld, imageScreenPos);
             float radiusScreen = (rimScreen - originScreen).Length();
 
-            dl.AddCircle(originScreen, radiusScreen, orange, 48, RingThickness);
+            // 1. Cercle d'arrière-plan semi-transparent
+            dl.AddCircle(originScreen, radiusScreen, trackColor, 64, 1.5f);
+
+            // 2. Anneau principal
+            dl.AddCircle(originScreen, radiusScreen, ringColor, 64, isDragging ? 3.5f : 2f);
+
+            // 3. Petit repère au centre
+            dl.AddCircleFilled(originScreen, 3f, ringColor);
 
             if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
             {
@@ -522,6 +580,13 @@ namespace KoreEngine.Editor
                 float angleNow = AngleTo(obj.WorldPosition, mouseWorldNow);
                 float deltaAngle = angleNow - dragStartMouseAngle;
                 obj.LocalRotation = dragStartRotationValue - deltaAngle;
+
+                // Visualisation de l'angle lors du drag (Secteur angulaire)
+                System.Numerics.Vector2 startMouseScreen = WorldToAbsScreen(dragStartWorldMouse, imageScreenPos);
+                System.Numerics.Vector2 currentMouseScreen = io.MousePos;
+
+                dl.AddLine(originScreen, startMouseScreen, ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.4f)), 1.5f);
+                dl.AddLine(originScreen, currentMouseScreen, ringColor, 2f);
             }
         }
 
