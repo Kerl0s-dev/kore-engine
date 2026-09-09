@@ -1,7 +1,7 @@
 ﻿using KoreEngine.Core;
 using KoreEngine.Components;
 
-namespace KoreEngine.Physics
+namespace KoreEngine
 {
     public class CollisionSystem
     {

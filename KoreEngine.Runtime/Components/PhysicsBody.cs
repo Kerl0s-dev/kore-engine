@@ -1,4 +1,5 @@
 ﻿using KoreEngine.Core;
+using KoreEngine;
 
 namespace KoreEngine.Components;
 
@@ -6,8 +7,7 @@ public class PhysicsBody : Component
 {
     public Vector2 Velocity;
     public bool IsStatic = false;
-    public float GravityScale = 0f;
-    public static float GlobalGravity = 800f;
+    public float GravityScale = 1f;
     public float Friction = 0f;
     public float Mass = 1f;
     public float MaxFallSpeed = 1000f;
@@ -22,8 +22,7 @@ public class PhysicsBody : Component
             Velocity.Y = 0;
 
         IsGrounded = false; // reset chaque frame, rétabli par CollisionSystem
-
-        Velocity.Y += GlobalGravity * GravityScale * dt;
+        Physics.CalculatePhysics(this, dt);
 
         if (GravityScale > 0)
             Velocity.Y = MathF.Min(Velocity.Y, MaxFallSpeed);

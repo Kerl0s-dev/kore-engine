@@ -1,7 +1,7 @@
 ﻿using KoreEngine.Components;
 using KoreEngine.Core;
 
-namespace KoreEngine.Physics;
+namespace KoreEngine;
 
 public struct CollisionInfo
 {
