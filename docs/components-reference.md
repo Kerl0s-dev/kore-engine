@@ -1,6 +1,6 @@
 # KoreEngine — Référence des Components
 
-> Mis à jour à partir du code source complet (`KoreEngine.rar`). Couvre désormais tous les composants du moteur.
+> Mis à jour à partir du code source complet le plus récent (archive du 09/09/2026). Couvre tous les composants du moteur, plus les APIs Runtime les plus utilisées depuis un script (Instantiate, Prefabs).
 
 ## `Component` (classe de base, `KoreEngine.Core`)
 
@@ -155,3 +155,27 @@ Coexiste avec l'accès direct à `InputManager` déjà utilisé ailleurs (`UIBut
 - **`Vector2`** (struct) : `+`, `-` (unaire/binaire), `*`/`/` scalaire, `Zero`/`One`/`NegativeOne`/`Up` (=`(0,-1)`)/`Down` (=`(0,1)`), `Length()`, `Normalize()`, `Lerp`/`LerpUnclamped`.
 - **`Rectangle`** (struct) : `X, Y, Width, Height`, `Left/Right/Top/Bottom` calculés, `Intersects(other)`.
 - **`Color`** (classe) : `R, G, B` (int), constantes `Black/White/Red/Green/Blue`. Pas de canal alpha stocké (passé séparément en paramètre `byte a` par `Renderer`).
+
+## Instanciation dynamique — `GameObject.Instantiate` (`KoreEngine.Core`)
+
+Équivalent d'un `Object.Instantiate(prefab)` à la Unity, appelable depuis un script pour faire apparaître dynamiquement des objets (balles, ennemis, objets ramassables...) :
+
+```csharp
+GameObject clone = someObject.Instantiate(targetScene, position: null);
+```
+
+Fonctionne par round-trip de sérialisation (`SerializeObjectTree` → `DeserializeObjectTree`). Les champs qui référencent un objet **hors** de la hiérarchie clonée (ex : une référence directe vers la Camera de la scène gardée sur un script) ne sont **pas** recopiés sur le clone — à réassigner soi-même après coup si besoin.
+
+## Prefabs — `PrefabManager` (`KoreEngine.Engine`, statique)
+
+| Membre | Rôle |
+|---|---|
+| `PrefabFiles()` | Tous les `.kprefab` sous `Assets/` (comme `SceneManager.SceneFiles()`). |
+| `Save(GameObject obj, string path)` | Sérialise l'objet et ses enfants dans un fichier `.kprefab` (même format texte que les scènes, réutilise `SceneSerializer.SerializeObjectTree`). |
+| `Instantiate(string path, Scene scene, GameObject? parent = null, Vector2? position = null)` | Désérialise et ajoute l'objet à `scene`, optionnellement sous `parent` et/ou à `position` (sinon la position d'origine du prefab). |
+
+Côté éditeur : *Create Prefab* (clic droit sur un objet, Hierarchy) écrit sous `Assets/Prefabs/{Name}.kprefab` ; *Instantiate Prefab* (clic droit sur l'espace vide) liste tous les prefabs disponibles. Le Project Panel permet aussi de double-cliquer/glisser un `.kprefab` pour l'instancier.
+
+## `ProjectSettings` (`KoreEngine.Engine`, statique)
+
+`StartupScene` (string?) — nom de la scène à charger au démarrage d'un jeu buildé (`GameLoop`, sans éditeur pour choisir une scène à la main). Persisté en texte simple dans `Assets/ProjectSettings.txt` via `Load()`/`Save()`.
