@@ -99,9 +99,9 @@ public class AudioSource : Component
         // à un listener/caméra, pas la position monde brute. Pour l'instant
         // on utilise WorldPosition directement ; à revoir une fois qu'un
         // vrai concept de listener/caméra actif existe dans le moteur.
-        if (Spatial2D && track != IntPtr.Zero && Owner != null)
+        if (Spatial2D && track != IntPtr.Zero && gameObject != null)
         {
-            var p = Owner.WorldPosition;
+            var p = gameObject.WorldPosition;
             AudioManager.SetTrackPosition(track, p.X, p.Y);
         }
     }
@@ -128,9 +128,9 @@ public class AudioSource : Component
         AudioManager.SetTrackVolume(track, Volume);
         AudioManager.SetTrackPitch(track, Pitch);
 
-        if (Spatial2D && Owner != null)
+        if (Spatial2D && gameObject != null)
         {
-            var p = Owner.WorldPosition;
+            var p = gameObject.WorldPosition;
             AudioManager.SetTrackPosition(track, p.X, p.Y);
         }
         else

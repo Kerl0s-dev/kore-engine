@@ -701,7 +701,7 @@ public class {newItemName.Trim()} : Component
         return Directory.GetCurrentDirectory();
     }
 
-    static void OpenInEditor(string path) => ExternalEditor.OpenFile(path);
+    static void OpenInEditor(string path) => ExternalEditor.OpenFileAtLine(path, 1);
 
     static void OpenInExplorer(string path)
     {

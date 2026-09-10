@@ -10,11 +10,11 @@ public class RectRenderer : Component
 
     public override void Render(Renderer renderer, Camera? camera)
     {
-        var scale = Owner.WorldScale;
+        var scale = gameObject.WorldScale;
         int w = (int)(Size.X * scale.X);
         int h = (int)(Size.Y * scale.Y);
 
-        var pos = Owner.WorldPosition;
+        var pos = gameObject.WorldPosition;
         int x = (int)(pos.X - w / 2f);
         int y = (int)(pos.Y + h / 2f); // + et non -, car Y-haut : le "haut" visuel = Y max
 

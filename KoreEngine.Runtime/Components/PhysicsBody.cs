@@ -30,7 +30,7 @@ public class PhysicsBody : Component
         if (Friction > 0)
             Velocity.X *= MathF.Pow(1f - Friction, dt);
 
-        Owner.Position += Velocity * dt;
+        gameObject.Position += Velocity * dt;
     }
 
     public void ApplyForce(Vector2 force) => Velocity += force / Mass;

@@ -85,8 +85,8 @@ public static class SceneSerializer
             var value = field.GetValue(c);
             if (value == null) continue;
 
-            if (value is Component comp && comp.Owner != null
-                && idMap.TryGetValue(comp.Owner, out var refId))
+            if (value is Component comp && comp.gameObject != null
+                && idMap.TryGetValue(comp.gameObject, out var refId))
             {
                 // @obj_2:Camera
                 sb.AppendLine($"    {field.Name}: @{refId}:{comp.GetType().Name}");

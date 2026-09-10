@@ -19,14 +19,14 @@ public class UICanvas : Component
     /// </summary>
     public T Add<T>(T element) where T : UIElement
     {
-        if (Owner?.Scene == null)
+        if (gameObject?.Scene == null)
             throw new InvalidOperationException(
                 "UICanvas.Add() : appelle scene.Add(canvasObject) avant canvas.Add(...).");
 
         // Crée le GameObject qui portera le composant
         var go = new GameObject(element.GetType().Name);
-        Owner.Scene.Add(go);          // ajoute en racine…
-        go.SetParent(Owner, Owner.Scene); // …puis enfant du Canvas owner
+        gameObject.Scene.Add(go);          // ajoute en racine…
+        go.SetParent(gameObject, gameObject.Scene); // …puis enfant du Canvas owner
 
         // Attache le composant et configure la référence Canvas
         element.Canvas = this;

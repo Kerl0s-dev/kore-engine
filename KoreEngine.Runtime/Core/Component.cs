@@ -5,7 +5,7 @@ namespace KoreEngine.Core;
 
 public abstract class Component
 {
-    [HideInInspector] public GameObject Owner = new("");
+    [HideInInspector] public GameObject gameObject = new("");
     public virtual void Update(float dt) { }
     public virtual void Render(Renderer renderer, Camera? camera) { }
 

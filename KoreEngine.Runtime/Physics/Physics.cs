@@ -19,7 +19,7 @@ namespace KoreEngine
                 body.Velocity.X *= MathF.Pow(1f - body.Friction, deltaTime);
 
             // Update position
-            body.Owner.Position += body.Velocity * deltaTime;
+            body.gameObject.Position += body.Velocity * deltaTime;
         }
     }
 }

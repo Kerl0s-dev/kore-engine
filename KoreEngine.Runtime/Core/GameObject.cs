@@ -127,7 +127,7 @@ public partial class GameObject
 
     public T AddComponent<T>(T component) where T : Component
     {
-        component.Owner = this;
+        component.gameObject = this;
         Components.Add(component);
         return component;
     }
@@ -136,23 +136,21 @@ public partial class GameObject
     {
         component.OnDestroy();
         Components.Remove(component);
-        component.Owner = null!;
+        component.gameObject = null!;
     }
 
     public void RemoveComponent(Component component)
     {
         component.OnDestroy();
         Components.Remove(component);
-        component.Owner = null!;
+        component.gameObject = null!;
     }
 
-    public T? GetComponent<T>() where T : Component
-        => Components.OfType<T>().FirstOrDefault();
+    public T? GetComponent<T>() where T : Component => Components.OfType<T>().FirstOrDefault();
 
     // Surcharge non générique — utilisée par le picker de l'inspector
     // pour filtrer les objets par type de composant sans generics.
-    public Component? GetComponent(Type type)
-        => Components.FirstOrDefault(c => type.IsAssignableFrom(c.GetType()));
+    public Component? GetComponent(Type type) => Components.FirstOrDefault(c => type.IsAssignableFrom(c.GetType()));
 
     // ---------------------------------------------------------------
     // Update / Render (récursifs)

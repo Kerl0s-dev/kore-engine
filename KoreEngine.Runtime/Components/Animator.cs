@@ -45,8 +45,8 @@ namespace KoreEngine.Components
 
         public override void Start()
         {
-            body = Owner.GetComponent<PhysicsBody>();
-            Target = Owner.GetComponent<SpriteRenderer>();
+            body = gameObject.GetComponent<PhysicsBody>();
+            Target = gameObject.GetComponent<SpriteRenderer>();
             Apply();
         }
 
@@ -182,7 +182,7 @@ namespace KoreEngine.Components
                 Label = "Apply",
                 Action = () =>
                 {
-                    body = Owner.GetComponent<PhysicsBody>();
+                    body = gameObject.GetComponent<PhysicsBody>();
                     Apply();
                 },
                 Tooltip = "Recharge animations et transitions dans la state machine."

@@ -93,13 +93,13 @@ public class SpriteRenderer : Component
 
         SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
 
-        var pos = Owner.WorldPosition;
-        var scale = Owner.WorldScale;
+        var pos = gameObject.WorldPosition;
+        var scale = gameObject.WorldScale;
         int w = (int)(Size.X * scale.X);
         int h = (int)(Size.Y * scale.Y);
         int x = (int)(pos.X - w / 2f);
         int y = (int)(pos.Y + h / 2f);
-        double angle = Owner.WorldRotation;
+        double angle = gameObject.WorldRotation;
 
         if (StateMachine != null)
         {

@@ -295,7 +295,7 @@ public class InspectorPanel
                 }
 
                 var current = crf.Get();
-                DrawPickerField(crf.Label, current?.Owner?.Name,
+                DrawPickerField(crf.Label, current?.gameObject?.Name,
                     $"None ({crf.ComponentType.Name})",
                     popupId, crf.ComponentType,
                     go => pendingResults[popupId] = go,
@@ -511,7 +511,7 @@ public class InspectorPanel
                     float labelW = total * 0.4f;
                     float widgetW = total * 0.6f - 24f;
                     ImGui.SetNextItemWidth(widgetW);
-                    string display = current?.Owner?.Name ?? $"None ({type.Name})";
+                    string display = current?.gameObject?.Name ?? $"None ({type.Name})";
                     ImGui.InputText($"{id}_display", ref display, 128,
                         ImGuiInputTextFlags.ReadOnly);
                     ImGui.SameLine();
@@ -610,11 +610,11 @@ public class InspectorPanel
             pendingResults.Remove(popupId);
         }
 
-        string display = current?.Owner != null
-            ? $"{current.Owner.Name} ({typeof(T).Name})"
+        string display = current?.gameObject != null
+            ? $"{current.gameObject.Name} ({typeof(T).Name})"
             : $"None ({typeof(T).Name})";
 
-        DrawPickerField(label, current?.Owner?.Name, $"None ({typeof(T).Name})",
+        DrawPickerField(label, current?.gameObject?.Name, $"None ({typeof(T).Name})",
             popupId, typeof(T),
             obj => pendingResults[popupId] = obj,
             () => pendingResults[popupId] = null);
