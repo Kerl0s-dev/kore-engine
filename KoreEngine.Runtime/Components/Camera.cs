@@ -19,10 +19,10 @@ public class Camera : Component
     /// </summary>
     public virtual Vector2 Position
     {
-        get => gameObject != null ? gameObject.WorldPosition : _position;
+        get => gameObject != null ? gameObject.transform.WorldPosition : _position;
         set
         {
-            if (gameObject != null) gameObject.LocalPosition = value;
+            if (gameObject != null) gameObject.transform.LocalPosition = value;
             else _position = value;
         }
     }

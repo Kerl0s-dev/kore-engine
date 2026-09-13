@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using KoreEngine.Components;
 using KoreEngine.Core;
 using KoreEngine.Engine;
 using System.Reflection;
@@ -39,54 +40,6 @@ public class InspectorPanel
 
         ImGui.Separator();
 
-        // --- Transform ---
-        if (ImGui.CollapsingHeader("Transform", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            float px = obj.LocalPosition.X;
-            float py = obj.LocalPosition.Y;
-
-            DrawField("Local X", () =>
-            {
-                if (ImGui.DragFloat("##px", ref px, 0.5f))
-                    obj.LocalPosition = new Vector2(px, obj.LocalPosition.Y);
-            });
-            DrawField("Local Y", () =>
-            {
-                if (ImGui.DragFloat("##py", ref py, 0.5f))
-                    obj.LocalPosition = new Vector2(obj.LocalPosition.X, py);
-            });
-
-            float rot = obj.LocalRotation;
-            DrawField("Rotation", () =>
-            {
-                if (ImGui.DragFloat("##rot", ref rot, 1f))
-                    obj.LocalRotation = rot;
-            });
-
-            float sx = obj.LocalScale.X;
-            float sy = obj.LocalScale.Y;
-            DrawField("Scale X", () =>
-            {
-                if (ImGui.DragFloat("##sx", ref sx, 0.01f))
-                    obj.LocalScale = new Vector2(sx, obj.LocalScale.Y);
-            });
-            DrawField("Scale Y", () =>
-            {
-                if (ImGui.DragFloat("##sy", ref sy, 0.01f))
-                    obj.LocalScale = new Vector2(obj.LocalScale.X, sy);
-            });
-
-            if (obj.Parent != null)
-            {
-                DrawField("World X", () =>
-                    ImGui.TextDisabled($"{obj.WorldPosition.X:F1}"));
-                DrawField("World Y", () =>
-                    ImGui.TextDisabled($"{obj.WorldPosition.Y:F1}"));
-                DrawField("World Rotation", () =>
-                    ImGui.TextDisabled($"{obj.WorldRotation:F1}"));
-            }
-        }
-
         // --- Composants ---
         if (obj.Components.Count > 0)
         {
@@ -98,8 +51,9 @@ public class InspectorPanel
 
                 if (ImGui.BeginPopupContextItem($"cctx_{c.GetHashCode()}"))
                 {
-                    if (ImGui.MenuItem("Remove Component"))
+                    if (ImGui.MenuItem("Remove Component")) {
                         pendingRemove = c;
+                    }
                     ImGui.EndPopup();
                 }
 

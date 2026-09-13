@@ -71,13 +71,13 @@ namespace KoreEngine
                             if (overlapX < overlapY)
                             {
                                 float sign = centerAX < centerBX ? -1 : 1;
-                                b.gameObject.Position -= new Vector2(overlapX * sign, 0);
+                                b.gameObject.transform.Position -= new Vector2(overlapX * sign, 0);
                                 normal = new Vector2(-sign, 0);
                             }
                             else
                             {
                                 float sign = centerAY < centerBY ? -1 : 1;
-                                b.gameObject.Position -= new Vector2(0, overlapY * sign);
+                                b.gameObject.transform.Position -= new Vector2(0, overlapY * sign);
                                 normal = new Vector2(0, -sign);
                             }
                         }
@@ -85,7 +85,7 @@ namespace KoreEngine
                         {
                             Vector2 excess = new Vector2(velA.X * dt * (1f - tFirst),
                                                             velA.Y * dt * (1f - tFirst));
-                            b.gameObject.Position -= excess;
+                            b.gameObject.transform.Position -= excess;
                         }
 
                         if (bodyB == null) return;
@@ -111,13 +111,13 @@ namespace KoreEngine
                             if (overlapX < overlapY)
                             {
                                 float sign = centerAX < centerBX ? -1 : 1;
-                                a.gameObject.Position -= new Vector2(overlapX * sign, 0);
+                                a.gameObject.transform.Position -= new Vector2(overlapX * sign, 0);
                                 normal = new Vector2(-sign, 0);
                             }
                             else
                             {
                                 float sign = centerAY < centerBY ? -1 : 1;
-                                a.gameObject.Position -= new Vector2(0, overlapY * sign);
+                                a.gameObject.transform.Position -= new Vector2(0, overlapY * sign);
                                 normal = new Vector2(0, -sign);
                             }
                         }
@@ -125,7 +125,7 @@ namespace KoreEngine
                         {
                             Vector2 excess = new Vector2(velA.X * dt * (1f - tFirst),
                                                             velA.Y * dt * (1f - tFirst));
-                            a.gameObject.Position -= excess;
+                            a.gameObject.transform.Position -= excess;
                         }
 
                         if (bodyA == null) return;
@@ -140,9 +140,9 @@ namespace KoreEngine
                         float ratioA = bodyB.Mass / totalMass;
                         float ratioB = bodyA.Mass / totalMass;
 
-                        a.gameObject.Position -= new Vector2(velA.X * (1f - tFirst) * dt * ratioA,
+                        a.gameObject.transform.Position -= new Vector2(velA.X * (1f - tFirst) * dt * ratioA,
                                                         velA.Y * (1f - tFirst) * dt * ratioA);
-                        b.gameObject.Position -= new Vector2(velB.X * (1f - tFirst) * dt * ratioB,
+                        b.gameObject.transform.Position -= new Vector2(velB.X * (1f - tFirst) * dt * ratioB,
                                                         velB.Y * (1f - tFirst) * dt * ratioB);
                         CancelVelocity(bodyA, -normal);
                         CancelVelocity(bodyB, normal);

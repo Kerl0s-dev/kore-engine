@@ -53,9 +53,9 @@ public static class SceneSerializer
         sb.AppendLine();
         sb.AppendLine($"Object: {id} {{");
         sb.AppendLine($"  Name: {obj.Name}");
-        sb.AppendLine($"  Position: {obj.LocalPosition.X.ToString(inv)}, {obj.LocalPosition.Y.ToString(inv)}");
-        sb.AppendLine($"  Rotation: {obj.LocalRotation.ToString(inv)}");
-        sb.AppendLine($"  Scale: {obj.LocalScale.X.ToString(inv)}, {obj.LocalScale.Y.ToString(inv)}");
+        sb.AppendLine($"  Position: {obj.transform.LocalPosition.X.ToString(inv)}, {obj.transform.LocalPosition.Y.ToString(inv)}");
+        sb.AppendLine($"  Rotation: {obj.transform.LocalRotation.ToString(inv)}");
+        sb.AppendLine($"  Scale: {obj.transform.LocalScale.X.ToString(inv)}, {obj.transform.LocalScale.Y.ToString(inv)}");
         sb.AppendLine($"  Parent: {parent}");
 
         foreach (var c in obj.Components) {
@@ -412,7 +412,7 @@ public static class SceneSerializer
                         System.Globalization.CultureInfo.InvariantCulture, out float x) &&
                     float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out float y))
-                    obj.LocalPosition = new Vector2(x, y);
+                    obj.transform.LocalPosition = new Vector2(x, y);
             }
 
             else if (line.StartsWith("Rotation:"))
@@ -420,7 +420,7 @@ public static class SceneSerializer
                 if (float.TryParse(line["Rotation:".Length..].Trim(),
                     System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out float rot))
-                    obj.LocalRotation = rot;
+                    obj.transform.LocalRotation = rot;
             }
 
             else if (line.StartsWith("Scale:"))
@@ -431,7 +431,7 @@ public static class SceneSerializer
                         System.Globalization.CultureInfo.InvariantCulture, out float sx) &&
                     float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out float sy))
-                    obj.LocalScale = new Vector2(sx, sy);
+                    obj.transform.LocalScale = new Vector2(sx, sy);
             }
 
             else if (line.StartsWith("Parent:"))

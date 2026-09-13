@@ -16,8 +16,8 @@ public class Collider : Component
     {
         get
         {
-            var pos = gameObject.WorldPosition;
-            var scale = gameObject.WorldScale;
+            var pos = gameObject.transform.WorldPosition;
+            var scale = gameObject.transform.WorldScale;
             int w = (int)(Width * scale.X);
             int h = (int)(Height * scale.Y);
             int x = (int)(pos.X - w / 2f) + OffsetX;

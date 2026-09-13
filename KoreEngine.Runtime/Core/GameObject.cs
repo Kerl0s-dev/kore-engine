@@ -13,48 +13,7 @@ public partial class GameObject
     // Transform hiérarchique
     // ---------------------------------------------------------------
 
-    // Position LOCALE : relative au parent (ou absolue si pas de parent).
-    // C'est cette valeur qu'on édite dans l'Inspector et qu'on stocke.
-    public Vector2 LocalPosition;
-    public Vector2 PreviousPosition;
-
-    // Position MONDE : remonte la chaîne de parents pour calculer la
-    // position absolue. Utilisée par le rendu et la physique.
-    // IMPORTANT : tous les composants qui dessinaient via Owner.Position
-    // doivent maintenant utiliser Owner.WorldPosition.
-    public Vector2 WorldPosition
-    {
-        get => Parent != null
-            ? Parent.WorldPosition + LocalPosition
-            : LocalPosition;
-    }
-
-    // Alias rétrocompatible — pointe sur LocalPosition pour que l'ancien
-    // code qui écrit Position continue de compiler. À migrer vers
-    // LocalPosition/WorldPosition selon le contexte au fil du temps.
-    public Vector2 Position
-    {
-        get => LocalPosition;
-        set => LocalPosition = value;
-    }
-
-    // Rotation locale en degrés.
-    public float LocalRotation;
-
-    public float WorldRotation
-    {
-        get => Parent != null ? Parent.WorldRotation + LocalRotation : LocalRotation;
-    }
-
-    // Scale locale — multiplicatif le long de la hiérarchie.
-    public Vector2 LocalScale = new Vector2(1f, 1f);
-
-    public Vector2 WorldScale
-    {
-        get => Parent != null
-            ? new Vector2(Parent.WorldScale.X * LocalScale.X, Parent.WorldScale.Y * LocalScale.Y)
-            : LocalScale;
-    }
+    public Transform transform => GetComponent<Transform>() ?? throw new InvalidOperationException($"GameObject '{Name}' n'a pas de composant Transform.");
 
     // ---------------------------------------------------------------
     // Hiérarchie parent / enfants
@@ -78,7 +37,7 @@ public partial class GameObject
         if (newParent != null && newParent.IsDescendantOf(this)) return;
 
         // Sauvegarde la position monde avant de changer de parent.
-        var worldPos = WorldPosition;
+        var worldPos = transform.WorldPosition;
 
         // Détache de l'ancien parent (ou de la racine de la scène).
         if (Parent != null)
@@ -95,8 +54,8 @@ public partial class GameObject
             scene?.RootObjects.Add(this);
 
         // Recalcule LocalPosition pour conserver la position monde.
-        LocalPosition = newParent != null
-            ? worldPos - newParent.WorldPosition
+        transform.LocalPosition = newParent != null
+            ? worldPos - newParent.transform.WorldPosition
             : worldPos;
     }
 
@@ -123,7 +82,7 @@ public partial class GameObject
         Name = name ?? $"GameObject ({++nameCounter})";
     }
 
-    public GameObject() { }
+    public GameObject() {}
 
     public T AddComponent<T>(T component) where T : Component
     {
@@ -194,7 +153,7 @@ public partial class GameObject
         var clone = SceneSerializer.DeserializeObjectTree(data, targetScene)
             ?? throw new InvalidOperationException($"Échec de l'instanciation de '{Name}'.");
 
-        clone.LocalPosition = position ?? LocalPosition;
+        clone.transform.LocalPosition = position ?? clone.transform.LocalPosition;
         return clone;
     }
 }

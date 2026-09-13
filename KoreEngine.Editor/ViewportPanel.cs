@@ -151,20 +151,20 @@ namespace KoreEngine.Editor
             var rect = obj.GetComponent<RectRenderer>();
             if (rect != null)
             {
-                var scale = obj.WorldScale;
+                var scale = obj.transform.WorldScale;
                 int w = (int)(rect.Size.X * scale.X);
                 int h = (int)(rect.Size.Y * scale.Y);
-                var pos = obj.WorldPosition;
+                var pos = obj.transform.WorldPosition;
                 return new Rectangle((int)(pos.X - w / 2f), (int)(pos.Y - h / 2f), w, h);
             }
 
             var sprite = obj.GetComponent<SpriteRenderer>();
             if (sprite != null)
             {
-                var scale = obj.WorldScale;
+                var scale = obj.transform.WorldScale;
                 int w = (int)(sprite.Size.X * scale.X);
                 int h = (int)(sprite.Size.Y * scale.Y);
-                var pos = obj.WorldPosition;
+                var pos = obj.transform.WorldPosition;
                 return new Rectangle((int)(pos.X - w / 2f), (int)(pos.Y - h / 2f), w, h);
             }
 
@@ -341,7 +341,7 @@ namespace KoreEngine.Editor
             if (EditorSelection.ActiveGizmoSpace == GizmoSpace.World)
                 return xAxis ? new Vector2(1, 0) : new Vector2(0, 1);
 
-            float rad = -obj.WorldRotation * MathF.PI / 180f; // signe inversé
+            float rad = -obj.transform.WorldRotation * MathF.PI / 180f; // signe inversé
             float cos = MathF.Cos(rad), sin = MathF.Sin(rad);
             return xAxis ? new Vector2(cos, sin) : new Vector2(-sin, cos);
         }
@@ -350,10 +350,10 @@ namespace KoreEngine.Editor
         {
             activeDrag = mode;
             dragStartWorldMouse = AbsScreenToWorld(io.MousePos, imageScreenPos);
-            dragStartPosition = obj.LocalPosition;
-            dragStartScale = obj.LocalScale;
-            dragStartRotationValue = obj.LocalRotation;
-            dragStartMouseAngle = AngleTo(obj.WorldPosition, dragStartWorldMouse);
+            dragStartPosition = obj.transform.LocalPosition;
+            dragStartScale = obj.transform.LocalScale;
+            dragStartRotationValue = obj.transform.LocalRotation;
+            dragStartMouseAngle = AngleTo(obj.transform.WorldPosition, dragStartWorldMouse);
         }
 
         void DrawGizmo(System.Numerics.Vector2 imageScreenPos, ImGuiIOPtr io, bool overViewport)
@@ -366,7 +366,7 @@ namespace KoreEngine.Editor
             }
 
             var dl = ImGui.GetWindowDrawList();
-            Vector2 originWorld = obj.WorldPosition;
+            Vector2 originWorld = obj.transform.WorldPosition;
             System.Numerics.Vector2 originScreen = WorldToAbsScreen(originWorld, imageScreenPos);
 
             switch (EditorSelection.ActiveGizmoMode)
@@ -469,7 +469,7 @@ namespace KoreEngine.Editor
                     _ => delta
                 };
 
-                obj.LocalPosition = new Vector2(
+                obj.transform.LocalPosition = new Vector2(
                     dragStartPosition.X + worldDelta.X,
                     dragStartPosition.Y + worldDelta.Y);
             }
@@ -538,7 +538,7 @@ namespace KoreEngine.Editor
                     newScale = new Vector2(uniform, uniform * ratio);
                 }
 
-                obj.LocalScale = newScale;
+                obj.transform.LocalScale = newScale;
             }
         }
 
@@ -577,9 +577,9 @@ namespace KoreEngine.Editor
             if (activeDrag == DragMode.Rotate)
             {
                 Vector2 mouseWorldNow = AbsScreenToWorld(io.MousePos, imageScreenPos);
-                float angleNow = AngleTo(obj.WorldPosition, mouseWorldNow);
+                float angleNow = AngleTo(obj.transform.WorldPosition, mouseWorldNow);
                 float deltaAngle = angleNow - dragStartMouseAngle;
-                obj.LocalRotation = dragStartRotationValue - deltaAngle;
+                obj.transform.LocalRotation = dragStartRotationValue - deltaAngle;
 
                 // Visualisation de l'angle lors du drag (Secteur angulaire)
                 System.Numerics.Vector2 startMouseScreen = WorldToAbsScreen(dragStartWorldMouse, imageScreenPos);

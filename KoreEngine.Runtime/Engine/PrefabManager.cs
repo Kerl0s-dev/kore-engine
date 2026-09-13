@@ -45,7 +45,7 @@ public static class PrefabManager
             ?? throw new Exception($"Échec de l'instanciation du prefab : {path}");
 
         if (parent != null) obj.SetParent(parent, scene);
-        if (position.HasValue) obj.LocalPosition = position.Value;
+        if (position.HasValue) obj.transform.LocalPosition = position.Value;
 
         return obj;
     }

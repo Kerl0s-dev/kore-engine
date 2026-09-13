@@ -101,7 +101,7 @@ public class AudioSource : Component
         // vrai concept de listener/caméra actif existe dans le moteur.
         if (Spatial2D && track != IntPtr.Zero && gameObject != null)
         {
-            var p = gameObject.WorldPosition;
+            var p = gameObject.transform.WorldPosition;
             AudioManager.SetTrackPosition(track, p.X, p.Y);
         }
     }
@@ -130,7 +130,7 @@ public class AudioSource : Component
 
         if (Spatial2D && gameObject != null)
         {
-            var p = gameObject.WorldPosition;
+            var p = gameObject.transform.WorldPosition;
             AudioManager.SetTrackPosition(track, p.X, p.Y);
         }
         else
