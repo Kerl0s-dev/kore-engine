@@ -49,10 +49,31 @@ public class InspectorPanel
             {
                 bool open = ImGui.CollapsingHeader($"{c.GetType().Name}##{c.GetHashCode()}");
 
+                // Vérification si le composant possède l'attribut UnremovableComponent
+                bool isUnremovable = c.GetType().GetCustomAttribute<UnremovableComponentAttribute>() != null;
+
                 if (ImGui.BeginPopupContextItem($"cctx_{c.GetHashCode()}"))
                 {
-                    if (ImGui.MenuItem("Remove Component")) {
-                        pendingRemove = c;
+                    if (isUnremovable)
+                    {
+                        // Option : soit on désactive le menu de suppression
+                        ImGui.BeginDisabled();
+                        ImGui.MenuItem("Remove Component (Required)");
+                        ImGui.EndDisabled();
+
+                        //if (ImGui.BeginMenu("Reset"))
+                        //{
+                        //    if (ImGui.MenuItem("Position")) { obj.transform.Position = new Vector2(0, 0); }
+                        //    if (ImGui.MenuItem("Rotation")) { obj.transform.Rotation = 0; }
+                        //    if (ImGui.MenuItem("Scale")) { obj.transform.Scale = new Vector2(0, 0); }
+                        //}
+                    }
+                    else
+                    {
+                        if (ImGui.MenuItem("Remove Component"))
+                        {
+                            pendingRemove = c;
+                        }
                     }
                     ImGui.EndPopup();
                 }
@@ -103,6 +124,9 @@ public class InspectorPanel
         string filter = componentSearch.Trim().ToLowerInvariant();
         for (int i = 0; i < componentTypes!.Length; i++)
         {
+            if (componentTypes[i] == typeof(Transform))
+                continue;
+
             if (filter.Length > 0 &&
                 !componentNames[i].ToLowerInvariant().Contains(filter)) continue;
 

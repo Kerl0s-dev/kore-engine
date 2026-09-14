@@ -26,7 +26,7 @@ public class UICanvas : Component
         // Crée le GameObject qui portera le composant
         var go = new GameObject(element.GetType().Name);
         gameObject.Scene.Add(go);          // ajoute en racine…
-        go.SetParent(gameObject, gameObject.Scene); // …puis enfant du Canvas owner
+        go.transform.SetParent(gameObject, gameObject.Scene); // …puis enfant du Canvas owner
 
         // Attache le composant et configure la référence Canvas
         element.Canvas = this;

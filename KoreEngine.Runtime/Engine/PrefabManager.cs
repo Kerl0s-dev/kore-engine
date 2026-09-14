@@ -44,7 +44,7 @@ public static class PrefabManager
         var obj = SceneSerializer.DeserializeObjectTree(text, scene)
             ?? throw new Exception($"Échec de l'instanciation du prefab : {path}");
 
-        if (parent != null) obj.SetParent(parent, scene);
+        if (parent != null) obj.transform.SetParent(parent, scene);
         if (position.HasValue) obj.transform.LocalPosition = position.Value;
 
         return obj;

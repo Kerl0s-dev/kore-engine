@@ -36,7 +36,7 @@ public static class ProjectScaffolder
         WriteImGui(engineDir, projectPath, Log);
         WriteEditorIcons(engineDir, projectPath, Log);
         CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Debug", "net10.0"),
-            new[] { "KoreEngine.Runtime", "KoreEngine.Editor" }, Log);
+            ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
 
         Log("[ProjectScaffolder] Projet créé avec succès.");
     }
@@ -84,8 +84,11 @@ class Program
 
     static void WriteCsproj(string targetDir, string projectName, string runtimeDll, string editorDll, Action<string> log)
     {
+        string runtimeBinDir = Path.GetDirectoryName(runtimeDll)!;
+        string editorBinDir = Path.GetDirectoryName(editorDll)!;
+
         string content =
-$@"<Project Sdk=""Microsoft.NET.Sdk"">
+    $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
@@ -109,18 +112,11 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </ItemGroup>
 
     <ItemGroup>
-    <!-- Les scripts utilisateur ne sont jamais compilés en dur dans l'exe —
-        ScriptCompiler les compile à part, au runtime, via Roslyn. -->
         <Compile Remove=""Assets/**/*.cs"" />
-    <!-- Le Program.cs du Player (sous-dossier Player/) ne doit pas se
-        retrouver mélangé dans CET exe — sinon deux méthodes Main en conflit. -->
         <Compile Remove=""Player/**/*.cs"" />
     </ItemGroup>
 
     <ItemGroup>
-    <!-- Référence binaire uniquement — aucun accès au code source du moteur.
-        Les deux dll doivent être compilées au préalable (KoreEngine.Runtime.csproj
-        et KoreEngine.Editor.csproj). -->
         <Reference Include=""KoreEngine.Runtime"">
             <HintPath>{runtimeDll}</HintPath>
             <Private>True</Private>
@@ -130,6 +126,17 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             <Private>True</Private>
         </Reference>
     </ItemGroup>
+
+    <!-- Copie récursive de tout le dossier bin du moteur (fichiers + sous-dossier runtimes/) -->
+    <Target Name=""SyncEngineBinaries"" AfterTargets=""Build"">
+        <ItemGroup>
+            <EngineFiles Include=""{editorBinDir}\**\*.*"" Exclude=""{editorBinDir}\KoreEngine.Editor.*"" />
+            <RuntimeFiles Include=""{runtimeBinDir}\**\*.*"" Exclude=""{runtimeBinDir}\KoreEngine.Runtime.*"" />
+        </ItemGroup>
+        <Copy SourceFiles=""@(EngineFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
+        <Copy SourceFiles=""@(RuntimeFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
+    </Target>
+
 </Project>
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.csproj"), content);
@@ -313,14 +320,11 @@ EndGlobal
     {
         Directory.CreateDirectory(destination);
 
-        // On copie tout SAUF les dll/pdb du moteur lui-même : ceux-là sont
-        // déjà gérés séparément (référencés directement via HintPath) —
-        // copier l'ancien binaire ici n'a aucun sens et créerait de la confusion.
         var skip = new[]
         {
-            "KoreEngine.Runtime.dll", "KoreEngine.Runtime.pdb",
-            "KoreEngine.Editor.dll", "KoreEngine.Editor.pdb"
-        };
+        "KoreEngine.Runtime.dll", "KoreEngine.Runtime.pdb",
+        "KoreEngine.Editor.dll", "KoreEngine.Editor.pdb"
+    };
 
         foreach (var project in sourceProjects)
         {
@@ -332,17 +336,32 @@ EndGlobal
                 continue;
             }
 
-            foreach (var file in Directory.GetFiles(source))
-            {
-                string name = Path.GetFileName(file);
-                if (skip.Contains(name, StringComparer.OrdinalIgnoreCase)) continue;
-
-                string destFile = Path.Combine(destination, name);
-                File.Copy(file, destFile, overwrite: true);
-            }
+            // Copie récursive de tous les fichiers ET sous-dossiers (notamment /runtimes)
+            CopyDirectoryRecursive(source, destination, skip, log);
         }
 
         log($"[ProjectScaffolder] Dépendances copiées : {destination}");
+    }
+
+    private static void CopyDirectoryRecursive(string sourceDir, string destinationDir, string[] skipFiles, Action<string> log)
+    {
+        Directory.CreateDirectory(destinationDir);
+
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            string fileName = Path.GetFileName(file);
+            if (skipFiles.Contains(fileName, StringComparer.OrdinalIgnoreCase)) continue;
+
+            string destFile = Path.Combine(destinationDir, fileName);
+            File.Copy(file, destFile, overwrite: true);
+        }
+
+        foreach (var subDir in Directory.GetDirectories(sourceDir))
+        {
+            string dirName = Path.GetFileName(subDir);
+            string destSubDir = Path.Combine(destinationDir, dirName);
+            CopyDirectoryRecursive(subDir, destSubDir, Array.Empty<string>(), log);
+        }
     }
 
     // ---------------------------------------------------------------

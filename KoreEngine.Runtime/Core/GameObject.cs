@@ -19,56 +19,8 @@ public partial class GameObject
     // Hiérarchie parent / enfants
     // ---------------------------------------------------------------
 
-    public GameObject? Parent { get; private set; }
-
-    readonly List<GameObject> children = new();
+    public readonly List<GameObject> children = new();
     public IReadOnlyList<GameObject> Children => children;
-
-    /// <summary>
-    /// Rattache cet objet à un nouveau parent (ou le passe en racine si null).
-    /// Préserve la position monde : LocalPosition est recalculée pour que
-    /// l'objet ne "saute" pas visuellement au moment du reparentage.
-    /// Protège contre les cycles (on ne peut pas devenir enfant de soi-même
-    /// ni d'un de ses propres descendants).
-    /// </summary>
-    public void SetParent(GameObject? newParent, Scene? scene = null)
-    {
-        if (newParent == this) return;
-        if (newParent != null && newParent.IsDescendantOf(this)) return;
-
-        // Sauvegarde la position monde avant de changer de parent.
-        var worldPos = transform.WorldPosition;
-
-        // Détache de l'ancien parent (ou de la racine de la scène).
-        if (Parent != null)
-            Parent.children.Remove(this);
-        else
-            scene?.RootObjects.Remove(this);
-
-        Parent = newParent;
-
-        // Rattache au nouveau parent (ou à la racine de la scène).
-        if (newParent != null)
-            newParent.children.Add(this);
-        else
-            scene?.RootObjects.Add(this);
-
-        // Recalcule LocalPosition pour conserver la position monde.
-        transform.LocalPosition = newParent != null
-            ? worldPos - newParent.transform.WorldPosition
-            : worldPos;
-    }
-
-    public bool IsDescendantOf(GameObject ancestor)
-    {
-        var p = Parent;
-        while (p != null)
-        {
-            if (p == ancestor) return true;
-            p = p.Parent;
-        }
-        return false;
-    }
 
     // ---------------------------------------------------------------
     // Composants
@@ -80,12 +32,23 @@ public partial class GameObject
     public GameObject(string? name = null)
     {
         Name = name ?? $"GameObject ({++nameCounter})";
+        // On ajoute le Transform par défaut SEULEMENT s'il n'existe pas déjà
+        if (!Components.OfType<Transform>().Any())
+        {
+            Components.Add(new Transform { gameObject = this });
+        }
     }
 
     public GameObject() {}
 
     public T AddComponent<T>(T component) where T : Component
     {
+        // Empêche de doubler le Transform s'il existe déjà
+        if (component is Transform existingTransform && GetComponent<Transform>() is T current)
+        {
+            return current;
+        }
+
         component.gameObject = this;
         Components.Add(component);
         return component;

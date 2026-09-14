@@ -58,15 +58,21 @@ public class Scene
     {
         // Appelle OnDestroy() sur l'objet et tous ses descendants AVANT de les
         // détacher — pour que Owner et la hiérarchie restent valides pendant
-        // que les composants nettoient leurs ressources (ex: un composant qui
-        // aurait besoin de connaître Owner.WorldPosition dans OnDestroy).
+        // que les composants nettoient leurs ressources.
         DestroyRecursive(obj);
 
-        if (obj.Parent != null)
-            obj.SetParent(null, this);
-        else
-            RootObjects.Remove(obj);
+        // 1. Si l'objet a un parent, on le détache pour qu'il ne figure plus 
+        // dans les enfants de ce parent.
+        if (obj.transform.Parent != null)
+        {
+            obj.transform.SetParent(null, this);
+        }
 
+        // 2. On le retire définitivement de la liste des objets racines de la scène
+        // (SetParent(null) vient de l'y ajouter, ou il y était déjà).
+        RootObjects.Remove(obj);
+
+        // 3. Désenregistrer la physique
         UnregisterColliders(obj);
     }
 

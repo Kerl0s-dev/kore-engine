@@ -47,15 +47,12 @@ public static class SceneSerializer
         var inv = System.Globalization.CultureInfo.InvariantCulture;
 
         string id = idMap[obj];
-        string parent = obj.Parent != null && idMap.TryGetValue(obj.Parent, out var pid)
+        string parent = obj.transform.Parent != null && idMap.TryGetValue(obj.transform.Parent, out var pid)
             ? pid : "none";
 
         sb.AppendLine();
         sb.AppendLine($"Object: {id} {{");
         sb.AppendLine($"  Name: {obj.Name}");
-        sb.AppendLine($"  Position: {obj.transform.LocalPosition.X.ToString(inv)}, {obj.transform.LocalPosition.Y.ToString(inv)}");
-        sb.AppendLine($"  Rotation: {obj.transform.LocalRotation.ToString(inv)}");
-        sb.AppendLine($"  Scale: {obj.transform.LocalScale.X.ToString(inv)}, {obj.transform.LocalScale.Y.ToString(inv)}");
         sb.AppendLine($"  Parent: {parent}");
 
         foreach (var c in obj.Components) {
@@ -267,7 +264,7 @@ public static class SceneSerializer
             if (parentId == "none") continue;
             if (objMap.TryGetValue(id, out var obj) &&
                 objMap.TryGetValue(parentId, out var parent))
-                obj.SetParent(parent, scene);
+                obj.transform.SetParent(parent, scene);
         }
 
         // Attache les composants
@@ -403,36 +400,6 @@ public static class SceneSerializer
 
             if (line.StartsWith("Name:"))
                 obj.Name = line["Name:".Length..].Trim();
-
-            else if (line.StartsWith("Position:"))
-            {
-                var parts = line["Position:".Length..].Trim().Split(',');
-                if (parts.Length == 2 &&
-                    float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out float x) &&
-                    float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out float y))
-                    obj.transform.LocalPosition = new Vector2(x, y);
-            }
-
-            else if (line.StartsWith("Rotation:"))
-            {
-                if (float.TryParse(line["Rotation:".Length..].Trim(),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out float rot))
-                    obj.transform.LocalRotation = rot;
-            }
-
-            else if (line.StartsWith("Scale:"))
-            {
-                var parts = line["Scale:".Length..].Trim().Split(',');
-                if (parts.Length == 2 &&
-                    float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out float sx) &&
-                    float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out float sy))
-                    obj.transform.LocalScale = new Vector2(sx, sy);
-            }
 
             else if (line.StartsWith("Parent:"))
                 parentMap[objId] = line["Parent:".Length..].Trim();

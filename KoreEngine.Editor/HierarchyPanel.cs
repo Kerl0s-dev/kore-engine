@@ -46,7 +46,7 @@ public class HierarchyPanel
             {
                 if (payload.NativePtr != null && EditorSelection.DraggedObject != null)
                 {
-                    EditorSelection.DraggedObject.SetParent(null, scene);
+                    EditorSelection.DraggedObject.transform.SetParent(null, scene);
                     EditorSelection.DraggedObject = null;
                 }
             }
@@ -77,7 +77,16 @@ public class HierarchyPanel
         if (pendingDelete != null)
         {
             EditorSelection.ClearIfDeleted(pendingDelete);
+
+            // 1. Déconnecter de son parent s'il en a un
+            if (pendingDelete.transform.Parent != null)
+            {
+                pendingDelete.transform.SetParent(null, scene);
+            }
+
+            // 2. Le supprimer de la scène (maintenant qu'il est à la racine)
             scene.Remove(pendingDelete);
+
             pendingDelete = null;
         }
 
@@ -120,9 +129,9 @@ public class HierarchyPanel
             {
                 if (payload.NativePtr != null && EditorSelection.DraggedObject != null
                     && EditorSelection.DraggedObject != obj
-                    && !obj.IsDescendantOf(EditorSelection.DraggedObject))
+                    && !obj.transform.IsDescendantOf(EditorSelection.DraggedObject))
                 {
-                    EditorSelection.DraggedObject.SetParent(obj, scene);
+                    EditorSelection.DraggedObject.transform.SetParent(obj, scene);
                     EditorSelection.DraggedObject = null;
                 }
             }
@@ -178,8 +187,8 @@ public class HierarchyPanel
     {
         var clone = obj.Instantiate(scene);
 
-        if (obj.Parent != null)
-            clone.SetParent(obj.Parent, scene);
+        if (obj.transform.Parent != null)
+            clone.transform.SetParent(obj.transform.Parent, scene);
 
         EditorSelection.Selected = clone;
     }
@@ -290,7 +299,7 @@ public class HierarchyPanel
         scene.Add(obj);
 
         if (parent != null)
-            obj.SetParent(parent, scene);
+            obj.transform.SetParent(parent, scene);
 
         EditorSelection.Selected = obj;
     }

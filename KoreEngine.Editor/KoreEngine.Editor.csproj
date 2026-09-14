@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>KoreEngine</RootNamespace>
+
+    <!-- Force MSBuild à tout recopier (ImGui.NET.dll, Roslyn, etc.) dans le dossier bin -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>

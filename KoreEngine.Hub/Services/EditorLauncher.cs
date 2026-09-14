@@ -34,8 +34,10 @@ public static class EditorLauncher
         {
             // On tente le build même si le clean a échoué (ex: rien à nettoyer,
             // ou fichier verrouillé) — seul un échec du BUILD annule le lancement.
-            if (!cleanSuccess)
-                onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente quand même le build...");
+            if (!cleanSuccess) {
+                onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente de clean le build...");
+                return;
+            }
 
             RunDotnet("build", slnPath, entry.Path, onLogLine, buildSuccess =>
             {
