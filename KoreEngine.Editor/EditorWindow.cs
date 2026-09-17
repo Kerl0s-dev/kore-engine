@@ -235,6 +235,14 @@ public class EditorWindow
 
             if (!io.WantCaptureKeyboard)
             {
+                if (ImGui.IsKeyPressed(ImGuiKey.Delete))
+                {
+                    if (EditorSelection.Selected != null)
+                    {
+                        EditorSelection.Selected.Destroy();
+                        EditorSelection.Selected = null;
+                    }
+                }
                 if (io.KeyCtrl)
                 {
                     if (ImGui.IsKeyPressed(ImGuiKey.S))

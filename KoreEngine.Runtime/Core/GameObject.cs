@@ -119,4 +119,11 @@ public partial class GameObject
         clone.transform.LocalPosition = position ?? clone.transform.LocalPosition;
         return clone;
     }
+
+    public void Destroy()
+    {
+        foreach (var c in Components) c.OnDestroy();
+        foreach (var child in children) child.Destroy();
+        Scene?.Remove(this);
+    }
 }
