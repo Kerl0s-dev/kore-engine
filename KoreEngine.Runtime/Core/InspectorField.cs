@@ -24,7 +24,7 @@ public class FloatField : InspectorField
 {
     public required Func<float> Get;
     public Action<float>? Set;
-    public float Speed = 0.1f;
+    public float Value = 0.1f;
     public float Min = 0f;
     public float Max = 0f; // Min == Max == 0 => pas de clamp
 }
@@ -33,7 +33,7 @@ public class IntField : InspectorField
 {
     public required Func<int> Get;
     public Action<int>? Set;
-    public float Speed = 1f;
+    public float Value = 1f;
     public int Min = 0;
     public int Max = 0; // Min == Max == 0 => pas de clamp
 }

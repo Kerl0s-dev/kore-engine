@@ -191,8 +191,8 @@ public class InspectorPanel
                 DrawField(ff.Label, () =>
                 {
                     bool changed = ff.Min != ff.Max
-                        ? ImGui.DragFloat($"##{baseId}", ref v, ff.Speed, ff.Min, ff.Max)
-                        : ImGui.DragFloat($"##{baseId}", ref v, ff.Speed);
+                        ? ImGui.DragFloat($"##{baseId}", ref v, ff.Value, ff.Min, ff.Max)
+                        : ImGui.DragFloat($"##{baseId}", ref v, ff.Value);
                     if (changed) ff.Set?.Invoke(v);
                 });
                 break;
@@ -204,8 +204,8 @@ public class InspectorPanel
                 DrawField(iF.Label, () =>
                 {
                     bool changed = iF.Min != iF.Max
-                        ? ImGui.DragInt($"##{baseId}", ref v, iF.Speed, iF.Min, iF.Max)
-                        : ImGui.DragInt($"##{baseId}", ref v, iF.Speed);
+                        ? ImGui.DragInt($"##{baseId}", ref v, iF.Value, iF.Min, iF.Max)
+                        : ImGui.DragInt($"##{baseId}", ref v, iF.Value);
                     if (changed) iF.Set?.Invoke(v);
                 });
                 break;

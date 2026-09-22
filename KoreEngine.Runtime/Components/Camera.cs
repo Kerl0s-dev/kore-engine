@@ -62,12 +62,29 @@ public class Camera : Component
             Label = "Zoom",
             Get = () => Zoom,
             Set = v => Zoom = v,
-            Speed = 0.01f,
+            Value = 0.01f,
             Min = 0.05f,
             Max = 20f
         };
 
-        yield return new TextField { Label = "View W", Get = () => $"{ViewWidth}" };
-        yield return new TextField { Label = "View H", Get = () => $"{ViewHeight}" };
+        yield return new IntField
+        {
+            Label = "View W",
+            Get = () => ViewWidth,
+            Set = v => ViewWidth = v,
+            Value = 1920,
+            Min = 1024,
+            Max = 8192
+        };
+
+        yield return new IntField
+        {
+            Label = "View H",
+            Get = () => ViewHeight,
+            Set = v => ViewHeight = v,
+            Value = 1080,
+            Min = 1024,
+            Max = 8192
+        };
     }
 }

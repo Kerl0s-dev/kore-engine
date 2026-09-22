@@ -30,7 +30,7 @@ public class AudioSource : Component
             Label = "Volume",
             Get = () => Volume,
             Set = v => Volume = v,
-            Speed = 0.01f,
+            Value = 0.01f,
             Min = 0f,
             Max = 1f
         };
@@ -40,7 +40,7 @@ public class AudioSource : Component
             Label = "Pitch",
             Get = () => Pitch,
             Set = v => Pitch = v,
-            Speed = 0.01f,
+            Value = 0.01f,
             Min = 0.1f,
             Max = 3f
         };
