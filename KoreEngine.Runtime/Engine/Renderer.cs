@@ -40,9 +40,12 @@ namespace KoreEngine.Engine
             Handle = SDL.CreateRenderer(window, null);
         }
 
-        public void Clear()
+        public void Clear(Color? color)
         {
-            SDL.SetRenderDrawColor(Handle, 0, 0, 0, 255);
+            if (color != null)
+                SDL.SetRenderDrawColor(Handle, (byte)color.R, (byte)color.G, (byte)color.B, 255);
+            else
+                SDL.SetRenderDrawColor(Handle, 0, 0, 0, 255);
             SDL.RenderClear(Handle);
         }
 

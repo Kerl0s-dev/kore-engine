@@ -7,6 +7,8 @@ public class Camera : Component
     public float Zoom = 1f;
     public int ViewWidth, ViewHeight;
 
+    public Color Color;
+
     // Position interne — utilisée uniquement quand Owner == null (EditorCamera).
     // Pour une Camera normale sur un GameObject, la position réelle est
     // Owner.WorldPosition ; le setter passe par Owner.LocalPosition.
@@ -27,11 +29,12 @@ public class Camera : Component
         }
     }
 
-    public Camera() : this(1920, 1080) { }
-    public Camera(int viewWidth = 1920, int viewHeight = 1080)
+    public Camera() : this(1920, 1080, Color.Black) { }
+    public Camera(int viewWidth = 1920, int viewHeight = 1080, Color backgroundColor = null)
     {
         ViewWidth = viewWidth;
         ViewHeight = viewHeight;
+        this.Color = backgroundColor;
     }
 
     public Vector2 WorldToScreen(Vector2 worldPos) => new Vector2(
@@ -50,24 +53,4 @@ public class Camera : Component
         (int)(ViewWidth / Zoom),
         (int)(ViewHeight / Zoom)
     );
-
-    public override IEnumerable<InspectorField> GetInspectorFields()
-    {
-        // Position (lecture seule ici — on déplace la caméra en déplaçant son GameObject)
-        yield return new TextField { Label = "Pos X", Get = () => $"{Position.X:F1}" };
-        yield return new TextField { Label = "Pos Y", Get = () => $"{Position.Y:F1}" };
-
-        yield return new FloatField
-        {
-            Label = "Zoom",
-            Get = () => Zoom,
-            Set = v => Zoom = v,
-            Speed = 0.01f,
-            Min = 0.05f,
-            Max = 20f
-        };
-
-        yield return new TextField { Label = "View W", Get = () => $"{ViewWidth}" };
-        yield return new TextField { Label = "View H", Get = () => $"{ViewHeight}" };
-    }
 }

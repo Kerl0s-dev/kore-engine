@@ -67,7 +67,7 @@ public class EditorWindow
         SDL.Init(SDL.InitFlags.Video);
         window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable);
         SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
-        
+
         Renderer = new Renderer(window);
         TextureCache.Init(Renderer); // Initialise le cache de texture
         EditorIcons.Init(Renderer); //Initialise les icônes de l'éditeur
@@ -283,7 +283,7 @@ public class EditorWindow
                 {
                     Running = false; // Quitter la boucle
                 }
-                
+
                 ImGui.End();
             }
 
@@ -316,7 +316,7 @@ public class EditorWindow
             viewportPanel?.RenderScene(SceneManager.Current, activeCamera, !Playing);
 
             //    d) Écran réel : clear + panneaux ImGui.
-            Renderer.Clear();
+            Renderer.Clear(SceneManager.Current?.Camera?.Color);
 
             DrawDockspace();
             hierarchyPanel?.Draw();

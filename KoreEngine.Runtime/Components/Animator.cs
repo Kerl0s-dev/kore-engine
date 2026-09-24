@@ -199,7 +199,7 @@ namespace KoreEngine.Components
             yield return new IntField { Label = "Row", Get = () => d.Row, Set = v => d.Row = v, Min = 0, Max = 64 };
             yield return new IntField { Label = "Start Col", Get = () => d.StartCol, Set = v => d.StartCol = v, Min = 0, Max = 64 };
             yield return new IntField { Label = "Frames", Get = () => d.FrameCount, Set = v => d.FrameCount = v, Min = 1, Max = 64 };
-            yield return new FloatField { Label = "Duration", Get = () => d.FrameDuration, Set = v => d.FrameDuration = v, Speed = 0.01f, Min = 0.01f, Max = 2f };
+            yield return new FloatField { Label = "Duration", Get = () => d.FrameDuration, Set = v => d.FrameDuration = v, Value = 0.01f, Min = 0.01f, Max = 2f };
             yield return new BoolField { Label = "Loop", Get = () => d.Looping, Set = v => d.Looping = v };
         }
 
@@ -224,7 +224,7 @@ namespace KoreEngine.Components
                 AnimationCondition.VelocityYLessThan;
 
             if (needsThreshold)
-                yield return new FloatField { Label = "Threshold", Get = () => t.Threshold, Set = v => t.Threshold = v, Speed = 0.5f };
+                yield return new FloatField { Label = "Threshold", Get = () => t.Threshold, Set = v => t.Threshold = v, Value = 0.5f };
         }
     }
 }

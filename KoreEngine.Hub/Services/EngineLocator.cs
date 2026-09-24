@@ -1,6 +1,7 @@
 using System.IO;
 
 namespace KoreEngine.Hub.Services;
+
 public static class EngineLocator
 {
     public static string? AutoDetect()

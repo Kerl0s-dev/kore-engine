@@ -1,5 +1,5 @@
-﻿using KoreEngine.Core;
-using KoreEngine.Components;
+﻿using KoreEngine.Components;
+using KoreEngine.Core;
 
 namespace KoreEngine
 {
@@ -23,7 +23,7 @@ namespace KoreEngine
                     PhysicsBody? bodyB = b.gameObject.GetComponent<PhysicsBody>();
 
                     if (bodyA == null || bodyB == null) return;
-                    
+
                     bool aStatic = bodyA.IsStatic;
                     bool bStatic = bodyB.IsStatic;
 

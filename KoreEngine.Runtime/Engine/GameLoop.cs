@@ -80,8 +80,13 @@ public class GameLoop
             SceneManager.ApplyPendingScene();
             SceneManager.Update(dt);
 
+            if (SceneManager.Current == null && SceneManager.Current?.Camera == null)
+            {
+                throw new Exception("No scene or camera loaded. Please set a camera and a default scene.");
+            }
+
             // 5. Rendu direct à l'écran, avec la caméra de la scène
-            Renderer.Clear();
+            Renderer.Clear(SceneManager.Current?.Camera?.Color);
             SceneManager.Render(Renderer);
             Renderer.Present();
         }

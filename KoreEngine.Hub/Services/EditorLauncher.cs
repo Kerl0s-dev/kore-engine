@@ -1,6 +1,6 @@
+using KoreEngine.Hub.Models;
 using System.Diagnostics;
 using System.IO;
-using KoreEngine.Hub.Models;
 
 namespace KoreEngine.Hub.Services;
 
@@ -34,7 +34,8 @@ public static class EditorLauncher
         {
             // On tente le build même si le clean a échoué (ex: rien à nettoyer,
             // ou fichier verrouillé) — seul un échec du BUILD annule le lancement.
-            if (!cleanSuccess) {
+            if (!cleanSuccess)
+            {
                 onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente de clean le build...");
                 return;
             }

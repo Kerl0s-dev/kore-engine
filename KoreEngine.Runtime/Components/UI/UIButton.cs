@@ -23,7 +23,7 @@ public class UIButton : UIElement
 
     // Action prédéfinie — sérialisable, éditable dans l'inspector
     public ButtonActionType ActionType = ButtonActionType.None;
-    
+
     public string ActionParam = "";
 
     // Callback arbitraire — assigné par code, non sérialisable

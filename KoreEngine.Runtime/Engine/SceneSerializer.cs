@@ -55,7 +55,8 @@ public static class SceneSerializer
         sb.AppendLine($"  Name: {obj.Name}");
         sb.AppendLine($"  Parent: {parent}");
 
-        foreach (var c in obj.Components) {
+        foreach (var c in obj.Components)
+        {
             WriteComponent(sb, c, idMap);
         }
 

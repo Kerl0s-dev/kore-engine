@@ -28,7 +28,8 @@ public struct Vector2
         return new Vector2(X / len, Y / len);
     }
 
-    public static Vector2 Lerp(Vector2 a, Vector2 b, float t) {
+    public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
+    {
         return new Vector2(
             a.X + (b.X - a.X) * Math.Clamp(t, 0f, 1f),
             a.Y + (b.Y - a.Y) * Math.Clamp(t, 0f, 1f)

@@ -17,7 +17,7 @@ public class SpriteRenderer : Component
 
     public IntPtr Texture;
     public string TexturePath = "";
-    public Vector2 Size = new Vector2(16,16);
+    public Vector2 Size = new Vector2(16, 16);
     public Vector2 FrameSize = new Vector2(16, 16);
     public bool FlipX = false;
     public bool FlipY = false;
@@ -44,24 +44,36 @@ public class SpriteRenderer : Component
 
         yield return new IntField
         {
-            Label = "Width", Get = () => (int)Size.X, Set = v => Size.X = v,
-            Min = 1, Max = 4096
+            Label = "Width",
+            Get = () => (int)Size.X,
+            Set = v => Size.X = v,
+            Min = 1,
+            Max = 4096
         };
         yield return new IntField
         {
-            Label = "Height", Get = () => (int)Size.Y, Set = v => Size.Y = v,
-            Min = 1, Max = 4096
+            Label = "Height",
+            Get = () => (int)Size.Y,
+            Set = v => Size.Y = v,
+            Min = 1,
+            Max = 4096
         };
 
         yield return new IntField
         {
-            Label = "Texture Width", Get = () => (int)FrameSize.X, Set = v => FrameSize.X = v,
-            Min = 1, Max = 4096
+            Label = "Texture Width",
+            Get = () => (int)FrameSize.X,
+            Set = v => FrameSize.X = v,
+            Min = 1,
+            Max = 4096
         };
         yield return new IntField
         {
-            Label = "Texture Height", Get = () => (int)FrameSize.Y, Set = v => FrameSize.Y = v,
-            Min = 1, Max = 4096
+            Label = "Texture Height",
+            Get = () => (int)FrameSize.Y,
+            Set = v => FrameSize.Y = v,
+            Min = 1,
+            Max = 4096
         };
 
         yield return new BoolField { Label = "Flip X", Get = () => FlipX, Set = v => FlipX = v };

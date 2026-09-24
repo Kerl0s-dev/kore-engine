@@ -39,7 +39,7 @@ public partial class GameObject
         }
     }
 
-    public GameObject() {}
+    public GameObject() { }
 
     public T AddComponent<T>(T component) where T : Component
     {

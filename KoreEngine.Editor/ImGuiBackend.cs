@@ -135,7 +135,7 @@ public class ImGuiBackend
             case SDL.EventType.TextInput:
                 unsafe
                 {
-                    io.AddInputCharactersUTF8(Marshal.PtrToStringUTF8((IntPtr)e.Text.Text) ?? "");
+                    io.AddInputCharactersUTF8(Marshal.PtrToStringUTF8(e.Text.Text) ?? "");
                 }
                 break;
         }

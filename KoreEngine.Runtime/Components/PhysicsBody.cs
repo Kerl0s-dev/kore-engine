@@ -1,5 +1,5 @@
-﻿using KoreEngine.Core;
-using KoreEngine;
+﻿using KoreEngine;
+using KoreEngine.Core;
 
 namespace KoreEngine.Components;
 

@@ -1,6 +1,7 @@
 using System.IO;
 
 namespace KoreEngine.Hub.Services;
+
 public static class ProjectScaffolder
 {
     public static void Create(string engineDir, string targetDir, string projectName, Action<string>? onLog = null)

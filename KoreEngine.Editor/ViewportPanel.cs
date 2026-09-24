@@ -129,7 +129,7 @@ namespace KoreEngine.Editor
             var bounds = collider.Bounds;
 
             byte r = collider.IsTrigger ? (byte)255 : (byte)0;
-            byte g = (byte)255;
+            byte g = 255;
             byte b = collider.IsTrigger ? (byte)0 : (byte)0;
 
             renderer.DrawRectOutline(
