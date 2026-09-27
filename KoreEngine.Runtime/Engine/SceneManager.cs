@@ -36,6 +36,8 @@ public static class SceneManager
     public static string? CurrentSceneName => currentSceneName;
     public static string? CurrentScenePath => currentScenePath;
 
+    public static bool SaveLocked { get; set; }
+
     public static void ScanAndRegisterScenes()
     {
         registry.Clear();
@@ -53,7 +55,7 @@ public static class SceneManager
                 Logger.Warning(
                     $"[SceneManager] Deux scènes portent le nom '{name}' " +
                     $"— '{registry[name]}' sera écrasée par '{file}' dans le registre. " +
-                    "Renomme l'une des deux pour éviter toute ambiguïté.");
+                    "Renommez l'une des deux pour éviter toute ambiguïté.");
             }
 
             registry[name] = file;
@@ -82,7 +84,7 @@ public static class SceneManager
 
     public static void SaveCurrentScene()
     {
-        if (current == null) return;
+        if (SaveLocked || current == null) return;
 
         // Sauvegarde à l'emplacement d'origine si connu (scène chargée
         // depuis un sous-dossier), sinon fallback à la racine Assets
@@ -129,6 +131,8 @@ public static class SceneManager
     {
         if (next == null) return;
         current = next;
+        current.FindCamera();
+        Console.WriteLine(current.Camera.gameObject.Name);
         next = null;
     }
 

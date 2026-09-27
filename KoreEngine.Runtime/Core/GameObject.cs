@@ -54,6 +54,14 @@ public partial class GameObject
         return component;
     }
 
+    public T AddComponent<T>() where T : Component
+    {
+        var component = Activator.CreateInstance<T>();
+        component.gameObject = this;
+        Components.Add(component);
+        return component;
+    }
+
     public void RemoveComponent<T>(T component) where T : Component
     {
         component.OnDestroy();
@@ -116,7 +124,7 @@ public partial class GameObject
         var clone = SceneSerializer.DeserializeObjectTree(data, targetScene)
             ?? throw new InvalidOperationException($"Échec de l'instanciation de '{Name}'.");
 
-        clone.transform.LocalPosition = position ?? clone.transform.LocalPosition;
+        clone.transform.Position = position ?? clone.transform.Position;
         return clone;
     }
 

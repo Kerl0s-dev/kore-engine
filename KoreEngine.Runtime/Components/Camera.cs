@@ -24,16 +24,26 @@ public class Camera : Component
         get => gameObject != null ? gameObject.transform.WorldPosition : _position;
         set
         {
-            if (gameObject != null) gameObject.transform.LocalPosition = value;
+            if (gameObject != null) gameObject.transform.Position = value;
             else _position = value;
         }
     }
 
+    static Camera? main;
+    public static Camera Main
+    {
+        get => main ?? throw new InvalidOperationException(
+            "Camera.Main indisponible — aucune scène active n'a de Camera assignée.");
+        internal set => main = value;
+    }
+
     public Camera() : this(1920, 1080, Color.Black) { }
-    public Camera(int viewWidth = 1920, int viewHeight = 1080, Color backgroundColor = null)
+    public Camera(int viewWidth = 1920, int viewHeight = 1080, Color? backgroundColor = null)
     {
         ViewWidth = viewWidth;
         ViewHeight = viewHeight;
+
+        if (backgroundColor == null) backgroundColor = Color.Black;
         this.Color = backgroundColor;
     }
 

@@ -63,21 +63,18 @@ namespace KoreEngine.Editor
             if (resizeRequested)
             {
                 renderTexture.Resize(pendingWidth, pendingHeight);
-
-                // Toujours sync l'EditorCamera, quelle que soit la caméra active.
                 EditorCamera.ViewWidth = renderTexture.Width;
                 EditorCamera.ViewHeight = renderTexture.Height;
-
-                if (camera != null)
-                {
-                    camera.ViewWidth = renderTexture.Width;
-                    camera.ViewHeight = renderTexture.Height;
-                }
-
                 resizeRequested = false;
             }
 
-            // Toujours synchronisé (UICanvas, etc.) même si aucun resize cette frame.
+            // Synchronise toujours la caméra active.
+            if (camera != null)
+            {
+                camera.ViewWidth = renderTexture.Width;
+                camera.ViewHeight = renderTexture.Height;
+            }
+
             SceneManager.ViewportWidth = renderTexture.Width;
             SceneManager.ViewportHeight = renderTexture.Height;
         }
@@ -350,7 +347,7 @@ namespace KoreEngine.Editor
         {
             activeDrag = mode;
             dragStartWorldMouse = AbsScreenToWorld(io.MousePos, imageScreenPos);
-            dragStartPosition = obj.transform.LocalPosition;
+            dragStartPosition = obj.transform.Position;
             dragStartScale = obj.transform.LocalScale;
             dragStartRotationValue = obj.transform.LocalRotation;
             dragStartMouseAngle = AngleTo(obj.transform.WorldPosition, dragStartWorldMouse);
@@ -469,7 +466,7 @@ namespace KoreEngine.Editor
                     _ => delta
                 };
 
-                obj.transform.LocalPosition = new Vector2(
+                obj.transform.Position = new Vector2(
                     dragStartPosition.X + worldDelta.X,
                     dragStartPosition.Y + worldDelta.Y);
             }

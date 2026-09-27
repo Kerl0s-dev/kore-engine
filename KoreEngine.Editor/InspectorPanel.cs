@@ -932,5 +932,5 @@ public class InspectorPanel
         ImGui.EndChild();
         ImGui.EndPopup();
     }
-    public void Destroy() => renderer.Clear(SceneManager.Current.Camera.Color);
+    public void Destroy() => renderer.Clear(SceneManager.Current?.Camera?.Color);
 }

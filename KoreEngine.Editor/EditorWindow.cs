@@ -3,7 +3,6 @@ using KoreEngine.Components;
 using KoreEngine.Engine;
 using SDL3;
 using System.Numerics;
-using System.Xml.Linq;
 
 namespace KoreEngine.Editor;
 
@@ -33,7 +32,8 @@ public class EditorWindow
         set
         {
             if (value && !_playing)
-                SceneManager.NotifyStart(); // OnStart() au premier Play
+                SceneManager.NotifyStart();
+            SceneManager.SaveLocked = value;
             _playing = value;
         }
     }

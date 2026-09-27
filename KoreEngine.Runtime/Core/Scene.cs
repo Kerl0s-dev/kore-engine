@@ -18,24 +18,29 @@ public class Scene
     public CollisionSystem Collisions = new();
 
     Camera? camera;
-    public Camera? Camera
+    public Camera Camera
     {
-        get => camera;
-        set => camera = value;
+        get => camera ?? throw new InvalidOperationException($"La scène '{Name}' n'a pas de Camera.");
+        set
+        {
+            camera = value;
+            KoreEngine.Components.Camera.Main = value;
+        }
     }
 
-    /// <summary>
-    /// Cherche le premier composant Camera dans tous les objets de la scène
-    /// et l'assigne à Scene.Camera. Appelé automatiquement après un chargement
-    /// depuis fichier, où Camera n'est pas assigné explicitement.
-    /// </summary>
     public void FindCamera()
     {
         foreach (var obj in AllObjects)
         {
             var cam = obj.GetComponent<Camera>();
-            if (cam != null) { camera = cam; return; }
+            if (cam != null) { Camera = cam; return; }
         }
+
+        var camObj = new GameObject { Name = "Main Camera" };
+        camObj.AddComponent<Transform>();
+        camObj.AddComponent<Camera>();
+        Add(camObj);
+        Camera = camObj.GetComponent<Camera>()!;
     }
 
     // ---------------------------------------------------------------

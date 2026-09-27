@@ -7,9 +7,6 @@ namespace KoreEngine.Components
     {
         public GameObject? Parent { get; private set; }
 
-        // Position LOCALE : relative au parent (ou absolue si pas de parent).
-        // C'est cette valeur qu'on édite dans l'Inspector et qu'on stocke.
-        public Vector2 LocalPosition;
         public Vector2 PreviousPosition;
 
         // Position MONDE : remonte la chaîne de parents pour calculer la
@@ -19,18 +16,14 @@ namespace KoreEngine.Components
         public Vector2 WorldPosition
         {
             get => Parent != null
-                ? Parent.transform.WorldPosition + LocalPosition
-                : LocalPosition;
+                ? Parent.transform.WorldPosition + Position
+                : Position;
         }
 
-        // Alias rétrocompatible — pointe sur LocalPosition pour que l'ancien
+        // Alias rétrocompatible pointe sur LocalPosition pour que l'ancien
         // code qui écrit Position continue de compiler. À migrer vers
         // LocalPosition/WorldPosition selon le contexte au fil du temps.
-        public Vector2 Position
-        {
-            get => LocalPosition;
-            set => LocalPosition = value;
-        }
+        public Vector2 Position;
 
         // Rotation locale en degrés.
         public float LocalRotation;
@@ -63,11 +56,9 @@ namespace KoreEngine.Components
         }
 
         /// <summary>
-        /// Rattache cet objet à un nouveau parent (ou le passe en racine si null).
-        /// Préserve la position monde : LocalPosition est recalculée pour que
-        /// l'objet ne "saute" pas visuellement au moment du reparentage.
-        /// Protège contre les cycles (on ne peut pas devenir enfant de soi-même
-        /// ni d'un de ses propres descendants).
+        /// Rattache cet objet à un nouveau parent (ou à la racine de la scène si newParent est null),
+        /// Et conserve la position monde actuelle. Si le parent est changé, la position locale est recalculée pour que l'objet reste à la même position dans le monde.
+        /// Évite les cycles de parentage (un objet ne peut pas devenir parent de lui-même ou d'un de ses descendants).
         /// </summary>
         public void SetParent(GameObject? newParent, Scene? scene = null)
         {
@@ -92,7 +83,7 @@ namespace KoreEngine.Components
                 scene?.RootObjects.Add(gameObject);
 
             // Recalcule LocalPosition pour conserver la position monde.
-            LocalPosition = newParent != null
+            Position = newParent != null
                 ? worldPos - newParent.transform.WorldPosition
                 : worldPos;
         }

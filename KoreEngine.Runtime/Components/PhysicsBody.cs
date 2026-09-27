@@ -1,11 +1,10 @@
-﻿using KoreEngine;
-using KoreEngine.Core;
+﻿using KoreEngine.Core;
 
 namespace KoreEngine.Components;
 
 public class PhysicsBody : Component
 {
-    public Vector2 Velocity;
+    public Vector2 Velocity = Vector2.Zero;
     public bool IsStatic = false;
     public float GravityScale = 1f;
     public float Friction = 0f;
@@ -22,14 +21,13 @@ public class PhysicsBody : Component
             Velocity.Y = 0;
 
         IsGrounded = false; // reset chaque frame, rétabli par CollisionSystem
+
         Physics.CalculatePhysics(this, dt);
 
         if (GravityScale > 0)
-            Velocity.Y = MathF.Min(Velocity.Y, MaxFallSpeed);
+            Velocity.Y = MathF.Max(Velocity.Y, -MaxFallSpeed); // clamp AVANT l'intégration
 
-        if (Friction > 0)
-            Velocity.X *= MathF.Pow(1f - Friction, dt);
-
+        // Intégration de la position — une seule fois, ici.
         gameObject.transform.Position += Velocity * dt;
     }
 
