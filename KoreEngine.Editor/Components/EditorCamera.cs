@@ -14,12 +14,9 @@ namespace KoreEngine.Editor
         public EditorCamera(int viewWidth, int viewHeight)
             : base(viewWidth, viewHeight) { }
 
-        // Owner est toujours null pour l'EditorCamera, donc Position
-        // lit/écrit directement _position (comportement hérité de Camera).
-
         public void Reset()
         {
-            _position = new Vector2(0, 0);
+            Position = Vector2.Zero;
             Zoom = 1f;
         }
     }

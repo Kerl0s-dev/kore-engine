@@ -8,7 +8,8 @@ public class PhysicsBody : Component
     public bool IsStatic = false;
     public float GravityScale = 1f;
     public float Friction = 0f;
-    public float Mass = 1f;
+    public float Mass = 20f;
+    public float Restitution = 0f; // 0 = pas de rebond, 1 = rebond parfait
     public float MaxFallSpeed = 1000f;
     public bool IsGrounded = false; // mis à jour par CollisionSystem
 

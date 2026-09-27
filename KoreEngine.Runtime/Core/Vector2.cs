@@ -5,6 +5,8 @@ public struct Vector2
     public float X, Y;
     public Vector2(float x, float y) { X = x; Y = y; }
 
+    public Vector2(float v) { X = v; Y = v; }
+
     public static Vector2 operator +(Vector2 a) => new(+a.X, +a.Y);
     public static Vector2 operator -(Vector2 a) => new(-a.X, -a.Y);
 
@@ -26,6 +28,12 @@ public struct Vector2
         float len = Length();
         if (len == 0) return Zero;
         return new Vector2(X / len, Y / len);
+    }
+
+    public static float Distance(Vector2 a, Vector2 b) {
+        float result = (float)Math.Sqrt(Math.Pow((b.X - a.X), 2) + Math.Pow((b.Y - a.Y), 2));
+
+        return result;
     }
 
     public static Vector2 Lerp(Vector2 a, Vector2 b, float t)

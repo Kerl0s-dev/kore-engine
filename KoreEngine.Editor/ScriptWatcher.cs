@@ -53,6 +53,14 @@ public class ScriptWatcher : IDisposable
         // Abonnement aux events du compilateur
         ScriptCompiler.OnCompileSuccess += OnCompileSuccess;
         ScriptCompiler.OnCompileError += OnCompileError;
+
+        var csFiles = watchDirs
+            .Where(Directory.Exists)
+            .SelectMany(d => Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories))
+            .Distinct()
+            .ToList();
+
+        _ = ScriptCompiler.CompileAsync(csFiles);
     }
     void OnChanged(object sender, FileSystemEventArgs e)
     {

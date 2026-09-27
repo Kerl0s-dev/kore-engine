@@ -3,6 +3,7 @@ using KoreEngine.Components;
 using KoreEngine.Engine;
 using SDL3;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace KoreEngine.Editor;
 
@@ -259,6 +260,8 @@ public class EditorWindow
                     if (ImGui.IsKeyPressed(ImGuiKey.W)) EditorSelection.ActiveGizmoMode = GizmoMode.Move; // Change the selection gizmo to 'Move'
                     if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
                     if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
+
+                    if (ImGui.IsKeyPressed(ImGuiKey.F)) viewportPanel?.EditorCamera.Position = (Core.Vector2)(EditorSelection.Selected != null ? EditorSelection.Selected.transform.Position : viewportPanel?.EditorCamera.Position)!;
                 }
             }
 

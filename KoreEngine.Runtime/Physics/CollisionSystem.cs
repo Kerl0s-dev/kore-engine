@@ -24,6 +24,8 @@ namespace KoreEngine
 
                     if (bodyA == null || bodyB == null) return;
 
+                    float restitution = MathF.Max(bodyA.Restitution, bodyB.Restitution);
+
                     bool aStatic = bodyA.IsStatic;
                     bool bStatic = bodyB.IsStatic;
 
@@ -83,14 +85,13 @@ namespace KoreEngine
                         }
                         else
                         {
-                            Vector2 excess = new Vector2(velA.X * dt * (1f - tFirst),
-                                                            velA.Y * dt * (1f - tFirst));
+                            Vector2 excess = new Vector2(velB.X * dt * (1f - tFirst), velB.Y * dt * (1f - tFirst));
                             b.gameObject.transform.Position -= excess;
                         }
 
                         if (bodyB == null) return;
 
-                        CancelVelocity(bodyB, -normal);
+                        CancelVelocity(bodyB, -normal, restitution);
                     }
                     else if (bStatic)
                     {
@@ -123,18 +124,17 @@ namespace KoreEngine
                         }
                         else
                         {
-                            Vector2 excess = new Vector2(velA.X * dt * (1f - tFirst),
-                                                            velA.Y * dt * (1f - tFirst));
+                            Vector2 excess = new Vector2(velA.X * dt * (1f - tFirst), velA.Y * dt * (1f - tFirst));
                             a.gameObject.transform.Position -= excess;
                         }
 
                         if (bodyA == null) return;
 
-                        CancelVelocity(bodyA, -normal);
+                        CancelVelocity(bodyA, -normal, restitution);
                     }
                     else
                     {
-                        if (bodyA == null || bodyB == null) return;
+                        if (bodyA == null || bodyB == null) continue;
 
                         float totalMass = bodyA.Mass + bodyB.Mass;
                         float ratioA = bodyB.Mass / totalMass;
@@ -144,8 +144,8 @@ namespace KoreEngine
                                                         velA.Y * (1f - tFirst) * dt * ratioA);
                         b.gameObject.transform.Position -= new Vector2(velB.X * (1f - tFirst) * dt * ratioB,
                                                         velB.Y * (1f - tFirst) * dt * ratioB);
-                        CancelVelocity(bodyA, -normal);
-                        CancelVelocity(bodyB, normal);
+                        CancelVelocity(bodyA, -normal, restitution);
+                        CancelVelocity(bodyB, normal, restitution);
                     }
 
                     a.OnCollision?.Invoke(a, new CollisionInfo { Other = b, Normal = -normal, Penetration = 0 });
@@ -258,18 +258,17 @@ namespace KoreEngine
             }
         }
 
-        void CancelVelocity(PhysicsBody body, Vector2 normal)
+        void CancelVelocity(PhysicsBody body, Vector2 normal, float restitution)
         {
             if (body == null) return;
             float dot = body.Velocity.X * normal.X + body.Velocity.Y * normal.Y;
             if (dot < 0)
             {
-                body.Velocity -= normal * dot;
+                body.Velocity -= normal * dot * (1f + restitution);
                 if (MathF.Abs(normal.X) > 1f) body.Velocity.X = 0;
                 if (MathF.Abs(normal.Y) > 1f) body.Velocity.Y = 0;
             }
 
-            // Sol détecté si la normale pointe vers le haut
             if (normal.Y < -0.5f)
                 body.IsGrounded = true;
         }
