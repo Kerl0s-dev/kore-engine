@@ -9,8 +9,8 @@ public class Collider : Component
     public string Tag = ""; // "player", "enemy", "trigger"...
     public bool IsTrigger = false; // trigger = détecte sans résoudre
 
-    public Action<Collider, CollisionInfo>? OnCollision;
-    public Action<Collider, CollisionInfo>? OnTriggerEnter;
+    public void OnCollision(Collider other) { }
+    public void OnTriggerEnter(Collider other) { }
 
     public Rectangle Bounds
     {

@@ -4,6 +4,7 @@ namespace KoreEngine.Components;
 
 public class PhysicsBody : Component
 {
+    [HideInInspector] public Vector2 PreviousPosition;
     public Vector2 Velocity = Vector2.Zero;
     public bool IsStatic = false;
     public float GravityScale = 1f;
@@ -21,6 +22,7 @@ public class PhysicsBody : Component
         if (IsGrounded && Velocity.Y > 0)
             Velocity.Y = 0;
 
+        PreviousPosition = gameObject.transform.Position;
         IsGrounded = false; // reset chaque frame, rétabli par CollisionSystem
 
         Physics.CalculatePhysics(this, dt);

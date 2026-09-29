@@ -34,8 +34,6 @@ public class UIButton : UIElement
 
     bool hovered, pressed;
 
-    static readonly string[] ActionNames = Enum.GetNames<ButtonActionType>();
-
     // ---------------------------------------------------------------
     // Update
     // ---------------------------------------------------------------
