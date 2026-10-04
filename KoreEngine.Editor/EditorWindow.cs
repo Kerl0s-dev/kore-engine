@@ -65,6 +65,7 @@ public class EditorWindow
 
         SDL.Init(SDL.InitFlags.Video);
         window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable);
+
         SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
 
         Renderer = new Renderer(window);

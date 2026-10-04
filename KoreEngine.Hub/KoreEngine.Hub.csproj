@@ -8,6 +8,7 @@
     <RootNamespace>KoreEngine.Hub</RootNamespace>
     <AssemblyName>Kore Engine Hub</AssemblyName>
     <AssemblyTitle>KoreEngine.Hub</AssemblyTitle>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,6 +30,9 @@
   <!-- La police du Hub est copiée à côté de l'exécutable (Fonts/). -->
   <ItemGroup>
     <None Include="Fonts\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon.ico" />
   </ItemGroup>
 
 </Project>

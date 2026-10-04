@@ -29,6 +29,7 @@ public static class ProjectScaffolder
 
         Log($"[ProjectScaffolder] Création du projet '{projectName}' dans {targetDir}");
 
+        File.Copy(Path.Combine(engineDir, "icon.ico"), Path.Combine(projectPath, "icon.ico"));
         CreateAssetsStructure(projectPath, Log);
         WriteProgramCs(projectPath, projectName, Log);
         WriteCsproj(projectPath, projectName, runtimeDll, editorDll, Log);
@@ -99,6 +100,7 @@ class Program
         <Nullable>enable</Nullable>
         <RootNamespace>{projectName}</RootNamespace>
         <AssemblyName>{projectName}</AssemblyName>
+        <ApplicationIcon>{targetDir}/icon.ico</ApplicationIcon>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
