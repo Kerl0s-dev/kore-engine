@@ -17,7 +17,9 @@ namespace KoreEngine.Hub.Services;
 /// </summary>
 public static class EditorLauncher
 {
-    public static void OpenProject(RecentProjectEntry entry, string? engineDir, Action<string> onLogLine, Action<bool> onBuildFinished)
+    /// <param name="onStage">Étape en cours (synchronisation, nettoyage, compilation, lancement).</param>
+    /// <param name="onBuildFinished">true seulement si le build ET le lancement de l'éditeur ont réussi.</param>
+    public static void OpenProject(RecentProjectEntry entry, string? engineDir, Action<string> onLogLine, Action<bool> onBuildFinished, Action<string>? onStage = null)
     {
         string slnPath = Path.Combine(entry.Path, $"{entry.Name}.sln");
 
@@ -28,24 +30,37 @@ public static class EditorLauncher
             return;
         }
 
+        onStage?.Invoke("Synchronisation des dépendances du moteur...");
         SyncEngineDependencies(entry, engineDir, onLogLine);
 
+        onStage?.Invoke("Nettoyage de la solution...");
         RunDotnet("clean", slnPath, entry.Path, onLogLine, cleanSuccess =>
         {
             // On tente le build même si le clean a échoué (ex: rien à nettoyer,
             // ou fichier verrouillé) — seul un échec du BUILD annule le lancement.
             if (!cleanSuccess)
-            {
-                onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente de clean le build...");
-                return;
-            }
+                onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente quand même le build...");
 
+            onStage?.Invoke("Compilation du projet...");
             RunDotnet("build", slnPath, entry.Path, onLogLine, buildSuccess =>
             {
-                onBuildFinished(buildSuccess);
+                if (!buildSuccess)
+                {
+                    onBuildFinished(false);
+                    return;
+                }
 
-                if (buildSuccess)
-                    LaunchExe(entry);
+                onStage?.Invoke("Lancement de l'éditeur...");
+                try
+                {
+                    LaunchExe(entry, onLogLine);
+                    onBuildFinished(true);
+                }
+                catch (Exception ex)
+                {
+                    onLogLine($"[EditorLauncher] Lancement impossible : {ex.Message}");
+                    onBuildFinished(false);
+                }
             });
         });
     }
@@ -70,20 +85,56 @@ public static class EditorLauncher
     static void RunDotnet(string command, string slnPath, string workingDir, Action<string> onLogLine, Action<bool> onFinished)
         => DotnetRunner.Run(command, slnPath, workingDir, onLogLine, onFinished);
 
-    static void LaunchExe(RecentProjectEntry entry)
+    // Si l'éditeur se ferme avec une erreur dans ce délai, on considère qu'il a planté au démarrage.
+    const int StartupGraceMs = 4000;
+
+    static void LaunchExe(RecentProjectEntry entry, Action<string> onLogLine)
     {
         string exeDir = Path.Combine(entry.Path, "bin", "Debug", "net10.0");
-        string exePath = Path.Combine(exeDir, $"{entry.Name}.exe");
+        string exeName = OperatingSystem.IsWindows() ? $"{entry.Name}.exe" : entry.Name;
+        string exePath = Path.Combine(exeDir, exeName);
 
         if (!File.Exists(exePath))
             throw new FileNotFoundException($"Build réussi mais exe introuvable : {exePath}");
 
-        Process.Start(new ProcessStartInfo
+        // On redirige la sortie pour VOIR pourquoi l'éditeur plante au démarrage (DLL ou
+        // référence manquante, ex. SDL3...). Les flux doivent rester lus pendant toute la vie
+        // du processus, sinon il se bloquerait quand le tampon du tube est plein : après le
+        // délai de démarrage on continue donc à les vider, mais sans les afficher.
+        var startInfo = new ProcessStartInfo
         {
             FileName = exePath,
             WorkingDirectory = exeDir,
-            UseShellExecute = true
-        });
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Impossible de démarrer le processus de l'éditeur.");
+
+        int reporting = 1; // 1 = on affiche la sortie, 0 = on la jette
+        void OnData(string? line)
+        {
+            if (!string.IsNullOrWhiteSpace(line) && Volatile.Read(ref reporting) == 1)
+                onLogLine("[Editor] " + line);
+        }
+
+        process.OutputDataReceived += (_, e) => OnData(e.Data);
+        process.ErrorDataReceived += (_, e) => OnData(e.Data);
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        bool exited = process.WaitForExit(StartupGraceMs);
+        if (exited)
+            process.WaitForExit(); // vide la sortie asynchrone restante
+
+        Volatile.Write(ref reporting, 0);
+
+        if (exited && process.ExitCode != 0)
+            throw new InvalidOperationException(
+                $"L'éditeur s'est fermé au démarrage (code {process.ExitCode}). Détails ci-dessus.");
 
         RecentProjectsStore.AddOrUpdate(entry with { LastOpened = DateTime.Now });
     }

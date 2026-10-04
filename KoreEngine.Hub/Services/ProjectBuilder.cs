@@ -111,11 +111,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <ItemGroup>
         <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Image"" Version=""3.4.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Mixer"" Version=""3.2.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.TTF"" Version=""3.2.2.2"" />
     </ItemGroup>
+
+{SdlPackages.PlatformItemGroups(includeShadercross: false)}
 
     <ItemGroup>
     <!-- Référence binaire uniquement, comme pour le projet principal —

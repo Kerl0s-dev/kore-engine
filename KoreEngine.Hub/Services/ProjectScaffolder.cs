@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace KoreEngine.Hub.Services;
 
@@ -48,7 +49,7 @@ public static class ProjectScaffolder
 
     static void CreateAssetsStructure(string targetDir, Action<string> log)
     {
-        string[] dirs = { "bin\\Debug\\net10.0\\" };
+        string[] dirs = { Path.Combine("bin", "Debug", "net10.0") };
 
         foreach (var dir in dirs)
         {
@@ -75,7 +76,7 @@ class Program
 }}
 ";
         File.WriteAllText(Path.Combine(targetDir, "Program.cs"), content);
-        log($"[ProjectScaffolder] Fichier Program.cs écrit : {targetDir}\\Program.cs");
+        log($"[ProjectScaffolder] Fichier Program.cs écrit : {targetDir}{Path.DirectorySeparatorChar}Program.cs");
     }
 
     // ---------------------------------------------------------------
@@ -105,12 +106,9 @@ class Program
         <PackageReference Include=""ImGui.NET"" Version=""1.91.6.1"" />
         <PackageReference Include=""Microsoft.CodeAnalysis.CSharp"" Version=""5.3.0"" />
         <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Image"" Version=""3.4.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Mixer"" Version=""3.2.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Shadercross"" Version=""3.0.0.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.TTF"" Version=""3.2.2.2"" />
     </ItemGroup>
+
+{SdlPackages.PlatformItemGroups(includeShadercross: true)}
 
     <ItemGroup>
         <Compile Remove=""Assets/**/*.cs"" />
@@ -131,17 +129,20 @@ class Program
     <!-- Copie récursive de tout le dossier bin du moteur (fichiers + sous-dossier runtimes/) -->
     <Target Name=""SyncEngineBinaries"" AfterTargets=""Build"">
         <ItemGroup>
-            <EngineFiles Include=""{editorBinDir}\**\*.*"" Exclude=""{editorBinDir}\KoreEngine.Editor.*"" />
-            <RuntimeFiles Include=""{runtimeBinDir}\**\*.*"" Exclude=""{runtimeBinDir}\KoreEngine.Runtime.*"" />
+            <EngineFiles Include=""{editorBinDir}/**/*.*"" Exclude=""{editorBinDir}/KoreEngine.Editor.*"" />
+            <RuntimeFiles Include=""{runtimeBinDir}/**/*.*"" Exclude=""{runtimeBinDir}/KoreEngine.Runtime.*"" />
+            <!-- Binaires natifs (SDL3.dll...) AUSSI à la racine : le chargement ne dépend plus du deps.json -->
+            <NativeFiles Include=""{editorBinDir}/runtimes/$(NETCoreSdkRuntimeIdentifier)/native/*.*"" />
         </ItemGroup>
         <Copy SourceFiles=""@(EngineFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
         <Copy SourceFiles=""@(RuntimeFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
+        <Copy SourceFiles=""@(NativeFiles)"" DestinationFolder=""$(TargetDir)"" SkipUnchangedFiles=""true"" />
     </Target>
 
 </Project>
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.csproj"), content);
-        log($"[ProjectScaffolder] Fichier .csproj écrit : {targetDir}\\{projectName}.csproj");
+        log($"[ProjectScaffolder] Fichier .csproj écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.csproj");
     }
 
     // ---------------------------------------------------------------
@@ -185,7 +186,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.Scripts.csproj"), content);
-        log($"[ProjectScaffolder] Fichier Scripts.csproj écrit : {targetDir}\\{projectName}.Scripts.csproj");
+        log($"[ProjectScaffolder] Fichier Scripts.csproj écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.Scripts.csproj");
     }
 
     // ---------------------------------------------------------------
@@ -233,13 +234,13 @@ Global
 EndGlobal
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.sln"), content);
-        log($"[ProjectScaffolder] Fichier .sln écrit : {targetDir}\\{projectName}.sln");
+        log($"[ProjectScaffolder] Fichier .sln écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.sln");
     }
 
     static void WriteImGui(string engineDir, string targetDir, Action<string> log)
     {
-        var source = Path.Combine(engineDir, "KoreEngine.Editor", "bin\\Debug\\net10.0\\imgui.ini");
-        var destination = Path.Combine(targetDir, "bin\\Debug\\net10.0\\imgui.ini");
+        var source = Path.Combine(engineDir, "KoreEngine.Editor", "bin", "Debug", "net10.0", "imgui.ini");
+        var destination = Path.Combine(targetDir, "bin", "Debug", "net10.0", "imgui.ini");
 
         if (File.Exists(destination))
             File.Delete(destination);
@@ -339,9 +340,60 @@ EndGlobal
 
             // Copie récursive de tous les fichiers ET sous-dossiers (notamment /runtimes)
             CopyDirectoryRecursive(source, destination, skip, log);
+
+            CopyNativesToRoot(source, destination, log);
         }
 
         log($"[ProjectScaffolder] Dépendances copiées : {destination}");
+    }
+
+    /// <summary>
+    /// Copie aussi les binaires natifs de l'OS courant (runtimes/{rid}/native/*) à la RACINE
+    /// du dossier de sortie. Dans le moteur, SDL3.dll n'existe que dans runtimes/win-x64/native :
+    /// il n'est trouvé que si le deps.json du projet le déclare, ce qui n'est pas fiable
+    /// (DllNotFoundException 'SDL3' au démarrage de l'éditeur). À la racine, à côté de l'exe,
+    /// il est toujours trouvé.
+    /// </summary>
+    static void CopyNativesToRoot(string engineOutputDir, string destination, Action<string> log)
+    {
+        string? rid = CurrentNativeRid();
+        if (rid == null) return;
+
+        string nativeDir = Path.Combine(engineOutputDir, "runtimes", rid, "native");
+        if (!Directory.Exists(nativeDir))
+        {
+            log($"[ProjectScaffolder] AVERTISSEMENT : pas de binaires natifs pour {rid} : {nativeDir}");
+            return;
+        }
+
+        foreach (var file in Directory.GetFiles(nativeDir))
+        {
+            try
+            {
+                File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: true);
+            }
+            catch (IOException ex)
+            {
+                // Fichier verrouillé (éditeur déjà ouvert, par exemple).
+                log($"[ProjectScaffolder] Natif non copié ({Path.GetFileName(file)}) : {ex.Message}");
+            }
+        }
+    }
+
+    static string? CurrentNativeRid()
+    {
+        string arch = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.X64 => "x64",
+            Architecture.Arm64 => "arm64",
+            _ => ""
+        };
+        if (arch.Length == 0) return null;
+
+        if (OperatingSystem.IsWindows()) return $"win-{arch}";
+        if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+        if (OperatingSystem.IsMacOS()) return $"osx-{arch}";
+        return null;
     }
 
     private static void CopyDirectoryRecursive(string sourceDir, string destinationDir, string[] skipFiles, Action<string> log)
@@ -419,7 +471,7 @@ class Program
 }}
 ";
         File.WriteAllText(Path.Combine(playerDir, "Program.cs"), programContent);
-        log($"[ProjectScaffolder] Fichier Program.cs (Player) écrit : {playerDir}\\Program.cs");
+        log($"[ProjectScaffolder] Fichier Program.cs (Player) écrit : {playerDir}{Path.DirectorySeparatorChar}Program.cs");
 
         string csprojContent =
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
@@ -437,12 +489,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     <ItemGroup>
     <!-- Pas d'ImGui.NET ici : le Player n'affiche jamais d'éditeur. -->
         <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows"" Version=""3.4.10.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Image"" Version=""3.4.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Mixer"" Version=""3.2.4.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.Shadercross"" Version=""3.0.0.2"" />
-        <PackageReference Include=""SDL3-CS.Windows.TTF"" Version=""3.2.2.2"" />
     </ItemGroup>
+
+{SdlPackages.PlatformItemGroups(includeShadercross: true)}
 
     <ItemGroup>
     <!-- Référence binaire uniquement, comme le jeu éditeur — jamais le code
@@ -455,7 +504,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>
 ";
         File.WriteAllText(Path.Combine(playerDir, $"{projectName}.Player.csproj"), csprojContent);
-        log($"[ProjectScaffolder] Fichier .csproj (Player) écrit : {playerDir}\\{projectName}.Player.csproj");
+        log($"[ProjectScaffolder] Fichier .csproj (Player) écrit : {playerDir}{Path.DirectorySeparatorChar}{projectName}.Player.csproj");
 
         CopyEngineDependencies(engineDir, Path.Combine(playerDir, "bin", "Debug", "net10.0"),
             new[] { "KoreEngine.Runtime" }, log);

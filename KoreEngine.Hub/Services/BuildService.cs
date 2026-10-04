@@ -8,9 +8,8 @@ namespace KoreEngine.Hub.Services;
 /// ProjectScaffolder.WritePlayerProject) en Release, self-contained et en
 /// exe unique, puis copie Assets/ à côté.
 ///
-/// RID fixé à win-x64 : tout le reste du moteur (SDL3-CS.Windows*, l'Editor
-/// et le Hub en WPF) ne cible de toute façon que Windows — inutile de faire
-/// semblant de supporter autre chose ici.
+/// RID : celui de l'OS courant (win-x64, linux-x64 ou osx-x64) — le joueur est
+/// buildé pour la machine qui lance le build, avec les SDL3-CS.* de cet OS.
 ///
 /// Self-contained : le joueur n'a pas besoin d'installer le runtime .NET
 /// pour lancer le jeu — l'exe embarque tout, au prix d'un exe nettement plus
@@ -35,6 +34,11 @@ namespace KoreEngine.Hub.Services;
 /// </summary>
 public static class BuildService
 {
+    /// <summary>RID de publication : celui de la machine qui build (le joueur est buildé pour l'OS courant).</summary>
+    static string CurrentRid =>
+        OperatingSystem.IsWindows() ? "win-x64" :
+        OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+
     public static void Build(RecentProjectEntry entry, Action<string> onLogLine, Action<bool> onFinished)
     {
         string playerDir = Path.Combine(entry.Path, "Player");
@@ -52,7 +56,7 @@ public static class BuildService
         string publishArgs = string.Join(" ", new[]
         {
             "-c Release",
-            "-r win-x64",
+            $"-r {CurrentRid}",
             "--self-contained false",
             "-p:PublishSingleFile=false",
             "-p:IncludeNativeLibrariesForSelfExtract=false",

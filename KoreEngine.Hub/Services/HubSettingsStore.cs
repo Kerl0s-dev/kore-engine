@@ -6,6 +6,7 @@ namespace KoreEngine.Hub.Services;
 public class HubSettings
 {
     public string? EngineDir { get; set; }
+    public string? LastProjectsDir { get; set; } // dernier dossier parent choisi dans « Nouveau projet »
 }
 
 public static class HubSettingsStore

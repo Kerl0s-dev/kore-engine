@@ -2,13 +2,33 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>KoreEngine.Hub</RootNamespace>
     <AssemblyName>Kore Engine Hub</AssemblyName>
     <AssemblyTitle>KoreEngine.Hub</AssemblyTitle>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SDL3-CS" Version="3.4.16.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <PackageReference Include="SDL3-CS.Windows" Version="3.4.16.2" />
+    <PackageReference Include="SDL3-CS.Windows.Image" Version="3.4.6.11" />
+    <PackageReference Include="SDL3-CS.Windows.TTF" Version="3.2.2.12" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <PackageReference Include="SDL3-CS.Linux" Version="3.4.10.2" />
+    <PackageReference Include="SDL3-CS.Linux.Image" Version="3.4.4.2" />
+    <PackageReference Include="SDL3-CS.Linux.TTF" Version="3.2.2.2" />
+  </ItemGroup>
+
+  <!-- La police du Hub est copiée à côté de l'exécutable (Fonts/). -->
+  <ItemGroup>
+    <None Include="Fonts\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>
