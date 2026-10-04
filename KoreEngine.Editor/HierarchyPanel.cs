@@ -1,6 +1,4 @@
 ﻿using ImGuiNET;
-using KoreEngine.Core;
-using KoreEngine.Engine;
 
 namespace KoreEngine.Editor;
 
@@ -272,26 +270,26 @@ public class HierarchyPanel
         var obj = type switch
         {
             "Camera" => CreateWithComponents("Camera",
-                new Components.Camera()),
+                new Camera()),
 
             "Rect" => CreateWithComponents("Rect",
-                new Components.RectRenderer() { Size = new Vector2(16, 16) }),
+                new RectRenderer() { Size = new Vector2(16, 16) }),
 
             "Sprite" => CreateWithComponents("Sprite",
-                new Components.SpriteRenderer() { Size = new Vector2(16, 16) }),
+                new SpriteRenderer() { Size = new Vector2(16, 16) }),
 
             "Physics" => CreateWithComponents("Physics Object",
-                new Components.PhysicsBody(),
-                new Components.Collider()),
+                new PhysicsBody(),
+                new Collider()),
 
             "UICanvas" => CreateWithComponents("Canvas",
-                new Components.UI.UICanvas()),
+                new UI.UICanvas()),
 
             "UIButton" => CreateWithComponents("Button",
-                new Components.UI.UIButton()),
+                new UI.UIButton()),
 
             "UIImage" => CreateWithComponents("Image",
-                new Components.UI.UIImage()),
+                new UI.UIImage()),
 
             _ => new GameObject("GameObject")
         };

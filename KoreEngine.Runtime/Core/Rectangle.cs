@@ -1,4 +1,4 @@
-﻿namespace KoreEngine.Core;
+﻿namespace KoreEngine;
 
 public struct Rectangle
 {

@@ -1,6 +1,4 @@
-﻿using KoreEngine.Core;
-
-namespace KoreEngine.Input;
+﻿namespace KoreEngine.Input;
 
 public class InputMap
 {

@@ -1,6 +1,4 @@
-﻿using KoreEngine.Components;
-
-namespace KoreEngine
+﻿namespace KoreEngine
 {
     public static class Physics
     {

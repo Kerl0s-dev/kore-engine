@@ -1,9 +1,9 @@
 ﻿// Engine/FontManager.cs
 using SDL3;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
-public static class FontManager
+internal static class FontManager
 {
     static IntPtr rendererHandle;
     static Dictionary<string, IntPtr> fonts = new();

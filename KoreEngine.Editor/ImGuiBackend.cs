@@ -1,6 +1,5 @@
 ﻿// Editor/ImGuiBackend.cs
 using ImGuiNET;
-using KoreEngine.Engine;
 using SDL3;
 using System.Runtime.InteropServices;
 

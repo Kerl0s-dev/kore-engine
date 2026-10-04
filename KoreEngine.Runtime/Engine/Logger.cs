@@ -1,4 +1,4 @@
-﻿namespace KoreEngine.Engine;
+﻿namespace KoreEngine;
 
 public enum LogLevel { Info, Warning, Error, Sucess }
 

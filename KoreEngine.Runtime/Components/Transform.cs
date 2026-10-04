@@ -1,6 +1,4 @@
-﻿using KoreEngine.Core;
-
-namespace KoreEngine.Components
+﻿namespace KoreEngine
 {
     [UnremovableComponent]
     public class Transform : Component

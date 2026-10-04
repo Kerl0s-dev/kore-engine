@@ -1,7 +1,4 @@
-﻿using KoreEngine.Components;
-using KoreEngine.Core;
-
-namespace KoreEngine.Editor
+﻿namespace KoreEngine.Editor
 {
     /// <summary>
     /// Caméra de l'éditeur — indépendante de la caméra de jeu.

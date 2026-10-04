@@ -134,7 +134,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     {
         string content =
 $@"using System.Reflection;
-using KoreEngine.Engine;
+using KoreEngine;
 
 class Program
 {{

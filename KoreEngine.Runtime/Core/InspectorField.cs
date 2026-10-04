@@ -1,4 +1,4 @@
-namespace KoreEngine.Core;
+namespace KoreEngine;
 
 /// <summary>
 /// Décrit un champ à afficher dans l'Inspector, sans aucune dépendance à

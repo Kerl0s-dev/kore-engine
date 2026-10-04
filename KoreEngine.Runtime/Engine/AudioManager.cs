@@ -1,6 +1,6 @@
 ﻿using SDL3;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
 public static class AudioManager
 {

@@ -1,6 +1,4 @@
-﻿using KoreEngine.Engine;
-
-namespace KoreEngine.Editor;
+﻿namespace KoreEngine.Editor;
 
 /// <summary>
 /// Surveille les .cs dans le dossier actuel.

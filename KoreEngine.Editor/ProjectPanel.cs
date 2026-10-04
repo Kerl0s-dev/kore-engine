@@ -1,11 +1,8 @@
 ﻿using ImGuiNET;
-using KoreEngine.Core;
-using KoreEngine.Engine;
 using SDL3;
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Vector2 = System.Numerics.Vector2;
 
 namespace KoreEngine.Editor;
 
@@ -104,14 +101,14 @@ public class ProjectPanel
         float rightW = totalW * 0.75f - 4f;
 
         // --- Colonne gauche : arbre de dossiers ---
-        ImGui.BeginChild("##dir_tree", new Vector2(leftW, 0));
+        ImGui.BeginChild("##dir_tree", new System.Numerics.Vector2(leftW, 0));
         DrawDirTree(assetsRoot);
         ImGui.EndChild();
 
         ImGui.SameLine();
 
         // --- Colonne droite : grille de fichiers ---
-        ImGui.BeginChild("##file_grid", new Vector2(rightW, 0));
+        ImGui.BeginChild("##file_grid", new System.Numerics.Vector2(rightW, 0));
         DrawFileGrid();
         ImGui.EndChild();
 
@@ -226,7 +223,7 @@ public class ProjectPanel
             if (folderIcon != IntPtr.Zero)
             {
                 SDL.SetTextureScaleMode(folderIcon, SDL.ScaleMode.Linear);
-                ImGui.Image(folderIcon, new Vector2(iconSize, iconSize));
+                ImGui.Image(folderIcon, new System.Numerics.Vector2(iconSize, iconSize));
             }
             else
                 DrawIconPlaceholder(iconSize, 0xFF3A7BD5, "📁");
@@ -242,7 +239,7 @@ public class ProjectPanel
                 if (tex != IntPtr.Zero)
                 {
                     SDL.SetTextureScaleMode(tex, SDL.ScaleMode.Linear);
-                    ImGui.Image(tex, new Vector2(iconSize, iconSize));
+                    ImGui.Image(tex, new System.Numerics.Vector2(iconSize, iconSize));
                 }
                 else
                     DrawIconPlaceholder(iconSize, 0xFF555555, "?");
@@ -253,7 +250,7 @@ public class ProjectPanel
                 if (icon != IntPtr.Zero)
                 {
                     SDL.SetTextureScaleMode(icon, SDL.ScaleMode.Linear);
-                    ImGui.Image(icon, new Vector2(iconSize, iconSize));
+                    ImGui.Image(icon, new System.Numerics.Vector2(iconSize, iconSize));
                 }
                 else
                     DrawIconPlaceholder(iconSize, 0xFF666666,
@@ -298,11 +295,11 @@ public class ProjectPanel
     {
         var dl = ImGui.GetWindowDrawList();
         var pos = ImGui.GetCursorScreenPos();
-        ImGui.Dummy(new Vector2(size, size));
-        dl.AddRectFilled(pos, new Vector2(pos.X + size, pos.Y + size), color, 6f);
+        ImGui.Dummy(new System.Numerics.Vector2(size, size));
+        dl.AddRectFilled(pos, new System.Numerics.Vector2(pos.X + size, pos.Y + size), color, 6f);
         var ts = ImGui.CalcTextSize(text);
         dl.AddText(
-            new Vector2(pos.X + (size - ts.X) * 0.5f, pos.Y + (size - ts.Y) * 0.5f),
+            new System.Numerics.Vector2(pos.X + (size - ts.X) * 0.5f, pos.Y + (size - ts.Y) * 0.5f),
             0xFFFFFFFF, text);
     }
 
@@ -373,7 +370,7 @@ public class ProjectPanel
     {
         if (openNewScript) { ImGui.OpenPopup("##new_script_popup"); openNewScript = false; newItemError = false; }
 
-        ImGui.SetNextWindowSize(new Vector2(280, 120), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 120), ImGuiCond.Always);
         if (!ImGui.BeginPopup("##new_script_popup")) return;
 
         ImGui.Text("Script name");
@@ -384,7 +381,7 @@ public class ProjectPanel
 
         ImGui.Spacing();
         float w = (ImGui.GetContentRegionAvail().X - 4f) * .5f;
-        if (ImGui.Button("Create", new Vector2(w, 0)))
+        if (ImGui.Button("Create", new System.Numerics.Vector2(w, 0)))
         {
             string path = Path.Combine(selectedDir, $"{newItemName.Trim()}.cs");
             if (File.Exists(path)) { newItemError = true; }
@@ -413,7 +410,7 @@ public class {newItemName.Trim()} : Component
             }
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel", new Vector2(w, 0))) ImGui.CloseCurrentPopup();
+        if (ImGui.Button("Cancel", new System.Numerics.Vector2(w, 0))) ImGui.CloseCurrentPopup();
         ImGui.EndPopup();
     }
 
@@ -421,7 +418,7 @@ public class {newItemName.Trim()} : Component
     {
         if (openNewScene) { ImGui.OpenPopup("##new_scene_popup"); openNewScene = false; newItemError = false; }
 
-        ImGui.SetNextWindowSize(new Vector2(280, 120), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 120), ImGuiCond.Always);
         if (!ImGui.BeginPopup("##new_scene_popup")) return;
 
         ImGui.Text("Scene name");
@@ -432,7 +429,7 @@ public class {newItemName.Trim()} : Component
 
         ImGui.Spacing();
         float w = (ImGui.GetContentRegionAvail().X - 4f) * .5f;
-        if (ImGui.Button("Create", new Vector2(w, 0)))
+        if (ImGui.Button("Create", new System.Numerics.Vector2(w, 0)))
         {
             string path = Path.Combine(selectedDir, $"{newItemName.Trim()}.kscene");
             if (File.Exists(path)) { newItemError = true; }
@@ -446,7 +443,7 @@ public class {newItemName.Trim()} : Component
             }
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel", new Vector2(w, 0))) ImGui.CloseCurrentPopup();
+        if (ImGui.Button("Cancel", new System.Numerics.Vector2(w, 0))) ImGui.CloseCurrentPopup();
         ImGui.EndPopup();
     }
 
@@ -454,7 +451,7 @@ public class {newItemName.Trim()} : Component
     {
         if (openNewFolder) { ImGui.OpenPopup("##new_folder_popup"); openNewFolder = false; newItemError = false; }
 
-        ImGui.SetNextWindowSize(new Vector2(280, 120), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 120), ImGuiCond.Always);
         if (!ImGui.BeginPopup("##new_folder_popup")) return;
 
         ImGui.Text("Folder name");
@@ -465,14 +462,14 @@ public class {newItemName.Trim()} : Component
 
         ImGui.Spacing();
         float w = (ImGui.GetContentRegionAvail().X - 4f) * .5f;
-        if (ImGui.Button("Create", new Vector2(w, 0)))
+        if (ImGui.Button("Create", new System.Numerics.Vector2(w, 0)))
         {
             string path = Path.Combine(selectedDir, newItemName.Trim());
             if (Directory.Exists(path)) { newItemError = true; }
             else { Directory.CreateDirectory(path); RefreshCurrentDir(); ImGui.CloseCurrentPopup(); }
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel", new Vector2(w, 0))) ImGui.CloseCurrentPopup();
+        if (ImGui.Button("Cancel", new System.Numerics.Vector2(w, 0))) ImGui.CloseCurrentPopup();
         ImGui.EndPopup();
     }
 
@@ -480,7 +477,7 @@ public class {newItemName.Trim()} : Component
     {
         if (openRename) { ImGui.OpenPopup("##rename_popup"); openRename = false; renameError = false; }
 
-        ImGui.SetNextWindowSize(new Vector2(280, 120), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 120), ImGuiCond.Always);
         if (!ImGui.BeginPopup("##rename_popup")) return;
 
         ImGui.Text("New name");
@@ -491,13 +488,13 @@ public class {newItemName.Trim()} : Component
 
         ImGui.Spacing();
         float w = (ImGui.GetContentRegionAvail().X - 4f) * .5f;
-        if (ImGui.Button("Rename", new Vector2(w, 0)))
+        if (ImGui.Button("Rename", new System.Numerics.Vector2(w, 0)))
         {
             if (CommitRename()) ImGui.CloseCurrentPopup();
             else renameError = true;
         }
         ImGui.SameLine();
-        if (ImGui.Button("Cancel", new Vector2(w, 0)))
+        if (ImGui.Button("Cancel", new System.Numerics.Vector2(w, 0)))
         {
             renameTargetPath = null;
             ImGui.CloseCurrentPopup();

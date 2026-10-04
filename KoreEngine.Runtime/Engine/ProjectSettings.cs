@@ -1,4 +1,4 @@
-﻿namespace KoreEngine.Engine;
+﻿namespace KoreEngine;
 
 /// <summary>
 /// Réglages globaux du projet, volontairement minimalistes (même esprit texte

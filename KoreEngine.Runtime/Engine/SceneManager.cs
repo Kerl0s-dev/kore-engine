@@ -1,6 +1,4 @@
-﻿using KoreEngine.Core;
-
-namespace KoreEngine.Engine;
+﻿namespace KoreEngine;
 
 public static class SceneManager
 {

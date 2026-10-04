@@ -65,7 +65,7 @@ public static class ProjectScaffolder
     static void WriteProgramCs(string targetDir, string projectName, Action<string> log)
     {
         string content =
-$@"using KoreEngine.Editor;
+$@"using KoreEngine;
 
 class Program
 {{
@@ -434,7 +434,7 @@ $@"using System;
 using System.IO;
 using System.Reflection;
 using System.Linq;
-using KoreEngine.Engine;
+using KoreEngine;
 
 class Program
 {{

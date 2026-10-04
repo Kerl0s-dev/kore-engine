@@ -1,7 +1,4 @@
 ﻿using ImGuiNET;
-using KoreEngine.Components;
-using KoreEngine.Core;
-using KoreEngine.Engine;
 
 namespace KoreEngine.Editor
 {

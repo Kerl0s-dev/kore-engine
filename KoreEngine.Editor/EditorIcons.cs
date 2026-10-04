@@ -1,5 +1,4 @@
-﻿using KoreEngine.Engine;
-using SDL3;
+﻿using SDL3;
 
 namespace KoreEngine.Editor;
 

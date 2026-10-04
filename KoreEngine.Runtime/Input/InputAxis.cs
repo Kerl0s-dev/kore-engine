@@ -1,5 +1,4 @@
-﻿using KoreEngine.Core;
-using SDL3;
+﻿using SDL3;
 
 namespace KoreEngine.Input;
 

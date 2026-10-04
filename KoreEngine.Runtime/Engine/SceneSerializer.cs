@@ -1,8 +1,7 @@
-﻿using KoreEngine.Core;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
 /// <summary>
 /// Sérialise/désérialise les scènes au format .kscene

@@ -1,7 +1,4 @@
-﻿using KoreEngine.Components;
-using KoreEngine.Engine;
-
-namespace KoreEngine.Core;
+﻿namespace KoreEngine;
 
 public abstract class Component
 {

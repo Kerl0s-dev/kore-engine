@@ -1,4 +1,4 @@
-﻿using KoreEngine.Core;
+﻿using KoreEngine;
 
 public struct AnimationFrame
 {

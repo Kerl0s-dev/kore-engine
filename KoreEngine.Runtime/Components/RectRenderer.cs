@@ -1,7 +1,4 @@
-﻿using KoreEngine.Core;
-using KoreEngine.Engine;
-
-namespace KoreEngine.Components;
+﻿namespace KoreEngine;
 
 public class RectRenderer : Component
 {

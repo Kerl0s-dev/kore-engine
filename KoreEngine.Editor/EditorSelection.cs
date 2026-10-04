@@ -1,7 +1,4 @@
-﻿using KoreEngine.Core;
-using KoreEngine.Engine;
-
-namespace KoreEngine.Editor
+﻿namespace KoreEngine.Editor
 {
     public enum GizmoMode { Move, Rotate, Scale }
     public enum GizmoSpace { Local, World }

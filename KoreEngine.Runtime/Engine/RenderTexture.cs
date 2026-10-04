@@ -1,6 +1,6 @@
 ﻿using SDL3;
 
-namespace KoreEngine.Engine
+namespace KoreEngine
 {
     /// <summary>
     /// Render-to-texture pour le viewport éditeur.

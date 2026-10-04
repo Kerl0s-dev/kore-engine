@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
 /// <summary>
 /// "Build" déclenché depuis l'éditeur :

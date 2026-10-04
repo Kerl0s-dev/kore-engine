@@ -1,6 +1,4 @@
-﻿namespace KoreEngine.Core;
-
-/// <summary>
+﻿/// <summary>
 /// Marque un Component comme un script "utilisateur" (gameplay), par
 /// opposition aux composants internes du moteur (SpriteRenderer, PhysicsBody...).
 /// Les classes marquées apparaissent dans la catégorie "Scripts" du ProjectPanel,

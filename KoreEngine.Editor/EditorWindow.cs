@@ -1,10 +1,9 @@
 ﻿using ImGuiNET;
-using KoreEngine.Components;
-using KoreEngine.Engine;
+using KoreEngine.Editor;
 using SDL3;
 using System.Numerics;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class EditorWindow
 {
@@ -163,9 +162,9 @@ public class EditorWindow
         style.ScrollbarRounding = 0f;
         style.GrabRounding = 3f;
         style.TabRounding = 0f;
-        style.FramePadding = new Vector2(6f, 3f);
-        style.ItemSpacing = new Vector2(6f, 4f);
-        style.WindowPadding = new Vector2(8f, 8f);
+        style.FramePadding = new System.Numerics.Vector2(6f, 3f);
+        style.ItemSpacing = new System.Numerics.Vector2(6f, 4f);
+        style.WindowPadding = new System.Numerics.Vector2(8f, 8f);
         #endregion
 
         // L'éditeur est toujours actif : la RenderTexture du viewport est créée
@@ -260,7 +259,7 @@ public class EditorWindow
                     if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
                     if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
 
-                    if (ImGui.IsKeyPressed(ImGuiKey.F)) viewportPanel?.EditorCamera.Position = (Core.Vector2)(EditorSelection.Selected != null ? EditorSelection.Selected.transform.Position : viewportPanel?.EditorCamera.Position)!;
+                    if (ImGui.IsKeyPressed(ImGuiKey.F)) viewportPanel?.EditorCamera.Position = (Vector2)(EditorSelection.Selected != null ? EditorSelection.Selected.transform.Position : viewportPanel?.EditorCamera.Position)!;
                 }
             }
 
@@ -268,20 +267,20 @@ public class EditorWindow
             if (showQuitPopup)
             {
                 var viewport = ImGui.GetMainViewport().GetCenter();
-                ImGui.SetNextWindowPos(viewport, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+                ImGui.SetNextWindowPos(viewport, ImGuiCond.Appearing, new System.Numerics.Vector2(0.5f, 0.5f));
                 ImGui.Begin("quit_popup", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse |
                     ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoNavFocus);
                 ImGui.Text("Are you sure you want to quit Kore Engine?");
                 ImGui.Separator();
 
-                if (ImGui.Button("No", new Vector2(150, 20)))
+                if (ImGui.Button("No", new System.Numerics.Vector2(150, 20)))
                 {
                     showQuitPopup = false; // Annuler
                 }
 
                 ImGui.SameLine();
 
-                if (ImGui.Button("Yes", new Vector2(150, 20)))
+                if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
                 {
                     Running = false; // Quitter la boucle
                 }
@@ -384,7 +383,7 @@ public class EditorWindow
         DrawToolbar();
 
         uint dockspaceId = ImGui.GetID("MainDockSpace");
-        ImGui.DockSpace(dockspaceId, Vector2.Zero, ImGuiDockNodeFlags.None);
+        ImGui.DockSpace(dockspaceId, System.Numerics.Vector2.Zero, ImGuiDockNodeFlags.None);
 
         ImGui.End();
 
@@ -397,7 +396,7 @@ public class EditorWindow
     /// </summary>
     void DrawToolbar()
     {
-        ImGui.BeginChild("##toolbar", new Vector2(0, 40), ImGuiChildFlags.Borders);
+        ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 40), ImGuiChildFlags.Borders);
 
         string spaceLabel = EditorSelection.ActiveGizmoSpace == GizmoSpace.World ? "World" : "Local";
         if (ImGui.Button(spaceLabel))
@@ -521,7 +520,7 @@ public class EditorWindow
     {
         if (!showShortcutsWindow) return;
 
-        ImGui.SetNextWindowSize(new Vector2(320, 200), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(320, 200), ImGuiCond.FirstUseEver);
         if (ImGui.Begin("Keyboard Shortcuts", ref showShortcutsWindow))
         {
             ImGui.Columns(2, "##shortcuts_cols", true);

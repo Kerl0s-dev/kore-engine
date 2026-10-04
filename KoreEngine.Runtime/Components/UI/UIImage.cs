@@ -1,6 +1,4 @@
-﻿using KoreEngine.Engine;
-
-namespace KoreEngine.Components.UI;
+﻿namespace KoreEngine.UI;
 
 public class UIImage : UIElement
 {

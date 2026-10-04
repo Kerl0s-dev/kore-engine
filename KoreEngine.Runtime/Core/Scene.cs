@@ -1,7 +1,4 @@
-﻿using KoreEngine.Components;
-using KoreEngine.Engine;
-
-namespace KoreEngine.Core;
+﻿namespace KoreEngine;
 
 public class Scene
 {
@@ -24,7 +21,7 @@ public class Scene
         set
         {
             camera = value;
-            KoreEngine.Components.Camera.Main = value;
+            Camera.Main = value;
         }
     }
 

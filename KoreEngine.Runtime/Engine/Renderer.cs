@@ -1,8 +1,6 @@
-﻿using KoreEngine.Components;
-using KoreEngine.Core;
-using SDL3;
+﻿using SDL3;
 
-namespace KoreEngine.Engine
+namespace KoreEngine
 {
     /// <summary>
     /// Wrapper autour de SDL_Renderer.

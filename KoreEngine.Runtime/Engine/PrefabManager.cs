@@ -1,7 +1,6 @@
-﻿using KoreEngine.Core;
-using System.Text;
+﻿using System.Text;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
 /// <summary>
 /// Prefabs : un GameObject (et toute sa hiérarchie d'enfants) sérialisé dans

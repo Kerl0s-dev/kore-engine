@@ -1,8 +1,6 @@
-﻿using KoreEngine.Core;
-using KoreEngine.Engine;
-using SDL3;
+﻿using SDL3;
 
-namespace KoreEngine.Components;
+namespace KoreEngine;
 
 public enum FilteringMode
 {

@@ -1,7 +1,6 @@
-﻿using KoreEngine.Components;
-using SDL3;
+﻿using SDL3;
 
-namespace KoreEngine.Engine;
+namespace KoreEngine;
 
 /// <summary>
 /// Boucle de jeu minimale pour un jeu buildé — zéro dépendance à ImGui ou à

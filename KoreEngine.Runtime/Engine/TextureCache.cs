@@ -1,4 +1,4 @@
-﻿namespace KoreEngine.Engine;
+﻿namespace KoreEngine;
 
 /// <summary>
 /// Cache global de textures SDL indexées par chemin de fichier.

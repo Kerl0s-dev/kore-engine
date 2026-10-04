@@ -1,4 +1,4 @@
-﻿namespace KoreEngine.Core;
+﻿namespace KoreEngine;
 
 /// <summary>
 /// Empêche un champ public d'apparaître dans l'inspector de l'éditeur.

@@ -1,5 +1,4 @@
 ﻿using ImGuiNET;
-using KoreEngine.Engine;
 using System.Numerics;
 
 namespace KoreEngine.Editor;
@@ -62,7 +61,7 @@ public class ConsolePanel
         ImGui.Separator();
 
         // --- Messages ---
-        ImGui.BeginChild("##log", new Vector2(0, 0), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
+        ImGui.BeginChild("##log", new System.Numerics.Vector2(0, 0), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
 
         string filterLower = filter.Trim().ToLowerInvariant();
 
