@@ -348,8 +348,8 @@ namespace KoreEngine.Editor
             activeDrag = mode;
             dragStartWorldMouse = AbsScreenToWorld(io.MousePos, imageScreenPos);
             dragStartPosition = obj.transform.Position;
-            dragStartScale = obj.transform.LocalScale;
-            dragStartRotationValue = obj.transform.LocalRotation;
+            dragStartScale = obj.transform.Scale;
+            dragStartRotationValue = obj.transform.Rotation;
             dragStartMouseAngle = AngleTo(obj.transform.WorldPosition, dragStartWorldMouse);
         }
 
@@ -535,7 +535,7 @@ namespace KoreEngine.Editor
                     newScale = new Vector2(uniform, uniform * ratio);
                 }
 
-                obj.transform.LocalScale = newScale;
+                obj.transform.Scale = newScale;
             }
         }
 
@@ -576,7 +576,7 @@ namespace KoreEngine.Editor
                 Vector2 mouseWorldNow = AbsScreenToWorld(io.MousePos, imageScreenPos);
                 float angleNow = AngleTo(obj.transform.WorldPosition, mouseWorldNow);
                 float deltaAngle = angleNow - dragStartMouseAngle;
-                obj.transform.LocalRotation = dragStartRotationValue - deltaAngle;
+                obj.transform.Rotation = dragStartRotationValue - deltaAngle;
 
                 // Visualisation de l'angle lors du drag (Secteur angulaire)
                 System.Numerics.Vector2 startMouseScreen = WorldToAbsScreen(dragStartWorldMouse, imageScreenPos);

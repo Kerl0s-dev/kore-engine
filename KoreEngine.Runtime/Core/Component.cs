@@ -6,6 +6,7 @@ namespace KoreEngine.Core;
 public abstract class Component
 {
     public GameObject gameObject { get; internal set; } = null!;
+    public Transform transform => gameObject.transform;
     public virtual void Update(float dt) { }
     public virtual void Render(Renderer renderer, Camera? camera) { }
 

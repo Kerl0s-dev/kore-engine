@@ -7,12 +7,8 @@ namespace KoreEngine.Components
     {
         public GameObject? Parent { get; private set; }
 
-        public Vector2 PreviousPosition;
+        public Vector2 Position;
 
-        // Position MONDE : remonte la chaîne de parents pour calculer la
-        // position absolue. Utilisée par le rendu et la physique.
-        // IMPORTANT : tous les composants qui dessinaient via Owner.Position
-        // doivent maintenant utiliser Owner.WorldPosition.
         public Vector2 WorldPosition
         {
             get => Parent != null
@@ -20,39 +16,22 @@ namespace KoreEngine.Components
                 : Position;
         }
 
-        // Alias rétrocompatible pointe sur LocalPosition pour que l'ancien
-        // code qui écrit Position continue de compiler. À migrer vers
-        // LocalPosition/WorldPosition selon le contexte au fil du temps.
-        public Vector2 Position;
-
         // Rotation locale en degrés.
-        public float LocalRotation;
+        public float Rotation;
 
         public float WorldRotation
         {
-            get => Parent != null ? Parent.transform.WorldRotation + LocalRotation : LocalRotation;
-        }
-
-        public float Rotation
-        {
-            get => LocalRotation;
-            set => LocalRotation = value;
+            get => Parent != null ? Parent.transform.WorldRotation + Rotation : Rotation;
         }
 
         // Scale locale — multiplicatif le long de la hiérarchie.
-        public Vector2 LocalScale = new Vector2(1f, 1f);
+        public Vector2 Scale = new Vector2(1f, 1f);
 
         public Vector2 WorldScale
         {
             get => Parent != null
-                ? new Vector2(Parent.transform.WorldScale.X * LocalScale.X, Parent.transform.WorldScale.Y * LocalScale.Y)
-                : LocalScale;
-        }
-
-        public Vector2 Scale
-        {
-            get => LocalScale;
-            set => LocalScale = value;
+                ? new Vector2(Parent.transform.WorldScale.X * Scale.X, Parent.transform.WorldScale.Y * Scale.Y)
+                : Scale;
         }
 
         /// <summary>
@@ -99,17 +78,32 @@ namespace KoreEngine.Components
             return false;
         }
 
+        public void Translate(Vector2 translation)
+        {
+            Position += translation;
+        }
+
+        public void RotateBy(float angle)
+        {
+            Rotation += angle;
+        }
+
+        public void ScaleBy(Vector2 scaleFactor)
+        {
+            Scale = new Vector2(Scale.X * scaleFactor.X, Scale.Y * scaleFactor.Y);
+        }
+
         public override IEnumerable<InspectorField> GetInspectorFields()
         {
             yield return new FloatField { Label = "X", Get = () => Position.X, Set = (v) => Position = new Vector2(v, Position.Y), ReadOnly = false };
 
             yield return new FloatField { Label = "Y", Get = () => Position.Y, Set = (v) => Position = new Vector2(Position.X, v), ReadOnly = false };
 
-            yield return new FloatField { Label = "Rotation", Get = () => LocalRotation, Set = (v) => LocalRotation = v, ReadOnly = false };
+            yield return new FloatField { Label = "Rotation", Get = () => Rotation, Set = (v) => Rotation = v, ReadOnly = false };
 
-            yield return new FloatField { Label = "Scale X", Get = () => LocalScale.X, Set = (v) => LocalScale = new Vector2(v, LocalScale.Y), ReadOnly = false };
+            yield return new FloatField { Label = "Scale X", Get = () => Scale.X, Set = (v) => Scale = new Vector2(v, Scale.Y), ReadOnly = false };
 
-            yield return new FloatField { Label = "Scale Y", Get = () => LocalScale.Y, Set = (v) => LocalScale = new Vector2(LocalScale.X, v), ReadOnly = false };
+            yield return new FloatField { Label = "Scale Y", Get = () => Scale.Y, Set = (v) => Scale = new Vector2(Scale.X, v), ReadOnly = false };
         }
     }
 }
