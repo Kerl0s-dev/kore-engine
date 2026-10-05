@@ -142,16 +142,6 @@ namespace KoreEngine.Editor
             var collider = obj.GetComponent<Collider>();
             if (collider != null) return collider.Bounds;
 
-            var rect = obj.GetComponent<RectRenderer>();
-            if (rect != null)
-            {
-                var scale = obj.transform.WorldScale;
-                int w = (int)(rect.Size.X * scale.X);
-                int h = (int)(rect.Size.Y * scale.Y);
-                var pos = obj.transform.WorldPosition;
-                return new Rectangle((int)(pos.X - w / 2f), (int)(pos.Y - h / 2f), w, h);
-            }
-
             var sprite = obj.GetComponent<SpriteRenderer>();
             if (sprite != null)
             {

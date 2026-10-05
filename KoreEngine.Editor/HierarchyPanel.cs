@@ -221,9 +221,6 @@ public class HierarchyPanel
         if (ImGui.MenuItem("Camera"))
             CreatePredefined("Camera", scene, parent);
 
-        if (ImGui.MenuItem("Rect"))
-            CreatePredefined("Rect", scene, parent);
-
         if (ImGui.MenuItem("Sprite"))
             CreatePredefined("Sprite", scene, parent);
 
@@ -271,9 +268,6 @@ public class HierarchyPanel
         {
             "Camera" => CreateWithComponents("Camera",
                 new Camera()),
-
-            "Rect" => CreateWithComponents("Rect",
-                new RectRenderer() { Size = new Vector2(16, 16) }),
 
             "Sprite" => CreateWithComponents("Sprite",
                 new SpriteRenderer() { Size = new Vector2(16, 16) }),

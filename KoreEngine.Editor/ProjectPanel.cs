@@ -8,8 +8,9 @@ namespace KoreEngine.Editor;
 
 public class ProjectPanel
 {
-    // Dossier racine du projet (Assets/)
-    string assetsRoot = "";
+    // 1. Rend la liste des dossiers racines statique/accessible pour les Pickers et l'Inspecteur
+    private static readonly List<ProjectFolderRoot> folderRoots = new();
+    public static IReadOnlyList<ProjectFolderRoot> FolderRoots => folderRoots;
 
     // Dossier actuellement sélectionné dans l'arbre
     public static string selectedDir = "";
@@ -24,7 +25,6 @@ public class ProjectPanel
 
     // Pending actions
     string? pendingDelete = null;
-
     string pendingImportFile = "";
 
     SDL.DialogFileCallback dialogCallback;
@@ -46,14 +46,50 @@ public class ProjectPanel
 
     public ProjectPanel()
     {
-        assetsRoot = Path.Combine(FindProjectRoot(), "Assets");
-        selectedDir = assetsRoot;
+        folderRoots.Clear();
+        string projectRoot = FindProjectRoot();
 
-        if (!Directory.Exists(assetsRoot))
-            Directory.CreateDirectory(assetsRoot);
+        // Déclarer vos dossiers racines de manière centralisée
+        RegisterRoot("Assets", Path.Combine(projectRoot, "Assets"), readOnly: false, defaultOpen: true);
+        RegisterRoot("Packages", Path.Combine(projectRoot, "Packages"), readOnly: true);
+
+        // Sélection par défaut sur le premier dossier valide (Assets)
+        var defaultRoot = folderRoots.FirstOrDefault()?.FullPath ?? Directory.GetCurrentDirectory();
+        selectedDir = defaultRoot;
 
         RefreshCurrentDir();
         dialogCallback = new SDL.DialogFileCallback(OnFileDialogResult);
+    }
+
+    public void RegisterRoot(string displayName, string fullPath, bool readOnly = true, bool defaultOpen = false)
+    {
+        if (!Directory.Exists(fullPath))
+        {
+            try { Directory.CreateDirectory(fullPath); }
+            catch (Exception e) { Logger.Error($"Impossible de créer le dossier racine '{displayName}': {e.Message}"); }
+        }
+
+        if (Directory.Exists(fullPath))
+        {
+            folderRoots.Add(new ProjectFolderRoot(displayName, fullPath, readOnly, defaultOpen));
+        }
+    }
+
+    /// <summary>
+    /// Scanne TOUTES les racines configurées dans le projet (Assets, Packages, etc.)
+    /// et retourne l'ensemble des fichiers trouvés.
+    /// </summary>
+    public static List<string> GetAllProjectFiles()
+    {
+        var allFiles = new List<string>();
+        foreach (var root in folderRoots)
+        {
+            if (Directory.Exists(root.FullPath))
+            {
+                allFiles.AddRange(TextureCache.ScanAssets(root.FullPath));
+            }
+        }
+        return allFiles;
     }
 
     public void Draw()
@@ -65,9 +101,16 @@ public class ProjectPanel
         // Import en attente (callback depuis un autre thread)
         if (!string.IsNullOrEmpty(pendingImportFile))
         {
-            string dest = Path.Combine(selectedDir, Path.GetFileName(pendingImportFile));
-            try { File.Copy(pendingImportFile, dest, overwrite: true); }
-            catch (Exception e) { Logger.Error($"Import: {e.Message}"); }
+            if (!IsPathReadOnly(selectedDir))
+            {
+                string dest = Path.Combine(selectedDir, Path.GetFileName(pendingImportFile));
+                try { File.Copy(pendingImportFile, dest, overwrite: true); }
+                catch (Exception e) { Logger.Error($"Import: {e.Message}"); }
+            }
+            else
+            {
+                Logger.Warning("Impossible d'importer dans un dossier en lecture seule.");
+            }
             pendingImportFile = "";
             RefreshCurrentDir();
         }
@@ -75,12 +118,19 @@ public class ProjectPanel
         // Delete en attente
         if (pendingDelete != null)
         {
-            try
+            if (!IsPathReadOnly(pendingDelete))
             {
-                if (File.Exists(pendingDelete)) File.Delete(pendingDelete);
-                else if (Directory.Exists(pendingDelete)) Directory.Delete(pendingDelete, true);
+                try
+                {
+                    if (File.Exists(pendingDelete)) File.Delete(pendingDelete);
+                    else if (Directory.Exists(pendingDelete)) Directory.Delete(pendingDelete, true);
+                }
+                catch (Exception e) { Logger.Error($"Delete: {e.Message}"); }
             }
-            catch (Exception e) { Logger.Error($"Delete: {e.Message}"); }
+            else
+            {
+                Logger.Warning("Impossible de supprimer un élément dans un dossier en lecture seule.");
+            }
             pendingDelete = null;
             RefreshCurrentDir();
         }
@@ -89,7 +139,7 @@ public class ProjectPanel
 
         // Barre du haut : chemin courant + bouton refresh
         string rel = GetRelativePath(selectedDir);
-        ImGui.TextDisabled(rel.Length > 0 ? $"Assets/{rel}" : "Assets");
+        ImGui.TextDisabled(rel);
         ImGui.SameLine();
         if (ImGui.SmallButton("Refresh")) RefreshCurrentDir();
 
@@ -102,7 +152,10 @@ public class ProjectPanel
 
         // --- Colonne gauche : arbre de dossiers ---
         ImGui.BeginChild("##dir_tree", new System.Numerics.Vector2(leftW, 0));
-        DrawDirTree(assetsRoot);
+        foreach (var root in folderRoots)
+        {
+            DrawDirTree(root.FullPath, root);
+        }
         ImGui.EndChild();
 
         ImGui.SameLine();
@@ -125,23 +178,21 @@ public class ProjectPanel
     // Arbre de dossiers
     // ---------------------------------------------------------------
 
-    void DrawDirTree(string dir)
+    void DrawDirTree(string dir, ProjectFolderRoot rootInfo)
     {
-        string name = dir == assetsRoot ? "Assets" : Path.GetFileName(dir);
-        bool isSelected = dir == selectedDir;
+        bool isRootNode = string.Equals(dir, rootInfo.FullPath, StringComparison.OrdinalIgnoreCase);
+        string name = isRootNode ? rootInfo.DisplayName : Path.GetFileName(dir);
+        bool isSelected = string.Equals(dir, selectedDir, StringComparison.OrdinalIgnoreCase);
 
-        ImGuiTreeNodeFlags flags =
-            ImGuiTreeNodeFlags.OpenOnArrow |
-            ImGuiTreeNodeFlags.SpanAvailWidth;
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
 
         if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
-        if (dir == assetsRoot) flags |= ImGuiTreeNodeFlags.DefaultOpen;
+        if (isRootNode && rootInfo.DefaultOpen) flags |= ImGuiTreeNodeFlags.DefaultOpen;
 
-        bool hasSubDirs = Directory.Exists(dir) &&
-                          Directory.GetDirectories(dir).Length > 0;
+        bool hasSubDirs = Directory.Exists(dir) && Directory.GetDirectories(dir).Length > 0;
         if (!hasSubDirs) flags |= ImGuiTreeNodeFlags.Leaf;
 
-        bool open = ImGui.TreeNodeEx($"{name}##{dir}", flags);
+        bool open = ImGui.TreeNodeEx($"{name}##tree_{dir}", flags);
 
         if (ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen())
         {
@@ -149,8 +200,8 @@ public class ProjectPanel
             RefreshCurrentDir();
         }
 
-        // Pas de renommage/suppression sur la racine Assets elle-même
-        if (dir != assetsRoot && ImGui.BeginPopupContextItem($"##tree_ctx_{dir}"))
+        bool isProtected = isRootNode && rootInfo.ReadOnly;
+        if (!isProtected && ImGui.BeginPopupContextItem($"##tree_ctx_{dir}"))
         {
             if (ImGui.MenuItem("Rename"))
             {
@@ -168,8 +219,12 @@ public class ProjectPanel
         if (open)
         {
             if (Directory.Exists(dir))
+            {
                 foreach (var sub in Directory.GetDirectories(dir).OrderBy(d => d))
-                    DrawDirTree(sub);
+                {
+                    DrawDirTree(sub, rootInfo);
+                }
+            }
 
             ImGui.TreePop();
         }
@@ -186,7 +241,6 @@ public class ProjectPanel
         int cols = Math.Max(1, (int)(panelW / cellW));
         int col = 0;
 
-        // Menu contextuel sur l'espace vide
         if (ImGui.BeginPopupContextWindow("##grid_ctx",
             ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
         {
@@ -194,13 +248,11 @@ public class ProjectPanel
             ImGui.EndPopup();
         }
 
-        // Dossiers en premier
         foreach (var dir in currentDirs)
         {
             DrawGridItem(Path.GetFileName(dir), dir, isDir: true, ref col, cols);
         }
 
-        // Fichiers
         foreach (var file in currentFiles)
         {
             DrawGridItem(Path.GetFileNameWithoutExtension(file), file, isDir: false, ref col, cols);
@@ -213,10 +265,7 @@ public class ProjectPanel
 
         ImGui.BeginGroup();
 
-        // Icône
-        bool clicked = false;
-        bool dblClicked = false;
-
+        // 1. Icône / Miniature
         if (isDir)
         {
             IntPtr folderIcon = EditorIcons.Folder;
@@ -231,10 +280,8 @@ public class ProjectPanel
         else
         {
             string ext = Path.GetExtension(fullPath).ToLowerInvariant();
-
             if (ext is ".png" or ".bmp" or ".jpg" or ".jpeg")
             {
-                // Aperçu de la texture elle-même
                 IntPtr tex = TextureCache.Get(fullPath);
                 if (tex != IntPtr.Zero)
                 {
@@ -253,42 +300,39 @@ public class ProjectPanel
                     ImGui.Image(icon, new System.Numerics.Vector2(iconSize, iconSize));
                 }
                 else
-                    DrawIconPlaceholder(iconSize, 0xFF666666,
-                        ext.TrimStart('.').ToUpper());
+                    DrawIconPlaceholder(iconSize, 0xFF666666, ext.TrimStart('.').ToUpper());
             }
         }
 
-        clicked = ImGui.IsItemClicked();
-        dblClicked = ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && ImGui.IsItemHovered();
-
-        // Nom tronqué
+        // 2. Texte sous l'icône
         string shortLabel = label.Length > 12 ? label[..12] + "..." : label;
         float textW = ImGui.CalcTextSize(shortLabel).X;
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (iconSize - textW) * 0.5f);
         ImGui.TextUnformatted(shortLabel);
 
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip(label);
-
         ImGui.EndGroup();
 
-        // Double-clic
+        // 3. Interactions
+        bool isHovered = ImGui.IsItemHovered();
+        bool dblClicked = isHovered && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
+
+        if (isHovered) ImGui.SetTooltip(label);
+
         if (dblClicked)
         {
             if (isDir) { selectedDir = fullPath; RefreshCurrentDir(); }
             else HandleFileOpen(fullPath);
         }
 
-        // Menu contextuel sur l'item
         if (ImGui.BeginPopupContextItem($"##item_ctx_{fullPath.GetHashCode()}"))
         {
             DrawContextMenuItem(fullPath, isDir);
             ImGui.EndPopup();
         }
 
-        // Grille
         col++;
-        if (col < cols) ImGui.SameLine((col) * cellW);
-        else { col = 0; }
+        if (col < cols) ImGui.SameLine(col * cellW);
+        else col = 0;
     }
 
     void DrawIconPlaceholder(float size, uint color, string text)
@@ -304,26 +348,38 @@ public class ProjectPanel
     }
 
     // ---------------------------------------------------------------
-    // Menus contextuels
+    // Menus contextuels & Popups (inchangés)
     // ---------------------------------------------------------------
 
     void DrawContextMenuEmpty()
     {
-        if (ImGui.BeginMenu("Create"))
+        bool isReadOnly = IsPathReadOnly(selectedDir);
+
+        if (isReadOnly)
         {
-            if (ImGui.MenuItem("Folder")) { newItemName = "New Folder"; openNewFolder = true; }
-            if (ImGui.MenuItem("C# Script")) { newItemName = "NewScript"; openNewScript = true; }
-            if (ImGui.MenuItem("Scene")) { newItemName = "New Scene"; openNewScene = true; }
-            ImGui.EndMenu();
+            ImGui.TextDisabled("Dossier en lecture seule");
+            ImGui.Separator();
         }
-
-        ImGui.Separator();
-
-        if (ImGui.MenuItem("Import"))
+        else
         {
-            SDL.ShowOpenFileDialog(dialogCallback, IntPtr.Zero,
-                EditorWindow.Current!.WindowHandle, null, 0,
-                selectedDir, true);
+            if (ImGui.BeginMenu("Create"))
+            {
+                if (ImGui.MenuItem("Folder")) { newItemName = "New Folder"; openNewFolder = true; }
+                if (ImGui.MenuItem("C# Script")) { newItemName = "NewScript"; openNewScript = true; }
+                if (ImGui.MenuItem("Scene")) { newItemName = "New Scene"; openNewScene = true; }
+                ImGui.EndMenu();
+            }
+
+            ImGui.Separator();
+
+            if (ImGui.MenuItem("Import"))
+            {
+                SDL.ShowOpenFileDialog(dialogCallback, IntPtr.Zero,
+                    EditorWindow.Current!.WindowHandle, null, 0,
+                    selectedDir, true);
+            }
+
+            ImGui.Separator();
         }
 
         if (ImGui.MenuItem("Refresh")) RefreshCurrentDir();
@@ -331,6 +387,8 @@ public class ProjectPanel
 
     void DrawContextMenuItem(string path, bool isDir)
     {
+        bool isReadOnly = IsPathReadOnly(path);
+
         if (!isDir)
         {
             string ext = Path.GetExtension(path).ToLowerInvariant();
@@ -345,26 +403,31 @@ public class ProjectPanel
                 InstantiatePrefab(path);
             if (ext == ".cs" && ImGui.MenuItem("Edit"))
                 OpenInEditor(path);
+
+            ImGui.Separator();
         }
 
-        if (ImGui.MenuItem("Rename"))
+        if (!isReadOnly)
         {
-            renameTargetPath = path;
-            renameTargetIsDir = isDir;
-            renameNewName = isDir ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
-            openRename = true;
+            if (ImGui.MenuItem("Rename"))
+            {
+                renameTargetPath = path;
+                renameTargetIsDir = isDir;
+                renameNewName = isDir ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
+                openRename = true;
+            }
         }
 
         if (ImGui.MenuItem("Show in Explorer"))
             OpenInExplorer(isDir ? path : Path.GetDirectoryName(path)!);
-        ImGui.Separator();
-        if (ImGui.MenuItem("Delete"))
-            pendingDelete = path;
-    }
 
-    // ---------------------------------------------------------------
-    // Popups de création
-    // ---------------------------------------------------------------
+        if (!isReadOnly)
+        {
+            ImGui.Separator();
+            if (ImGui.MenuItem("Delete"))
+                pendingDelete = path;
+        }
+    }
 
     void DrawNewScriptPopup()
     {
@@ -388,7 +451,7 @@ public class ProjectPanel
             else
             {
                 File.WriteAllText(path,
-$@"using KoreEngine.Core;
+$@"using KoreEngine;
 
 [UserScript]
 public class {newItemName.Trim()} : Component
@@ -403,8 +466,6 @@ public class {newItemName.Trim()} : Component
         
     }}
 }}");
-                // Update executes every frame
-                //
                 RefreshCurrentDir();
                 ImGui.CloseCurrentPopup();
             }
@@ -518,14 +579,12 @@ public class {newItemName.Trim()} : Component
             if (string.Equals(newPath, renameTargetPath, StringComparison.OrdinalIgnoreCase))
             {
                 renameTargetPath = null;
-                return true; // même nom, rien à faire
+                return true;
             }
             if (Directory.Exists(newPath)) return false;
 
             Directory.Move(renameTargetPath, newPath);
 
-            // Si le dossier sélectionné (ou un de ses parents) vient de bouger,
-            // on suit le renommage pour ne pas perdre la sélection courante
             if (string.Equals(selectedDir, renameTargetPath, StringComparison.OrdinalIgnoreCase))
                 selectedDir = newPath;
             else if (selectedDir.StartsWith(renameTargetPath + Path.DirectorySeparatorChar,
@@ -552,11 +611,7 @@ public class {newItemName.Trim()} : Component
             }
         }
 
-        // Répercute sur la scène chargée si elle (ou son dossier parent) a bougé
         SceneManager.NotifyPathRenamed(renameTargetPath, newPath);
-
-        // Rescanne le registre de scènes (couvre le cas d'un .kscene renommé,
-        // ou d'un dossier renommé qui en contenait)
         SceneManager.ScanAndRegisterScenes();
 
         renameTargetPath = null;
@@ -564,13 +619,6 @@ public class {newItemName.Trim()} : Component
         return true;
     }
 
-    /// <summary>
-    /// Renomme la déclaration de classe dans un fichier .cs après un renommage
-    /// de fichier — UNIQUEMENT si le fichier suit le pattern standard "un seul
-    /// type public nommé comme le fichier". Sinon, ne touche à rien et prévient
-    /// dans la console : mieux vaut un décalage nom-fichier/nom-classe visible
-    /// qu'une corruption silencieuse d'un fichier multi-classes.
-    /// </summary>
     void TryRenameClassDeclaration(string csPath, string oldName, string newName)
     {
         if (oldName == newName) return;
@@ -584,36 +632,21 @@ public class {newItemName.Trim()} : Component
         try { content = File.ReadAllText(csPath); }
         catch (Exception e) { Logger.Error($"[ProjectPanel] Lecture {csPath}: {e.Message}"); return; }
 
-        // Cherche une déclaration "class/struct/record OldName" avec un \b propre
-        // des deux côtés (évite de matcher un nom qui serait un sous-mot, ex.
-        // "PlayerController" ne doit pas matcher pour "Player").
-        var declPattern = new Regex(
-            $@"\b(class|struct|record)\s+{Regex.Escape(oldName)}\b");
-
+        var declPattern = new Regex($@"\b(class|struct|record)\s+{Regex.Escape(oldName)}\b");
         var matches = declPattern.Matches(content);
 
         if (matches.Count == 0)
         {
-            Logger.Warning(
-                $"[ProjectPanel] Aucune déclaration '{oldName}' trouvée dans {Path.GetFileName(csPath)} " +
-                "— fichier renommé mais classe inchangée (nom de fichier et de classe ne correspondent plus).");
+            Logger.Warning($"[ProjectPanel] Aucune déclaration '{oldName}' trouvée dans {Path.GetFileName(csPath)}.");
             return;
         }
 
         if (matches.Count > 1)
         {
-            Logger.Warning(
-                $"[ProjectPanel] Plusieurs déclarations '{oldName}' trouvées dans {Path.GetFileName(csPath)} " +
-                "— renommage automatique ignoré par prudence (fichier multi-classes ?). " +
-                "Renomme la classe manuellement si besoin.");
+            Logger.Warning($"[ProjectPanel] Plusieurs déclarations '{oldName}' trouvées dans {Path.GetFileName(csPath)}.");
             return;
         }
 
-        // Une seule déclaration trouvée : renomme aussi toutes les occurrences
-        // du nom en tant que mot entier (constructeurs de même nom que la classe,
-        // références au type dans le même fichier). On ne touche pas aux chaînes
-        // de caractères ni aux commentaires pour limiter les faux positifs — un
-        // compromis simple plutôt qu'un vrai parseur.
         string updated = Regex.Replace(content, $@"\b{Regex.Escape(oldName)}\b", newName);
 
         try
@@ -640,7 +673,8 @@ public class {newItemName.Trim()} : Component
 
     void RefreshCurrentDir()
     {
-        if (!Directory.Exists(selectedDir)) selectedDir = assetsRoot;
+        if (!Directory.Exists(selectedDir))
+            selectedDir = folderRoots.FirstOrDefault()?.FullPath ?? Directory.GetCurrentDirectory();
 
         currentDirs = Directory.Exists(selectedDir)
             ? Directory.GetDirectories(selectedDir).OrderBy(d => d).ToList()
@@ -653,8 +687,17 @@ public class {newItemName.Trim()} : Component
 
     string GetRelativePath(string dir)
     {
-        if (dir == assetsRoot) return "";
-        return Path.GetRelativePath(assetsRoot, dir);
+        var match = folderRoots.FirstOrDefault(r =>
+            dir.Equals(r.FullPath, StringComparison.OrdinalIgnoreCase) ||
+            dir.StartsWith(r.FullPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+
+        if (match == null) return dir;
+
+        if (dir.Equals(match.FullPath, StringComparison.OrdinalIgnoreCase))
+            return match.DisplayName;
+
+        string rel = Path.GetRelativePath(match.FullPath, dir);
+        return $"{match.DisplayName}/{rel}";
     }
 
     void HandleFileOpen(string path)
@@ -665,15 +708,9 @@ public class {newItemName.Trim()} : Component
         else OpenInEditor(path);
     }
 
-    /// <summary>
-    /// Instancie un prefab dans la scène couramment ouverte, à sa racine.
-    /// Ne fait rien si aucune scène n'est chargée (le Project Panel reste
-    /// utilisable même sans scène ouverte, ex: juste pour renommer des fichiers).
-    /// </summary>
     void InstantiatePrefab(string path)
     {
         if (SceneManager.Current == null) return;
-
         var obj = PrefabManager.Instantiate(path, SceneManager.Current);
         EditorSelection.Selected = obj;
     }
@@ -704,5 +741,30 @@ public class {newItemName.Trim()} : Component
     {
         try { Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{path}\"", UseShellExecute = true }); }
         catch { }
+    }
+
+    bool IsPathReadOnly(string path)
+    {
+        var root = folderRoots.FirstOrDefault(r =>
+            path.Equals(r.FullPath, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(r.FullPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+
+        return root != null && root.ReadOnly;
+    }
+}
+
+public class ProjectFolderRoot
+{
+    public string DisplayName { get; set; }
+    public string FullPath { get; set; }
+    public bool ReadOnly { get; set; }
+    public bool DefaultOpen { get; set; }
+
+    public ProjectFolderRoot(string displayName, string fullPath, bool readOnly = true, bool defaultOpen = false)
+    {
+        DisplayName = displayName;
+        FullPath = fullPath;
+        ReadOnly = readOnly;
+        DefaultOpen = defaultOpen;
     }
 }

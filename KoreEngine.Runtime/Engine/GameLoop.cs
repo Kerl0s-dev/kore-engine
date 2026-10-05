@@ -55,7 +55,7 @@ public class GameLoop
         while (Running)
         {
             // 1. Input
-            InputManager.NewFrame();
+            Input.NewFrame();
             while (SDL.PollEvent(out var e))
             {
                 switch (e.Type)
@@ -66,7 +66,7 @@ public class GameLoop
                         break;
                 }
 
-                InputManager.HandleEvent(e);
+                Input.HandleEvent(e);
             }
 
             // 2. Resize de la fenêtre réelle

@@ -201,7 +201,7 @@ public class EditorWindow
         while (Running)
         {
             // 1. Input
-            InputManager.NewFrame();
+            Input.NewFrame();
             while (SDL.PollEvent(out var e))
             {
                 // Affiche un popup de confirmation de l'action avant de quitter
@@ -218,7 +218,7 @@ public class EditorWindow
                 // Ne transmet les événements clavier au jeu que si ImGui
                 // n'est pas en train de capturer le clavier (champ texte actif, etc.)
                 if (!ImGui.GetIO().WantCaptureKeyboard)
-                    InputManager.HandleEvent(e);
+                    Input.HandleEvent(e);
             }
 
             // 2. Resize de la fenêtre réelle
@@ -349,13 +349,13 @@ public class EditorWindow
     /// <summary>Delta time en secondes, clampé entre 0.0001f et 1/30f (contrainte ImGui).</summary>
     float ComputeDeltaTime()
     {
-        ulong now = SDL.GetTicks();
-        float dt = (now - lastTicks) / 1000f;
-        lastTicks = now;
+        ulong now = SDL.GetTicks();               // currentTime
+        float rawDt = (now - lastTicks) / 1000f;   // deltaTime = currentTime - lastTime (en secondes)
+        lastTicks = now;                           // Mise à jour de lastTime pour la prochaine frame
 
-        dt = MathF.Min(MathF.Max(dt, 0.0001f), 1f / 30f);
-        fps = dt > 0f ? 1f / dt : 0f;
-        return dt;
+        // Optionnel : clamping et calcul FPS
+        fps = rawDt > 0f ? 1f / rawDt : 0f;
+        return MathF.Min(MathF.Max(rawDt, 0.0001f), 1f / 30f);
     }
 
     /// <summary>Dockspace ImGui plein écran qui accueille tous les panneaux éditeur.</summary>
@@ -481,7 +481,7 @@ public class EditorWindow
     bool IconButton(string iconName, float size, bool highlighted = false)
     {
         if (highlighted)
-            ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.26f, 0.59f, 0.98f, 0.6f));
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.6f));
 
         bool clicked;
         IntPtr icon = EditorIcons.Get(iconName);
