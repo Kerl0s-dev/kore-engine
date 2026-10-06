@@ -16,7 +16,7 @@ public sealed class HubWindow : IDisposable
     public TextCache Text { get; }
 
     // Nom du fichier dans KoreEngine.Hub\Fonts\ (copié à côté de l'exe au build).
-    const string FontFile = "RobotoMono-VariableFont_wght.ttf";
+    const string FontFile = "WorkSans-Medium.ttf";
     public string Title { get; }
     public int Width { get; private set; }
     public int Height { get; private set; }
