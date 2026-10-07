@@ -739,8 +739,40 @@ public class {newItemName.Trim()} : Component
 
     static void OpenInExplorer(string path)
     {
-        try { Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{path}\"", UseShellExecute = true }); }
-        catch { }
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{path}\"",
+                    UseShellExecute = true
+                });
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "xdg-open",
+                    ArgumentList = { path },
+                    UseShellExecute = false
+                });
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "open",
+                    ArgumentList = { path },
+                    UseShellExecute = false
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"[ProjectPanel] Impossible d'ouvrir le dossier : {ex.Message}");
+        }
     }
 
     bool IsPathReadOnly(string path)

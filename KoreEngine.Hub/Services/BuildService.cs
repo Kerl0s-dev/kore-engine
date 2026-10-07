@@ -8,7 +8,7 @@ namespace KoreEngine.Hub.Services;
 /// ProjectScaffolder.WritePlayerProject) en Release, self-contained et en
 /// exe unique, puis copie Assets/ à côté.
 ///
-/// RID : celui de l'OS courant (win-x64, linux-x64 ou osx-x64) — le joueur est
+/// RID : celui de l'OS courant (win-x64 ou linux-x64) — le joueur est
 /// buildé pour la machine qui lance le build, avec les SDL3-CS.* de cet OS.
 ///
 /// Self-contained : le joueur n'a pas besoin d'installer le runtime .NET
@@ -35,9 +35,24 @@ namespace KoreEngine.Hub.Services;
 public static class BuildService
 {
     /// <summary>RID de publication : celui de la machine qui build (le joueur est buildé pour l'OS courant).</summary>
-    static string CurrentRid =>
-        OperatingSystem.IsWindows() ? "win-x64" :
-        OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+    static string CurrentRid
+    {
+        get
+        {
+            string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+            {
+                System.Runtime.InteropServices.Architecture.X64 => "x64",
+                System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
+                _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+            };
+
+            if (OperatingSystem.IsWindows()) return $"win-{arch}";
+            if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+
+            throw new PlatformNotSupportedException(
+                "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
+        }
+    }
 
     public static void Build(RecentProjectEntry entry, Action<string> onLogLine, Action<bool> onFinished)
     {

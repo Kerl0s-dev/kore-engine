@@ -8,8 +8,10 @@ public static class ProjectScaffolder
     {
         void Log(string msg) => onLog?.Invoke(msg);
 
-        string runtimeDll = Path.Combine(engineDir, "KoreEngine.Runtime", "bin", "Debug", "net10.0", "KoreEngine.Runtime.dll");
-        string editorDll = Path.Combine(engineDir, "KoreEngine.Editor", "bin", "Debug", "net10.0", "KoreEngine.Editor.dll");
+        string runtimeOutputDir = ResolveEngineOutputDir(engineDir, "KoreEngine.Runtime");
+        string editorOutputDir = ResolveEngineOutputDir(engineDir, "KoreEngine.Editor");
+        string runtimeDll = Path.Combine(runtimeOutputDir, "KoreEngine.Runtime.dll");
+        string editorDll = Path.Combine(editorOutputDir, "KoreEngine.Editor.dll");
 
         foreach (var (label, path) in new[] { ("Runtime", runtimeDll), ("Editor", editorDll) })
         {
@@ -41,6 +43,63 @@ public static class ProjectScaffolder
             ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
 
         Log("[ProjectScaffolder] Projet créé avec succès.");
+    }
+
+    // Resolve the engine binaries from Release when available (the normal
+    // distribution/publish configuration), while keeping Debug as a fallback
+    // for development builds. Generated projects still use their own Debug
+    // output directory, so this only changes where engine binaries are read from.
+    public static string ResolveEngineOutputDir(string engineDir, string projectName)
+    {
+        string projectDir = Path.Combine(engineDir, projectName);
+        string binDir = Path.Combine(projectDir, "bin");
+
+        // dotnet can place outputs in many valid layouts, for example:
+        //   bin/Debug/net10.0/
+        //   bin/Release/net10.0/
+        //   bin/Release/net10.0/linux-x64/
+        //   bin/Release/net10.0/linux-x64/publish/
+        // and the equivalent Windows/RID layouts. Do not assume one of them.
+        if (!Directory.Exists(binDir))
+            return Path.Combine(binDir, "Release", "net10.0");
+
+        string dllName = projectName + ".dll";
+        var candidates = Directory.GetFiles(binDir, dllName, SearchOption.AllDirectories)
+            .Select(path => new { Path = path, Score = ScoreEngineOutput(path) })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => File.GetLastWriteTimeUtc(x.Path))
+            .Select(x => Path.GetDirectoryName(x.Path)!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return candidates.Count > 0
+            ? candidates[0]
+            : Path.Combine(binDir, "Release", "net10.0");
+    }
+
+    static int ScoreEngineOutput(string dllPath)
+    {
+        string normalized = dllPath.Replace('\\', '/');
+        string lower = normalized.ToLowerInvariant();
+        int score = 0;
+
+        // Prefer the current runtime identifier when a RID-specific build exists.
+        string? rid = CurrentNativeRid();
+        if (rid != null && lower.Contains("/" + rid + "/")) score += 1000;
+
+        // A publish directory is the most complete output (native files included).
+        if (lower.EndsWith("/publish/" + Path.GetFileName(dllPath).ToLowerInvariant())) score += 500;
+        if (lower.Contains("/publish/")) score += 400;
+
+        // Prefer Release over Debug, but both are valid.
+        if (lower.Contains("/release/")) score += 200;
+        if (lower.Contains("/debug/")) score += 100;
+
+        // Prefer the requested target framework, while still allowing any TFM
+        // dotnet actually generated if the project changes in the future.
+        if (lower.Contains("/net10.0/")) score += 50;
+
+        return score;
     }
 
     // ---------------------------------------------------------------
@@ -89,17 +148,24 @@ class Program
         string runtimeBinDir = Path.GetDirectoryName(runtimeDll)!;
         string editorBinDir = Path.GetDirectoryName(editorDll)!;
 
+        string rid = CurrentNativeRid()
+            ?? throw new PlatformNotSupportedException("Plateforme/RID non supporté pour le projet généré.");
+
         string content =
     $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
+        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
+        <RuntimeIdentifier>{rid}</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <UseAppHost>true</UseAppHost>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>{projectName}</RootNamespace>
         <AssemblyName>{projectName}</AssemblyName>
-        <ApplicationIcon>{targetDir}/icon.ico</ApplicationIcon>
+        <ApplicationIcon Condition=""'$(OS)' == 'Windows_NT'"">{targetDir}/icon.ico</ApplicationIcon>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
@@ -118,27 +184,21 @@ class Program
 
     <ItemGroup>
         <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>{runtimeDll}</HintPath>
+            <HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
             <Private>True</Private>
         </Reference>
         <Reference Include=""KoreEngine.Editor"">
-            <HintPath>{editorDll}</HintPath>
+            <HintPath>bin/Debug/net10.0/KoreEngine.Editor.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
 
-    <!-- Copie récursive de tout le dossier bin du moteur (fichiers + sous-dossier runtimes/) -->
-    <Target Name=""SyncEngineBinaries"" AfterTargets=""Build"">
-        <ItemGroup>
-            <EngineFiles Include=""{editorBinDir}/**/*.*"" Exclude=""{editorBinDir}/KoreEngine.Editor.*"" />
-            <RuntimeFiles Include=""{runtimeBinDir}/**/*.*"" Exclude=""{runtimeBinDir}/KoreEngine.Runtime.*"" />
-            <!-- Binaires natifs (SDL3.dll...) AUSSI à la racine : le chargement ne dépend plus du deps.json -->
-            <NativeFiles Include=""{editorBinDir}/runtimes/$(NETCoreSdkRuntimeIdentifier)/native/*.*"" />
-        </ItemGroup>
-        <Copy SourceFiles=""@(EngineFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
-        <Copy SourceFiles=""@(RuntimeFiles)"" DestinationFolder=""$(TargetDir)%(RecursiveDir)"" SkipUnchangedFiles=""true"" />
-        <Copy SourceFiles=""@(NativeFiles)"" DestinationFolder=""$(TargetDir)"" SkipUnchangedFiles=""true"" />
-    </Target>
+    <!--
+      Les références de plateforme SDL3-CS ci-dessus fournissent les .so/.dll
+      natifs correspondant à l'OS du build. On ne copie donc plus à la main
+      un dossier runtimes basé sur NETCoreSdkRuntimeIdentifier : cette propriété
+      peut être vide ou différente du RID réellement publié sous Linux.
+    -->
 
 </Project>
 ";
@@ -180,7 +240,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 	<!-- Uniquement Runtime : un script gameplay n'a jamais besoin d'ImGui
 		ni de l'Editor. -->
 		<Reference Include=""KoreEngine.Runtime"">
-			<HintPath>{runtimeDll}</HintPath>
+			<HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
@@ -240,7 +300,7 @@ EndGlobal
 
     static void WriteImGui(string engineDir, string targetDir, Action<string> log)
     {
-        var source = Path.Combine(engineDir, "KoreEngine.Editor", "bin", "Debug", "net10.0", "imgui.ini");
+        var source = Path.Combine(ResolveEngineOutputDir(engineDir, "KoreEngine.Editor"), "imgui.ini");
         var destination = Path.Combine(targetDir, "bin", "Debug", "net10.0", "imgui.ini");
 
         if (File.Exists(destination))
@@ -280,7 +340,8 @@ EndGlobal
     }
 
     /// <summary>
-    /// Recopie les dépendances du moteur (bin/Debug/net10.0 du projet principal
+    /// Recopie les dépendances du moteur (bin/Release/net10.0 si disponible,
+    /// sinon bin/Debug/net10.0) du projet principal
     /// ET de Player/, s'il existe) sans rien recréer d'autre — utile quand le
     /// moteur a gagné une nouvelle dépendance (ex: Microsoft.CodeAnalysis.CSharp
     /// ajoutée à KoreEngine.Runtime) après la création du projet : la copie
@@ -323,15 +384,18 @@ EndGlobal
     {
         Directory.CreateDirectory(destination);
 
+        // The generated project references the engine DLLs from its own
+        // bin/Debug/net10.0 directory, so those DLLs MUST be copied here.
+        // Only debug symbols are optional. Never skip the engine assemblies.
         var skip = new[]
         {
-        "KoreEngine.Runtime.dll", "KoreEngine.Runtime.pdb",
-        "KoreEngine.Editor.dll", "KoreEngine.Editor.pdb"
-    };
+            "KoreEngine.Runtime.pdb",
+            "KoreEngine.Editor.pdb"
+        };
 
         foreach (var project in sourceProjects)
         {
-            string source = Path.Combine(engineDir, project, "bin", "Debug", "net10.0");
+            string source = ResolveEngineOutputDir(engineDir, project);
 
             if (!Directory.Exists(source))
             {
@@ -360,14 +424,37 @@ EndGlobal
         string? rid = CurrentNativeRid();
         if (rid == null) return;
 
+        // Published .NET applications may put native assets either under
+        // runtimes/<rid>/native or directly beside the executable. Search
+        // both layouts instead of assuming one particular SDK output shape.
+        var nativeFiles = new List<string>();
+
         string nativeDir = Path.Combine(engineOutputDir, "runtimes", rid, "native");
-        if (!Directory.Exists(nativeDir))
+        if (Directory.Exists(nativeDir))
+            nativeFiles.AddRange(Directory.GetFiles(nativeDir, "*", SearchOption.AllDirectories));
+
+        foreach (var file in Directory.GetFiles(engineOutputDir, "*", SearchOption.AllDirectories))
         {
-            log($"[ProjectScaffolder] AVERTISSEMENT : pas de binaires natifs pour {rid} : {nativeDir}");
+            string name = Path.GetFileName(file);
+            if (OperatingSystem.IsLinux() && name.EndsWith(".so", StringComparison.OrdinalIgnoreCase))
+                nativeFiles.Add(file);
+            else if (OperatingSystem.IsWindows() && name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                nativeFiles.Add(file);
+            else if (OperatingSystem.IsMacOS() &&
+                     (name.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase) ||
+                      name.EndsWith(".so", StringComparison.OrdinalIgnoreCase)))
+                nativeFiles.Add(file);
+        }
+
+        nativeFiles = nativeFiles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        if (nativeFiles.Count == 0)
+        {
+            log($"[ProjectScaffolder] AVERTISSEMENT : aucun binaire natif trouvé pour {rid} dans {engineOutputDir}");
             return;
         }
 
-        foreach (var file in Directory.GetFiles(nativeDir))
+        foreach (var file in nativeFiles)
         {
             try
             {
@@ -375,7 +462,6 @@ EndGlobal
             }
             catch (IOException ex)
             {
-                // Fichier verrouillé (éditeur déjà ouvert, par exemple).
                 log($"[ProjectScaffolder] Natif non copié ({Path.GetFileName(file)}) : {ex.Message}");
             }
         }
@@ -474,12 +560,19 @@ class Program
         File.WriteAllText(Path.Combine(playerDir, "Program.cs"), programContent);
         log($"[ProjectScaffolder] Fichier Program.cs (Player) écrit : {playerDir}{Path.DirectorySeparatorChar}Program.cs");
 
+        string rid = CurrentNativeRid()
+            ?? throw new PlatformNotSupportedException("Plateforme/RID non supporté pour le Player généré.");
+
         string csprojContent =
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
+        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
+        <RuntimeIdentifier>{rid}</RuntimeIdentifier>
+        <SelfContained>true</SelfContained>
+        <UseAppHost>true</UseAppHost>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>{projectName}.Player</RootNamespace>
@@ -498,7 +591,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     <!-- Référence binaire uniquement, comme le jeu éditeur — jamais le code
         source du moteur. -->
         <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>{runtimeDll}</HintPath>
+            <HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>

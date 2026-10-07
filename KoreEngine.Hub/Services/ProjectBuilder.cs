@@ -32,7 +32,7 @@ public static class ProjectBuilder
 
         try
         {
-            string runtimeDll = Path.Combine(engineDir, "KoreEngine.Runtime", "bin", "Debug", "net10.0", "KoreEngine.Runtime.dll");
+            string runtimeDll = Path.Combine(ProjectScaffolder.ResolveEngineOutputDir(engineDir, "KoreEngine.Runtime"), "KoreEngine.Runtime.dll");
             if (!File.Exists(runtimeDll))
             {
                 onLogLine($"KoreEngine.Runtime.dll introuvable : {runtimeDll}");
@@ -59,7 +59,7 @@ public static class ProjectBuilder
             onLogLine("> dotnet publish (Release)...");
 
             RunDotnet(
-                $"publish \"{Path.Combine(tempDir, "Player.csproj")}\" -c Release -o \"{outputDir}\"",
+                $"publish \"{Path.Combine(tempDir, "Player.csproj")}\" -c Release -r {CurrentRid()} --self-contained true -o \"{outputDir}\"",
                 tempDir, onLogLine, publishSuccess =>
                 {
                     if (!publishSuccess)
@@ -94,13 +94,29 @@ public static class ProjectBuilder
         }
     }
 
+    static string CurrentRid()
+    {
+        string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => "x64",
+            System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
+            _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+        };
+
+        if (OperatingSystem.IsWindows()) return $"win-{arch}";
+        if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+
+        throw new PlatformNotSupportedException(
+            "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
+    }
+
     static void WritePlayerCsproj(string dir, string projectName, string runtimeDll)
     {
         string content =
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
+        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

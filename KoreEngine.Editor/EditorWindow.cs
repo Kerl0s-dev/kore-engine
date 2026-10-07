@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+using ImGuiNET;
 using KoreEngine.Editor;
 using SDL3;
 using System.Numerics;
@@ -460,7 +460,9 @@ public class EditorWindow
         if (ImGui.Button(buildLabel))
         {
             string projectRoot = ProjectPanel.FindProjectRoot();
-            Logger.Log("[Build] Démarrage du build (Release, win-x64, self-contained)...");
+            string buildPlatform = OperatingSystem.IsWindows() ? "Windows" :
+                OperatingSystem.IsLinux() ? "Linux" : "plateforme non supportée";
+            Logger.Log($"[Build] Démarrage du build (Release, {buildPlatform}, self-contained)...");
 
             BuildService.Build(projectRoot, Title, onLogLine: Logger.Log, onFinished: success =>
             {

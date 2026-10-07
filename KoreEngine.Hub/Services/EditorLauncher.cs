@@ -40,28 +40,64 @@ public static class EditorLauncher
             if (!cleanSuccess)
                 onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente quand même le build...");
 
-            onStage?.Invoke("Compilation du projet...");
-            RunDotnet("build", slnPath, entry.Path, onLogLine, buildSuccess =>
+            onStage?.Invoke("Compilation des scripts...");
+            string scriptsCsproj = Path.Combine(entry.Path, $"{entry.Name}.Scripts.csproj");
+            RunDotnet("build", scriptsCsproj, entry.Path, onLogLine, scriptsSuccess =>
             {
-                if (!buildSuccess)
+                if (!scriptsSuccess)
                 {
                     onBuildFinished(false);
                     return;
                 }
 
-                onStage?.Invoke("Lancement de l'éditeur...");
-                try
+                // IMPORTANT : ne pas faire `dotnet build solution -r ...`.
+                // MSBuild interdit un RID au niveau d'une .sln (NETSDK1134).
+                // Et un simple `dotnet build` peut laisser l'apphost framework-dependent.
+                // On publie donc le projet éditeur lui-même avec son RID et le runtime .NET
+                // embarqué, directement dans le dossier que LaunchExe utilise.
+                onStage?.Invoke("Publication de l'éditeur Linux self-contained...");
+                string gameCsproj = Path.Combine(entry.Path, $"{entry.Name}.csproj");
+                string outputDir = Path.Combine(entry.Path, "bin", "Debug", "net10.0");
+                string publishArgs = $"-c Debug -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
+
+                RunDotnet("publish", gameCsproj, entry.Path, onLogLine, publishSuccess =>
                 {
-                    LaunchExe(entry, onLogLine);
-                    onBuildFinished(true);
-                }
-                catch (Exception ex)
-                {
-                    onLogLine($"[EditorLauncher] Lancement impossible : {ex.Message}");
-                    onBuildFinished(false);
-                }
-            });
+                    if (!publishSuccess)
+                    {
+                        onBuildFinished(false);
+                        return;
+                    }
+
+                    onStage?.Invoke("Lancement de l'éditeur...");
+                    try
+                    {
+                        LaunchExe(entry, onLogLine);
+                        onBuildFinished(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        onLogLine($"[EditorLauncher] Lancement impossible : {ex.Message}");
+                        onBuildFinished(false);
+                    }
+                }, publishArgs);
+            }, "-c Debug");
         });
+    }
+
+    static string CurrentRid()
+    {
+        string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => "x64",
+            System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
+            _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+        };
+
+        if (OperatingSystem.IsWindows()) return $"win-{arch}";
+        if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+
+        throw new PlatformNotSupportedException(
+            "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
     }
 
     /// <summary>
@@ -81,8 +117,8 @@ public static class EditorLauncher
         ProjectScaffolder.RefreshDependencies(engineDir, entry.Path, entry.Name, onLogLine);
     }
 
-    static void RunDotnet(string command, string slnPath, string workingDir, Action<string> onLogLine, Action<bool> onFinished)
-        => DotnetRunner.Run(command, slnPath, workingDir, onLogLine, onFinished);
+    static void RunDotnet(string command, string slnPath, string workingDir, Action<string> onLogLine, Action<bool> onFinished, string extraArgs = "")
+        => DotnetRunner.Run(command, slnPath, workingDir, onLogLine, onFinished, extraArgs);
 
     // Si l'éditeur se ferme avec une erreur dans ce délai, on considère qu'il a planté au démarrage.
     const int StartupGraceMs = 4000;

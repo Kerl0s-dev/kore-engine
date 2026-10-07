@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>KoreEngine.Hub</RootNamespace>
     <AssemblyName>Kore Engine Hub</AssemblyName>
     <AssemblyTitle>KoreEngine.Hub</AssemblyTitle>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon Condition="'$(OS)' == 'Windows_NT'">icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

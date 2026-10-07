@@ -23,6 +23,9 @@ public static class WindowCornerHelper
 
     public static void EnableRoundedCorners(IntPtr hwnd)
     {
+        if (!OperatingSystem.IsWindows())
+            return;
+
         int preference = (int)DwmWindowCornerPreference.Round;
         _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
     }

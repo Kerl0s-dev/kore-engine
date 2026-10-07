@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace KoreEngine;
 
 /// <summary>
 /// "Build" déclenché depuis l'éditeur :
-/// Publie le projet Player en Release self-contained (win-x64),
+/// Publie le projet Player en Release self-contained pour le RID de la machine (win-x64 ou linux-x64),
 /// puis copie le dossier Assets/ à côté de l'exécutable.
 /// </summary>
 public static class BuildService
@@ -33,12 +33,14 @@ public static class BuildService
 
         // Arguments de publication .NET
         // Le Player contient déjà les scripts précompilés sous forme de DLL par l'éditeur.
+        string rid = CurrentRid();
+
         string args = string.Join(" ", new[]
         {
             "publish",
             $"\"{playerCsproj}\"",
             "-c Release",
-            "-r win-x64",
+            $"-r {rid}",
             "--self-contained true",
             // Options optionnelles si tu veux un fichier binaire unique :
             // "-p:PublishSingleFile=true",
@@ -96,6 +98,22 @@ public static class BuildService
             IsBuilding = false;
             onFinished(false);
         }
+    }
+
+    private static string CurrentRid()
+    {
+        string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => "x64",
+            System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
+            _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+        };
+
+        if (OperatingSystem.IsWindows()) return $"win-{arch}";
+        if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+
+        throw new PlatformNotSupportedException(
+            "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
     }
 
     private static void CopyAssets(string projectPath, string outputDir, Action<string> onLogLine)
