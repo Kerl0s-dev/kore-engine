@@ -80,92 +80,105 @@ public class EditorWindow
         ImGuiStylePtr style = ImGui.GetStyle();
         var c = style.Colors;
 
-        // --- Fond ---
-        c[(int)ImGuiCol.WindowBg] = new Vector4(0.13f, 0.13f, 0.13f, 1.00f);
-        c[(int)ImGuiCol.ChildBg] = new Vector4(0.11f, 0.11f, 0.11f, 1.00f);
-        c[(int)ImGuiCol.PopupBg] = new Vector4(0.15f, 0.15f, 0.15f, 1.00f);
+        static Vector4 Gray(float v, float a = 1f) => new(v, v, v, a);
+        var accent = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
+        var accentSoft = new Vector4(0.26f, 0.59f, 0.98f, 0.35f);
 
-        // --- Bordures ---
-        c[(int)ImGuiCol.Border] = new Vector4(0.25f, 0.25f, 0.25f, 1.00f);
-        c[(int)ImGuiCol.BorderShadow] = new Vector4(0.00f, 0.00f, 0.00f, 0.00f);
+        // --- Fond (niveaux bien distincts) ---
+        c[(int)ImGuiCol.WindowBg] = Gray(0.13f);
+        c[(int)ImGuiCol.ChildBg] = Gray(0.10f);
+        c[(int)ImGuiCol.PopupBg] = Gray(0.16f);
+
+        // --- Bordures (visibles) ---
+        c[(int)ImGuiCol.Border] = Gray(0.32f);
+        c[(int)ImGuiCol.BorderShadow] = Gray(0f, 0f);
 
         // --- Texte ---
-        c[(int)ImGuiCol.Text] = new Vector4(0.90f, 0.90f, 0.90f, 1.00f);
-        c[(int)ImGuiCol.TextDisabled] = new Vector4(0.45f, 0.45f, 0.45f, 1.00f);
+        c[(int)ImGuiCol.Text] = Gray(0.92f);
+        c[(int)ImGuiCol.TextDisabled] = Gray(0.58f);
 
-        // --- Frames (inputs, sliders, checkboxes) ---
-        c[(int)ImGuiCol.FrameBg] = new Vector4(0.20f, 0.20f, 0.20f, 1.00f);
-        c[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.59f, 0.59f, 0.59f, 0.80f);
-        c[(int)ImGuiCol.FrameBgActive] = new Vector4(0.59f, 0.59f, 0.59f, 1.00f);
+        // --- Frames : le survol reste sombre, texte toujours lisible ---
+        c[(int)ImGuiCol.FrameBg] = Gray(0.19f);
+        c[(int)ImGuiCol.FrameBgHovered] = Gray(0.26f);
+        c[(int)ImGuiCol.FrameBgActive] = Gray(0.31f);
 
-        // --- Title bar ---
-        c[(int)ImGuiCol.TitleBg] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
-        c[(int)ImGuiCol.TitleBgActive] = new Vector4(0.16f, 0.16f, 0.16f, 1.00f);
-        c[(int)ImGuiCol.TitleBgCollapsed] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
-
-        // --- Menu bar ---
-        c[(int)ImGuiCol.MenuBarBg] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
+        // --- Title bar / menu ---
+        c[(int)ImGuiCol.TitleBg] = Gray(0.09f);
+        c[(int)ImGuiCol.TitleBgActive] = Gray(0.16f);
+        c[(int)ImGuiCol.TitleBgCollapsed] = Gray(0.09f);
+        c[(int)ImGuiCol.MenuBarBg] = Gray(0.10f);
 
         // --- Scrollbar ---
-        c[(int)ImGuiCol.ScrollbarBg] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
-        c[(int)ImGuiCol.ScrollbarGrab] = new Vector4(0.28f, 0.28f, 0.28f, 1.00f);
-        c[(int)ImGuiCol.ScrollbarGrabHovered] = new Vector4(0.35f, 0.35f, 0.35f, 1.00f);
-        c[(int)ImGuiCol.ScrollbarGrabActive] = new Vector4(0.40f, 0.40f, 0.40f, 1.00f);
+        c[(int)ImGuiCol.ScrollbarBg] = Gray(0.10f);
+        c[(int)ImGuiCol.ScrollbarGrab] = Gray(0.30f);
+        c[(int)ImGuiCol.ScrollbarGrabHovered] = Gray(0.40f);
+        c[(int)ImGuiCol.ScrollbarGrabActive] = Gray(0.50f);
 
-        // --- Accent (checkmark, slider, resize) ---
-        c[(int)ImGuiCol.CheckMark] = new Vector4(1.00f, 1.00f, 1.00f,
-            1.00f);
-        c[(int)ImGuiCol.SliderGrab] = new Vector4(0.59f, 0.59f, 0.59f, 0.80f);
-        c[(int)ImGuiCol.SliderGrabActive] = new Vector4(0.59f, 0.59f, 0.59f, 1.00f);
+        // --- Accent unique (bleu) ---
+        c[(int)ImGuiCol.CheckMark] = accent;
+        c[(int)ImGuiCol.SliderGrab] = new Vector4(0.26f, 0.59f, 0.98f, 0.80f);
+        c[(int)ImGuiCol.SliderGrabActive] = accent;
 
         // --- Boutons ---
-        c[(int)ImGuiCol.Button] = new Vector4(0.20f, 0.20f, 0.20f, 1.00f);
-        c[(int)ImGuiCol.ButtonHovered] = new Vector4(0.59f, 0.59f, 0.59f, 0.80f);
-        c[(int)ImGuiCol.ButtonActive] = new Vector4(0.59f, 0.59f, 0.59f, 1.00f);
+        c[(int)ImGuiCol.Button] = Gray(0.22f);
+        c[(int)ImGuiCol.ButtonHovered] = Gray(0.31f);
+        c[(int)ImGuiCol.ButtonActive] = new Vector4(0.20f, 0.45f, 0.80f, 1.00f);
 
         // --- Headers (CollapsingHeader, TreeNode, Selectable) ---
-        c[(int)ImGuiCol.Header] = new Vector4(0.20f, 0.20f, 0.20f, 1.00f);
-        c[(int)ImGuiCol.HeaderHovered] = new Vector4(0.59f, 0.59f, 0.59f, 0.50f);
-        c[(int)ImGuiCol.HeaderActive] = new Vector4(0.35f, 0.35f, 0.35f, 0.80f);
+        c[(int)ImGuiCol.Header] = Gray(0.22f);
+        c[(int)ImGuiCol.HeaderHovered] = Gray(0.30f);
+        c[(int)ImGuiCol.HeaderActive] = new Vector4(0.20f, 0.45f, 0.80f, 0.70f);
 
         // --- Séparateurs ---
-        c[(int)ImGuiCol.Separator] = new Vector4(0.25f, 0.25f, 0.25f, 1.00f);
+        c[(int)ImGuiCol.Separator] = Gray(0.30f);
         c[(int)ImGuiCol.SeparatorHovered] = new Vector4(0.26f, 0.59f, 0.98f, 0.60f);
-        c[(int)ImGuiCol.SeparatorActive] = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
+        c[(int)ImGuiCol.SeparatorActive] = accent;
 
         // --- Resize grip ---
         c[(int)ImGuiCol.ResizeGrip] = new Vector4(0.26f, 0.59f, 0.98f, 0.20f);
         c[(int)ImGuiCol.ResizeGripHovered] = new Vector4(0.26f, 0.59f, 0.98f, 0.60f);
-        c[(int)ImGuiCol.ResizeGripActive] = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
+        c[(int)ImGuiCol.ResizeGripActive] = accent;
 
-        // --- Tabs ---
-        c[(int)ImGuiCol.Tab] = new Vector4(0.15f, 0.15f, 0.15f, 1.00f);
-        c[(int)ImGuiCol.TabHovered] = new Vector4(0.59f, 0.59f, 0.59f, 0.60f);
-        c[(int)ImGuiCol.TabSelected] = new Vector4(0.20f, 0.20f, 0.20f, 1.00f);
-        c[(int)ImGuiCol.TabSelectedOverline] = new Vector4(0.30f, 0.30f, 0.30f, 1.00f);
-        c[(int)ImGuiCol.TabDimmed] = new Vector4(0.12f, 0.12f, 0.12f, 1.00f);
-        c[(int)ImGuiCol.TabDimmedSelected] = new Vector4(0.18f, 0.18f, 0.18f, 1.00f);
+        // --- Tabs : l'onglet actif ressort grâce à l'overline ---
+        c[(int)ImGuiCol.Tab] = Gray(0.14f);
+        c[(int)ImGuiCol.TabHovered] = Gray(0.30f);
+        c[(int)ImGuiCol.TabSelected] = Gray(0.22f);
+        c[(int)ImGuiCol.TabSelectedOverline] = accent;
+        c[(int)ImGuiCol.TabDimmed] = Gray(0.11f);
+        c[(int)ImGuiCol.TabDimmedSelected] = Gray(0.17f);
 
         // --- Docking ---
         c[(int)ImGuiCol.DockingPreview] = new Vector4(0.26f, 0.59f, 0.98f, 0.40f);
-        c[(int)ImGuiCol.DockingEmptyBg] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
+        c[(int)ImGuiCol.DockingEmptyBg] = Gray(0.09f);
 
         // --- Divers ---
-        c[(int)ImGuiCol.TextSelectedBg] = new Vector4(0.26f, 0.59f, 0.98f, 0.35f);
-        c[(int)ImGuiCol.DragDropTarget] = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
-        c[(int)ImGuiCol.NavCursor] = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
-        c[(int)ImGuiCol.ModalWindowDimBg] = new Vector4(0.00f, 0.00f, 0.00f, 0.50f);
+        c[(int)ImGuiCol.TextSelectedBg] = accentSoft;
+        c[(int)ImGuiCol.DragDropTarget] = accent;
+        c[(int)ImGuiCol.NavCursor] = accent;
+        c[(int)ImGuiCol.ModalWindowDimBg] = Gray(0f, 0.50f);
 
-        // --- Arrondis et espacements ---
+        // --- Arrondis ---
         style.WindowRounding = 0f;
-        style.FrameRounding = 0f;
-        style.PopupRounding = 0f;
-        style.ScrollbarRounding = 0f;
-        style.GrabRounding = 3f;
+        style.FrameRounding = 2f;
+        style.PopupRounding = 2f;
+        style.ScrollbarRounding = 2f;
+        style.GrabRounding = 2f;
         style.TabRounding = 0f;
-        style.FramePadding = new System.Numerics.Vector2(6f, 3f);
-        style.ItemSpacing = new System.Numerics.Vector2(6f, 4f);
-        style.WindowPadding = new System.Numerics.Vector2(8f, 8f);
+
+        // --- Bordures ---
+        style.WindowBorderSize = 1f;
+        style.FrameBorderSize = 1f;   // délimite les inputs
+        style.PopupBorderSize = 1f;
+
+        // --- Espacements (plus aérés) ---
+        style.WindowPadding = new System.Numerics.Vector2(10f, 10f);
+        style.FramePadding = new System.Numerics.Vector2(6f, 4f);
+        style.ItemSpacing = new System.Numerics.Vector2(8f, 6f);
+        style.ItemInnerSpacing = new System.Numerics.Vector2(6f, 4f);
+        style.IndentSpacing = 16f;
+        style.ScrollbarSize = 14f;
+        style.GrabMinSize = 10f;
+        style.DisabledAlpha = 0.55f;
         #endregion
 
         // L'éditeur est toujours actif : la RenderTexture du viewport est créée
@@ -397,7 +410,7 @@ public class EditorWindow
     /// </summary>
     void DrawToolbar()
     {
-        ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 40), ImGuiChildFlags.Borders);
+        ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 48), ImGuiChildFlags.Borders);
 
         string spaceLabel = EditorSelection.ActiveGizmoSpace == GizmoSpace.World ? "World" : "Local";
         if (ImGui.Button(spaceLabel))

@@ -2,16 +2,15 @@
 
 public abstract class UIElement : Component
 {
-    public float X, Y;
-    public float Width, Height;
+    public Rectangle Rect;
     public bool Visible = true;
 
     public UICanvas? Canvas;
 
-    public float ScreenX => X * (Canvas?.ScaleX ?? 1f);
-    public float ScreenY => Y * (Canvas?.ScaleY ?? 1f);
-    public float ScreenWidth => Width * (Canvas?.ScaleX ?? 1f);
-    public float ScreenHeight => Height * (Canvas?.ScaleY ?? 1f);
+    public float ScreenX => Rect.X * (Canvas?.ScaleX ?? 1f);
+    public float ScreenY => Rect.Y * (Canvas?.ScaleY ?? 1f);
+    public float ScreenWidth => Rect.Width * (Canvas?.ScaleX ?? 1f);
+    public float ScreenHeight => Rect.Height * (Canvas?.ScaleY ?? 1f);
 
     public override void Render(Renderer renderer, Camera? camera)
     {

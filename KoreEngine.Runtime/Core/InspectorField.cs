@@ -74,10 +74,16 @@ public class StringField : InspectorField
 }
 
 /// <summary>Bouton d'action simple (pas de valeur à éditer, juste déclencher du code).</summary>
-public class ActionField : InspectorField
+public class ButtonField : InspectorField
 {
     public required Action Action;
     public string? Tooltip;
+}
+
+/// <summary>Event persistant (liste de listeners configurables dans l'Inspector).</summary>
+public class KoreEventField : InspectorField
+{
+    public required Func<KoreEvent> Get;
 }
 
 /// <summary>
@@ -98,6 +104,11 @@ public class ListField : InspectorField
     public Func<int, IEnumerable<(string label, Action action)>>? ItemContextActions;
 }
 
+public class GameObjectField : InspectorField
+{
+    public required Func<GameObject> Get;
+}
+
 /// <summary>Référence à un autre Component sur le même GameObject (ou ailleurs).</summary>
 public class ComponentRefField : InspectorField
 {
@@ -105,4 +116,3 @@ public class ComponentRefField : InspectorField
     public required Func<Component?> Get;
     public Action<Component?>? Set;
 }
-

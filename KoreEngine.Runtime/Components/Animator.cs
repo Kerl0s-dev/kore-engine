@@ -175,7 +175,7 @@ namespace KoreEngine
                 RemoveItem = i => Transitions.RemoveAt(i)
             };
 
-            yield return new ActionField
+            yield return new ButtonField
             {
                 Label = "Apply",
                 Action = () =>

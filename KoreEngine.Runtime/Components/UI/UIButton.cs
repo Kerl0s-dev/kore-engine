@@ -1,14 +1,6 @@
 ﻿using SDL3;
 
 namespace KoreEngine.UI;
-
-public enum ButtonActionType
-{
-    None,
-    LoadScene,
-    Quit
-}
-
 public class UIButton : UIElement
 {
     public IntPtr TextureNormal;
@@ -19,16 +11,7 @@ public class UIButton : UIElement
     public string TextureHoverPath = "";
     public string TexturePressedPath = "";
 
-    // Action prédéfinie — sérialisable, éditable dans l'inspector
-    public ButtonActionType ActionType = ButtonActionType.None;
-
-    public string ActionParam = "";
-
-    // Callback arbitraire — assigné par code, non sérialisable
-    public delegate void OnClickDelegate();
-
-    [HideInInspector]
-    public OnClickDelegate? OnClick;
+    public KoreEvent OnClick = new();
 
     bool hovered, pressed;
 
@@ -49,28 +32,10 @@ public class UIButton : UIElement
         if (hovered)
         {
             bool mouseDown = (SDL.GetMouseState(out _, out _) & SDL.MouseButtonFlags.Left) != 0;
-            if (mouseDown && !pressed) { pressed = true; FireAction(); }
+            if (mouseDown && !pressed) { pressed = true; OnClick.Invoke(); }
             else if (!mouseDown) pressed = false;
         }
         else pressed = false;
-    }
-
-    void FireAction()
-    {
-        // Callback arbitraire d'abord (assigné par code)
-        OnClick?.Invoke();
-
-        // Puis action prédéfinie (définie dans l'inspector)
-        switch (ActionType)
-        {
-            case ButtonActionType.LoadScene:
-                if (!string.IsNullOrEmpty(ActionParam))
-                    SceneManager.LoadSceneFromFile(ActionParam);
-                break;
-            case ButtonActionType.Quit:
-                Environment.Exit(0);
-                break;
-        }
     }
 
     // ---------------------------------------------------------------

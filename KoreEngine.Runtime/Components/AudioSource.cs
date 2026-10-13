@@ -69,14 +69,14 @@ public class AudioSource : Component
             Get = () => track != IntPtr.Zero ? "Playing" : "Stopped"
         };
 
-        yield return new ActionField
+        yield return new ButtonField
         {
             Label = "Play",
             Action = Play,
             Tooltip = "Prévisualiser le clip (fonctionne aussi en mode édition)."
         };
 
-        yield return new ActionField
+        yield return new ButtonField
         {
             Label = "Stop",
             Action = Stop

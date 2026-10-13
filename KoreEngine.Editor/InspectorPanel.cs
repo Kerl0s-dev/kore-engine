@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using System.Globalization;
 using System.Reflection;
 
 namespace KoreEngine.Editor;
@@ -165,163 +166,171 @@ public class InspectorPanel
         switch (f)
         {
             case TextField tf:
+            {
                 DrawField(tf.Label, () => ImGui.TextDisabled(tf.Get()));
                 break;
+            }
 
             case FloatField ff:
+            {
+                float v = ff.Get();
+                DrawField(ff.Label, () =>
                 {
-                    float v = ff.Get();
-                    DrawField(ff.Label, () =>
-                    {
-                        bool changed = ff.Min != ff.Max
-                            ? ImGui.DragFloat($"##{baseId}", ref v, ff.Value, ff.Min, ff.Max)
-                            : ImGui.DragFloat($"##{baseId}", ref v, ff.Value);
-                        if (changed) ff.Set?.Invoke(v);
-                    });
-                    break;
-                }
+                    bool changed = ff.Min != ff.Max
+                        ? ImGui.DragFloat($"##{baseId}", ref v, ff.Value, ff.Min, ff.Max)
+                        : ImGui.DragFloat($"##{baseId}", ref v, ff.Value);
+                    if (changed) ff.Set?.Invoke(v);
+                });
+                break;
+            }
 
             case IntField iF:
+            {
+                int v = iF.Get();
+                DrawField(iF.Label, () =>
                 {
-                    int v = iF.Get();
-                    DrawField(iF.Label, () =>
-                    {
-                        bool changed = iF.Min != iF.Max
-                            ? ImGui.DragInt($"##{baseId}", ref v, iF.Value, iF.Min, iF.Max)
-                            : ImGui.DragInt($"##{baseId}", ref v, iF.Value);
-                        if (changed) iF.Set?.Invoke(v);
-                    });
-                    break;
-                }
+                    bool changed = iF.Min != iF.Max
+                        ? ImGui.DragInt($"##{baseId}", ref v, iF.Value, iF.Min, iF.Max)
+                        : ImGui.DragInt($"##{baseId}", ref v, iF.Value);
+                    if (changed) iF.Set?.Invoke(v);
+                });
+                break;
+            }
 
             case BoolField bf:
+            {
+                bool v = bf.Get();
+                DrawField(bf.Label, () =>
                 {
-                    bool v = bf.Get();
-                    DrawField(bf.Label, () =>
-                    {
-                        if (ImGui.Checkbox($"##{baseId}", ref v)) bf.Set?.Invoke(v);
-                    });
-                    break;
-                }
+                    if (ImGui.Checkbox($"##{baseId}", ref v)) bf.Set?.Invoke(v);
+                });
+                break;
+            }
 
             case StringField sf:
+            {
+                string v = sf.Get();
+                DrawField(sf.Label, () =>
                 {
-                    string v = sf.Get();
-                    DrawField(sf.Label, () =>
-                    {
-                        if (ImGui.InputText($"##{baseId}", ref v, (uint)sf.MaxLength))
-                            sf.Set?.Invoke(v);
-                    });
-                    break;
-                }
+                    if (ImGui.InputText($"##{baseId}", ref v, (uint)sf.MaxLength))
+                        sf.Set?.Invoke(v);
+                });
+                break;
+            }
 
             case EnumField ef:
+            {
+                int idx = ef.Get();
+                DrawField(ef.Label, () =>
                 {
-                    int idx = ef.Get();
-                    DrawField(ef.Label, () =>
-                    {
-                        if (ImGui.Combo($"##{baseId}", ref idx, ef.Names, ef.Names.Length))
-                            ef.Set?.Invoke(idx);
-                    });
-                    break;
-                }
+                    if (ImGui.Combo($"##{baseId}", ref idx, ef.Names, ef.Names.Length))
+                        ef.Set?.Invoke(idx);
+                });
+                break;
+            }
 
             case TextureField texF:
-                {
-                    var (tex, path) = texF.Get();
-                    var (newTex, newPath) = DrawTextureField(texF.Label, tex, path);
-                    if (newPath != path || newTex != tex)
-                        texF.Set?.Invoke(newTex, newPath);
-                    break;
-                }
+            {
+                var (tex, path) = texF.Get();
+                var (newTex, newPath) = DrawTextureField(texF.Label, tex, path);
+                if (newPath != path || newTex != tex)
+                    texF.Set?.Invoke(newTex, newPath);
+                break;
+            }
 
             case AudioClipField acf:
-                {
-                    string path = acf.Get();
-                    string newPath = DrawAudioClipField(acf.Label, path);
-                    if (newPath != path)
-                        acf.Set?.Invoke(newPath);
-                    break;
-                }
+            {
+                string path = acf.Get();
+                string newPath = DrawAudioClipField(acf.Label, path);
+                if (newPath != path)
+                    acf.Set?.Invoke(newPath);
+                break;
+            }
 
             case ComponentRefField crf:
+            {
+                string popupId = $"picker_comp_{baseId}";
+                if (pendingResults.TryGetValue(popupId, out var pendingGo))
                 {
-                    string popupId = $"picker_comp_{baseId}";
-                    if (pendingResults.TryGetValue(popupId, out var pendingGo))
-                    {
-                        pendingResults.Remove(popupId);
-                        crf.Set?.Invoke(pendingGo != null
-                            ? pendingGo.GetComponent(crf.ComponentType)
-                            : null);
-                    }
-
-                    var current = crf.Get();
-                    DrawPickerField(crf.Label, current?.gameObject?.Name,
-                        $"None ({crf.ComponentType.Name})",
-                        popupId, crf.ComponentType,
-                        go => pendingResults[popupId] = go,
-                        () => pendingResults[popupId] = null);
-                    break;
+                    pendingResults.Remove(popupId);
+                    crf.Set?.Invoke(pendingGo != null
+                        ? pendingGo.GetComponent(crf.ComponentType)
+                        : null);
                 }
 
-            case ActionField af:
-                {
-                    float width = ImGui.GetContentRegionAvail().X;
-                    if (ImGui.Button($"{af.Label}##{baseId}", new System.Numerics.Vector2(width, 0)))
-                        af.Action();
-                    if (af.Tooltip != null && ImGui.IsItemHovered())
-                        ImGui.SetTooltip(af.Tooltip);
-                    break;
-                }
+                var current = crf.Get();
+                DrawPickerField(crf.Label, current?.gameObject?.Name,
+                    $"None ({crf.ComponentType.Name})",
+                    popupId, crf.ComponentType,
+                    go => pendingResults[popupId] = go,
+                    () => pendingResults[popupId] = null);
+                break;
+            }
+
+            case ButtonField af:
+            {
+                float width = ImGui.GetContentRegionAvail().X;
+                if (ImGui.Button($"{af.Label}##{baseId}", new System.Numerics.Vector2(width, 0)))
+                    af.Action();
+                if (af.Tooltip != null && ImGui.IsItemHovered())
+                    ImGui.SetTooltip(af.Tooltip);
+                break;
+            }
+
+            case KoreEventField kef:
+            {
+                DrawKoreEvent(kef.Label, kef.Get(), baseId);
+                break;
+            }
 
             case ListField lf:
+            {
+                int count = lf.Count();
+                if (ImGui.CollapsingHeader($"{lf.Label} ({count})##{baseId}"))
                 {
-                    int count = lf.Count();
-                    if (ImGui.CollapsingHeader($"{lf.Label} ({count})##{baseId}"))
+                    ImGui.Indent();
+                    int removeAt = -1;
+
+                    for (int i = 0; i < count; i++)
                     {
-                        ImGui.Indent();
-                        int removeAt = -1;
+                        string itemKey = $"{baseId}_{i}";
+                        if (!listItemOpen.TryGetValue(itemKey, out bool isOpen)) isOpen = true;
 
-                        for (int i = 0; i < count; i++)
+                        ImGui.SetNextItemOpen(isOpen, ImGuiCond.Always);
+                        bool open = ImGui.CollapsingHeader($"{lf.ItemHeader(i)}##{itemKey}");
+                        listItemOpen[itemKey] = open;
+
+                        if (ImGui.BeginPopupContextItem($"ctx_{itemKey}"))
                         {
-                            string itemKey = $"{baseId}_{i}";
-                            if (!listItemOpen.TryGetValue(itemKey, out bool isOpen)) isOpen = true;
-
-                            ImGui.SetNextItemOpen(isOpen, ImGuiCond.Always);
-                            bool open = ImGui.CollapsingHeader($"{lf.ItemHeader(i)}##{itemKey}");
-                            listItemOpen[itemKey] = open;
-
-                            if (ImGui.BeginPopupContextItem($"ctx_{itemKey}"))
+                            if (lf.ItemContextActions != null)
                             {
-                                if (lf.ItemContextActions != null)
-                                {
-                                    foreach (var (label, action) in lf.ItemContextActions(i))
-                                        if (ImGui.MenuItem(label)) action();
-                                    ImGui.Separator();
-                                }
-                                if (ImGui.MenuItem("Remove")) removeAt = i;
-                                ImGui.EndPopup();
+                                foreach (var (label, action) in lf.ItemContextActions(i))
+                                    if (ImGui.MenuItem(label)) action();
+                                ImGui.Separator();
                             }
-
-                            if (open)
-                            {
-                                ImGui.Indent();
-                                foreach (var itemField in lf.ItemFields(i))
-                                    DrawFieldDescriptor(c, itemField);
-                                ImGui.Unindent();
-                            }
+                            if (ImGui.MenuItem("Remove")) removeAt = i;
+                            ImGui.EndPopup();
                         }
 
-                        if (removeAt >= 0)
-                            lf.RemoveItem?.Invoke(removeAt);
-
-                        if (lf.AddItem != null && ImGui.Button($"+ Add##{baseId}"))
-                            lf.AddItem();
-
-                        ImGui.Unindent();
+                        if (open)
+                        {
+                            ImGui.Indent();
+                            foreach (var itemField in lf.ItemFields(i))
+                                DrawFieldDescriptor(c, itemField);
+                            ImGui.Unindent();
+                        }
                     }
-                    break;
+
+                    if (removeAt >= 0)
+                        lf.RemoveItem?.Invoke(removeAt);
+
+                    if (lf.AddItem != null && ImGui.Button($"+ Add##{baseId}"))
+                        lf.AddItem();
+
+                    ImGui.Unindent();
                 }
+                break;
+            }
         }
     }
 
@@ -445,8 +454,8 @@ public class InspectorPanel
                 DrawField($"{field.Name} X", () => { if (ImGui.DragInt($"{id}_rx", ref rx)) field.SetValue(c, new Rectangle(rx, r.Y, r.Width, r.Height)); });
                 DrawField($"{field.Name} Y", () => { if (ImGui.DragInt($"{id}_ry", ref ry)) field.SetValue(c, new Rectangle(r.X, ry, r.Width, r.Height)); });
 
-                DrawField($"{field.Name} W", () => { if (ImGui.DragInt($"{id}_rw", ref rw)) field.SetValue(c, new Rectangle(r.X, r.Y, rw, r.Height)); });
-                DrawField($"{field.Name} H", () => { if (ImGui.DragInt($"{id}_rh", ref rh)) field.SetValue(c, new Rectangle(r.X, r.Y, r.Width, rh)); });
+                DrawField($"{field.Name} Width", () => { if (ImGui.DragInt($"{id}_rw", ref rw)) field.SetValue(c, new Rectangle(r.X, r.Y, rw, r.Height)); });
+                DrawField($"{field.Name} Height", () => { if (ImGui.DragInt($"{id}_rh", ref rh)) field.SetValue(c, new Rectangle(r.X, r.Y, r.Width, rh)); });
             }
             else if (type.IsEnum)
             {
@@ -463,9 +472,7 @@ public class InspectorPanel
                 var current = val as Component;
                 DrawField(field.Name, () =>
                 {
-                    float total = ImGui.GetContentRegionAvail().X;
-                    float widgetW = total * 0.6f - 24f;
-                    ImGui.SetNextItemWidth(widgetW);
+                    ImGui.SetNextItemWidth(WidthBeforeButton());
                     string display = current?.gameObject?.Name ?? $"None ({type.Name})";
                     ImGui.InputText($"{id}_display", ref display, 128,
                         ImGuiInputTextFlags.ReadOnly);
@@ -482,14 +489,18 @@ public class InspectorPanel
                         () => field.SetValue(c, null));
                 });
             }
+            else if (type == typeof(KoreEvent))
+            {
+                var ev = val as KoreEvent ?? new KoreEvent();
+                if (val == null) field.SetValue(c, ev);
+                DrawKoreEvent(field.Name, ev, $"{c.GetHashCode()}_{field.Name}");
+            }
             else if (type == typeof(GameObject))
             {
                 var current = val as GameObject;
                 DrawField(field.Name, () =>
                 {
-                    float total = ImGui.GetContentRegionAvail().X;
-                    float widgetW = total * 0.6f - 24f;
-                    ImGui.SetNextItemWidth(widgetW);
+                    ImGui.SetNextItemWidth(WidthBeforeButton());
                     string display = current?.Name ?? "None (GameObject)";
                     ImGui.InputText($"{id}_godisplay", ref display, 128,
                         ImGuiInputTextFlags.ReadOnly);
@@ -509,15 +520,125 @@ public class InspectorPanel
         }
     }
 
+    const float LabelRatio = 0.6f;
+    const float PickerBtnW = 20f;
+
+    /// <summary>Largeur restante jusqu'au bord droit, en réservant le bouton "•".</summary>
+    static float WidthBeforeButton() =>
+        ImGui.GetContentRegionAvail().X - PickerBtnW - ImGui.GetStyle().ItemSpacing.X;
+
     public static void DrawField(string label, Action widget)
     {
-        float total = ImGui.GetContentRegionAvail().X;
-        float labelW = total * 0.4f;
-        float widgetW = total * 0.6f;
+        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
+        ImGui.AlignTextToFramePadding();          // label centré verticalement sur le widget
         ImGui.Text(label);
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(widgetW);
+        ImGui.SameLine(labelW);                   // début de colonne identique pour tous
+        ImGui.SetNextItemWidth(-1f);              // remplit jusqu'au bord droit
         widget();
+    }
+
+    static void DrawKoreEvent(string label, KoreEvent ev, string id)
+    {
+        if (!ImGui.TreeNodeEx($"{label} ({ev.Listeners.Count})##{id}", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
+
+        int removeAt = -1;
+
+        for (int i = 0; i < ev.Listeners.Count; i++)
+        {
+            var l = ev.Listeners[i];
+            string lid = $"{id}_{i}";
+            ImGui.PushID(lid);
+
+            // --- Objet cible ---
+            string popupId = $"picker_ev_{lid}";
+            if (pendingResults.TryGetValue(popupId, out var picked))
+            {
+                pendingResults.Remove(popupId);
+                l.TargetObject = picked?.Name ?? "";
+                l.ComponentType = ""; l.MethodName = ""; l.Argument = "";
+            }
+
+            DrawPickerField("Object",
+                string.IsNullOrEmpty(l.TargetObject) ? null : l.TargetObject,
+                "None (GameObject)", popupId, null,
+                go => pendingResults[popupId] = go,
+                () => pendingResults[popupId] = null);
+
+            var target = l.ResolveObject();
+            if (target != null)
+            {
+                // --- Composant ---
+                var comps = target.Components.ToList();
+                string[] cNames = comps.Select(x => x.GetType().Name).ToArray();
+                int ci = Array.IndexOf(cNames, l.ComponentType);
+                DrawField("Component", () =>
+                {
+                    if (ImGui.Combo("##comp", ref ci, cNames, cNames.Length))
+                    {
+                        l.ComponentType = cNames[ci];
+                        l.MethodName = ""; l.Argument = "";
+                    }
+                });
+
+                // --- Méthode ---
+                if (ci >= 0)
+                {
+                    var methods = PersistentListener.GetCallableMethods(comps[ci].GetType()).ToList();
+                    string[] mNames = methods.Select(m => m.Name).ToArray();
+                    int mi = Array.IndexOf(mNames, l.MethodName);
+                    DrawField("Method", () =>
+                    {
+                        if (ImGui.Combo("##method", ref mi, mNames, mNames.Length))
+                        {
+                            l.MethodName = mNames[mi];
+                            l.Argument = "";
+                        }
+                    });
+
+                    // --- Argument ---
+                    if (mi >= 0)
+                    {
+                        var ps = methods[mi].GetParameters();
+                        if (ps.Length == 1)
+                            DrawListenerArg(l, ps[0].ParameterType);
+                    }
+                }
+            }
+
+            if (ImGui.SmallButton("Remove")) removeAt = i;
+            ImGui.Separator();
+            ImGui.PopID();
+        }
+
+        if (removeAt >= 0) ev.Listeners.RemoveAt(removeAt);
+        if (ImGui.Button($"+ Add Listener##{id}")) ev.Listeners.Add(new PersistentListener());
+
+        ImGui.TreePop();
+    }
+
+    static void DrawListenerArg(PersistentListener l, Type t)
+    {
+        if (t == typeof(string))
+        {
+            string s = l.Argument;
+            DrawField("Arg", () => { if (ImGui.InputText("##arg", ref s, 256)) l.Argument = s; });
+        }
+        else if (t == typeof(int))
+        {
+            int v = (int)PersistentListener.Parse(t, l.Argument)!;
+            DrawField("Arg", () => { if (ImGui.DragInt("##arg", ref v)) l.Argument = v.ToString(); });
+        }
+        else if (t == typeof(float))
+        {
+            float v = (float)PersistentListener.Parse(t, l.Argument)!;
+            DrawField("Arg", () => { if (ImGui.DragFloat("##arg", ref v, 0.1f)) l.Argument = v.ToString(CultureInfo.InvariantCulture); });
+        }
+        else if (t == typeof(bool))
+        {
+            bool v = (bool)PersistentListener.Parse(t, l.Argument)!;
+            DrawField("Arg", () => { if (ImGui.Checkbox("##arg", ref v)) l.Argument = v.ToString(); });
+        }
     }
 
     // ---------------------------------------------------------------
@@ -567,14 +688,13 @@ public class InspectorPanel
 
     static void DrawPickerField(string label, string? currentName, string noneLabel, string popupId, Type? filterType, Action<GameObject> onPick, Action onClear)
     {
-        float total = ImGui.GetContentRegionAvail().X;
-        float labelW = total * 0.4f;
-        float widgetW = total * 0.6f - 24f;
+        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
 
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(label);
         ImGui.SameLine(labelW);
 
-        ImGui.SetNextItemWidth(widgetW);
+        ImGui.SetNextItemWidth(WidthBeforeButton());
         string display = currentName ?? noneLabel;
         ImGui.InputText($"##{popupId}_display", ref display, 128,
             ImGuiInputTextFlags.ReadOnly);
@@ -649,8 +769,7 @@ public class InspectorPanel
     static readonly Dictionary<string, string> pendingTextureResults = new();
     static List<string>? assetFiles;
 
-    public static (IntPtr texture, string path) DrawTextureField(
-        string label, IntPtr currentTexture, string currentPath)
+    public static (IntPtr texture, string path) DrawTextureField(string label, IntPtr currentTexture, string currentPath)
     {
         string popupId = $"tex_picker_{label}";
 
@@ -663,10 +782,9 @@ public class InspectorPanel
             pendingTextureResults.Remove(popupId);
         }
 
-        float total = ImGui.GetContentRegionAvail().X;
-        float labelW = total * 0.4f;
-        float widgetW = total * 0.6f - 44f;
+        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
 
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(label);
         ImGui.SameLine(labelW);
 
@@ -678,7 +796,7 @@ public class InspectorPanel
             ImGui.SameLine();
         }
 
-        ImGui.SetNextItemWidth(widgetW);
+        ImGui.SetNextItemWidth(WidthBeforeButton());
         string display = string.IsNullOrEmpty(currentPath)
             ? "None"
             : Path.GetFileName(currentPath);
@@ -816,14 +934,13 @@ public class InspectorPanel
             pendingAudioResults.Remove(popupId);
         }
 
-        float total = ImGui.GetContentRegionAvail().X;
-        float labelW = total * 0.4f;
-        float widgetW = total * 0.6f - 24f;
+        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
 
+        ImGui.AlignTextToFramePadding();
         ImGui.Text(label);
         ImGui.SameLine(labelW);
 
-        ImGui.SetNextItemWidth(widgetW);
+        ImGui.SetNextItemWidth(WidthBeforeButton());
         string display = string.IsNullOrEmpty(currentPath) ? "None" : Path.GetFileName(currentPath);
         ImGui.InputText($"##{popupId}_display", ref display, 256, ImGuiInputTextFlags.ReadOnly);
 

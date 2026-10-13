@@ -76,6 +76,11 @@ public static class SceneSerializer
             sb.AppendLine($"    {field.Name}: {FormatValue(value, field.FieldType)}");
         }
 
+        foreach (var field in GetEventFields(c.GetType()))
+            if (field.GetValue(c) is KoreEvent ev)
+                foreach (var line in ev.Serialize(field.Name))
+                    sb.AppendLine($"    {line}");
+
         // Champs référence : Component et GameObject
         foreach (var field in GetReferenceFields(c.GetType()))
         {
@@ -109,6 +114,12 @@ public static class SceneSerializer
                 && f.GetCustomAttribute<HideInInspectorAttribute>() == null
                 && (f.FieldType == typeof(GameObject)
                     || typeof(Component).IsAssignableFrom(f.FieldType)));
+
+    static IEnumerable<FieldInfo> GetEventFields(Type type) =>
+        type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+            .Where(f => f.FieldType == typeof(KoreEvent)
+                && f.GetCustomAttribute<NonSerializedAttribute>() == null
+                && f.GetCustomAttribute<HideInInspectorAttribute>() == null);
 
     static string FormatValue(object value, Type type)
     {
@@ -297,6 +308,14 @@ public static class SceneSerializer
                 .ToList();
 
             ApplyFields(comp, standardLines);
+
+            foreach (var evField in GetEventFields(type))
+            {
+                var ev = evField.GetValue(comp) as KoreEvent;
+                if (ev == null) { ev = new KoreEvent(); evField.SetValue(comp, ev); }
+                ev.Deserialize(evField.Name, extraLines);
+            }
+
             if (extraLines.Count > 0) comp.Deserialize(extraLines);
             if (refLines.Count > 0) allComps.Add((comp, refLines));
         }
