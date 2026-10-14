@@ -77,6 +77,7 @@ public class GameLoop
 
             // 4. Applique la scène en attente, puis logique de jeu
             SceneManager.ApplyPendingScene();
+            UpdateViewportState();
             SceneManager.Update(dt);
 
             if (SceneManager.Current == null && SceneManager.Current?.Camera == null)
@@ -106,6 +107,24 @@ public class GameLoop
                 cam.ViewWidth = w;
                 cam.ViewHeight = h;
             }
+        }
+    }
+
+    void UpdateViewportState()
+    {
+        SceneManager.ViewportWidth = Width;
+        SceneManager.ViewportHeight = Height;
+
+        SDL.GetMouseState(out float mx, out float my);
+        SceneManager.ViewportMouseX = mx;
+        SceneManager.ViewportMouseY = my;
+        SceneManager.ViewportMouseInBounds = mx >= 0 && my >= 0 && mx < Width && my < Height;
+
+        // Voir la note ci-dessous : la caméra doit suivre la taille réelle de la fenêtre
+        if (SceneManager.Current?.Camera is Camera cam)
+        {
+            cam.ViewWidth = Width;
+            cam.ViewHeight = Height;
         }
     }
 

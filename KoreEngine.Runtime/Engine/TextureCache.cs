@@ -22,11 +22,16 @@ public static class TextureCache
     public static IntPtr Get(string path)
     {
         if (cache.TryGetValue(path, out var tex)) return tex;
-        if (renderer == null) return IntPtr.Zero;
+
+        if (renderer == null)
+        {
+            Logger.Error($"[TextureCache] Init() n'a pas été appelé avant de charger '{path}'.");
+            return IntPtr.Zero;
+        }
 
         try
         {
-            tex = renderer.LoadTexture(path);
+            tex = renderer.LoadTexture(Resolve(path));
             cache[path] = tex;
             Console.WriteLine($"Loaded texture \'{tex} ({path})\'");
             return tex;
@@ -52,6 +57,23 @@ public static class TextureCache
             .Where(f => SupportedExtensions.Contains(
                 Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f);
+    }
+
+    static string Resolve(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+
+        string norm = path.Replace('\\', '/');
+        int i = norm.LastIndexOf("/Assets/", StringComparison.OrdinalIgnoreCase);
+        string? rel = i >= 0 ? norm[(i + "/Assets/".Length)..]
+                    : Path.IsPathRooted(path) ? null : norm;
+
+        if (rel != null)
+        {
+            string candidate = Path.Combine(SceneManager.AssetsDirectory, rel);
+            if (File.Exists(candidate)) return candidate;
+        }
+        return path;   // repli : chemin d'origine
     }
 
     public static void Dispose()

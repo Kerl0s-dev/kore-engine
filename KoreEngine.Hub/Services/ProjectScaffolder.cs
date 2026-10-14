@@ -541,6 +541,8 @@ class Program
         string? startupScene = ProjectSettings.StartupScene;
         string? firstScene = SceneManager.SceneFiles().FirstOrDefault();
 
+        var loop = new GameLoop(""{projectName}"", 1280, 720);
+
         if (startupScene != null)
             SceneManager.LoadScene(startupScene);
         else if (firstScene != null)
@@ -549,8 +551,6 @@ class Program
             throw new Exception(""Aucune scène trouvée dans Assets/ — impossible de démarrer."");
 
         AudioManager.Init();
-
-        var loop = new GameLoop(""{projectName}"", 1280, 720);
         loop.Run();
 
         AudioManager.Quit();

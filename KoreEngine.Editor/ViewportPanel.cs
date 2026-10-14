@@ -216,14 +216,12 @@ namespace KoreEngine.Editor
             System.Numerics.Vector2 mouseScreen = io.MousePos;
 
             // Souris en coordonnées locales au viewport (texture).
-            SceneManager.ViewportMouseX = mouseScreen.X - imageScreenPos.X;
-            SceneManager.ViewportMouseY = mouseScreen.Y - imageScreenPos.Y;
-            SceneManager.ViewportMouseInBounds = overViewport;
+            var localMouse = new Vector2(mouseScreen.X - imageScreenPos.X, mouseScreen.Y - imageScreenPos.Y);
 
             // Contrôles caméra éditeur — uniquement en mode édition et quand
             // la souris est au-dessus du viewport.
             if (editorMode && overViewport)
-                UpdateEditorCamera(io);
+                UpdateEditorCamera(io, localMouse);
 
             if (editorMode)
             {
@@ -245,7 +243,7 @@ namespace KoreEngine.Editor
         // Caméra éditeur
         // ---------------------------------------------------------------
 
-        void UpdateEditorCamera(ImGuiIOPtr io)
+        void UpdateEditorCamera(ImGuiIOPtr io, Vector2 mouseViewport)
         {
             // --- PAN : clic molette (bouton 2) maintenu + drag ---
             // io.MouseDown[2] = bouton du milieu.
@@ -271,10 +269,6 @@ namespace KoreEngine.Editor
                 // Zoom centré sur la position souris dans le monde :
                 // on recalcule la position caméra pour que le point sous la souris
                 // reste fixe à l'écran (comportement standard d'un éditeur 2D).
-                Vector2 mouseViewport = new Vector2(
-                    SceneManager.ViewportMouseX,
-                    SceneManager.ViewportMouseY
-                );
                 Vector2 worldBefore = EditorCamera.ScreenToWorld(mouseViewport);
 
                 EditorCamera.Zoom = newZoom;

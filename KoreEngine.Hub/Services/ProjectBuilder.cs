@@ -162,9 +162,12 @@ class Program
         Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, ""{projectName}.Scripts.dll""));
 
         SceneManager.ScanAndRegisterScenes();
+
+        var loop = new GameLoop(""{projectName}"", 1280, 720);
+
         SceneManager.LoadScene(""{startupScene}"");
 
-        new GameLoop(""{projectName}"", 1280, 720).Run();
+        loop.Run();
     }}
 }}
 ";

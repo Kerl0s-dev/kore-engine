@@ -47,6 +47,7 @@ public class EditorWindow
     ImGuiBackend? imguiBackend;
 
     public ViewportPanel? viewportPanel;
+    public GamePanel? gamePanel;
     HierarchyPanel? hierarchyPanel;
     InspectorPanel? inspectorPanel;
     ProjectPanel? projectPanel;
@@ -65,6 +66,7 @@ public class EditorWindow
 
         SDL.Init(SDL.InitFlags.Video);
         window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable);
+        SDL.MaximizeWindow(window);
 
         SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
 
@@ -187,7 +189,7 @@ public class EditorWindow
         // d'une frame géré par ViewportPanel.ApplyPendingResize, voir Run()).
         var viewportTexture = new RenderTexture(Renderer, width, height);
         viewportPanel = new ViewportPanel(Renderer, viewportTexture);
-
+        gamePanel = new GamePanel(Renderer, width, height);
         hierarchyPanel = new HierarchyPanel();
         inspectorPanel = new InspectorPanel(Renderer);
         projectPanel = new ProjectPanel();
@@ -309,6 +311,8 @@ public class EditorWindow
             // Logique de jeu — uniquement si Playing, et pas en pause (sauf step demandé).
             if (Playing)
             {
+                gamePanel?.BindUiSize(); // l'UI doit voir la taille du Game view, pas celle du Scene view
+
                 if (!Paused)
                     SceneManager.Update(dt);
                 else if (stepRequested)
@@ -319,16 +323,13 @@ public class EditorWindow
             }
 
             // 6. Rendu.
-            //    a) Caméra active : EditorCamera en mode édition, scene.Camera en mode jeu.
-            Camera? activeCamera = Playing
-                ? SceneManager.Current?.Camera
-                : viewportPanel?.EditorCamera;
+            // Scene view : toujours EditorCamera (comme Unity, même en Play)
+            viewportPanel?.ApplyPendingResize(viewportPanel.EditorCamera);
+            viewportPanel?.RenderScene(SceneManager.Current, viewportPanel.EditorCamera, editorMode: true);
 
-            //    b) Applique le resize sur la caméra active.
-            viewportPanel?.ApplyPendingResize(activeCamera);
-
-            //    c) Rend la scène dans la RenderTexture avec la caméra active.
-            viewportPanel?.RenderScene(SceneManager.Current, activeCamera, !Playing);
+            // Game view : toujours la caméra de la scène
+            gamePanel?.ApplyPendingResize();
+            gamePanel?.RenderScene(SceneManager.Current);
 
             //    d) Écran réel : clear + panneaux ImGui.
             Renderer.Clear(SceneManager.Current?.Camera?.Color);
@@ -337,7 +338,8 @@ public class EditorWindow
             hierarchyPanel?.Draw();
             inspectorPanel?.Draw();
             projectPanel?.Draw();
-            viewportPanel?.Draw(!Playing); // editorMode = true quand Playing == false
+            viewportPanel?.Draw(editorMode: true);
+            gamePanel?.Draw();
             consolePanel?.Draw();
 
             // 8. ImGui render
