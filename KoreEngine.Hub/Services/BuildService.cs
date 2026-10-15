@@ -90,19 +90,32 @@ public static class BuildService
         }, extraArgs: publishArgs);
     }
 
-    static void CopyAssets(string projectPath, string outputDir, Action<string> onLogLine)
+    private static void CopyAssets(string projectPath, string outputDir, Action<string> onLogLine)
     {
-        string sourceAssets = Path.Combine(projectPath, "Assets");
-        string destAssets = Path.Combine(outputDir, "Assets");
+        foreach (var folder in new[] { "Assets", "Packages" })
+            CopyContentFolder(projectPath, outputDir, folder, onLogLine);
+    }
 
-        if (!Directory.Exists(sourceAssets))
+    private static void CopyContentFolder(string projectPath, string outputDir, string folder, Action<string> onLogLine)
+    {
+        string source = Path.Combine(projectPath, folder);
+        string dest = Path.Combine(outputDir, folder);
+
+        if (!Directory.Exists(source))
         {
-            onLogLine("[BuildService] Aucun dossier Assets/ trouvé — rien à copier.");
+            onLogLine($"[BuildService] Aucun dossier {folder}/ trouvé — rien à copier.");
             return;
         }
 
-        CopyDirectoryRecursive(sourceAssets, destAssets);
-        onLogLine($"[BuildService] Assets copiés : {destAssets}");
+        // Nettoyage de l'ancienne copie (supprime les fichiers obsolètes)
+        if (Directory.Exists(dest))
+        {
+            try { Directory.Delete(dest, true); }
+            catch (Exception ex) { onLogLine($"[BuildService] Avertissement : impossible de nettoyer {dest} : {ex.Message}"); }
+        }
+
+        CopyDirectoryRecursive(source, dest);
+        onLogLine($"[BuildService] {folder} copiés avec succès dans : {dest}");
     }
 
     static void CopyDirectoryRecursive(string source, string dest)

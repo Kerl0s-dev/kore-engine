@@ -164,10 +164,12 @@ class Program
         SceneManager.ScanAndRegisterScenes();
 
         var loop = new GameLoop(""{projectName}"", 1280, 720);
+        AudioManager.Init();
 
         SceneManager.LoadScene(""{startupScene}"");
 
         loop.Run();
+        AudioManager.Quit();
     }}
 }}
 ";
@@ -176,13 +178,16 @@ class Program
 
     static void FinalizeOutput(RecentProjectEntry entry, string scriptsDll, string outputDir, Action<string> onLogLine)
     {
-        string assetsSource = Path.Combine(entry.Path, "Assets");
-        string assetsDest = Path.Combine(outputDir, "Assets");
+        foreach (var folder in new[] { "Assets", "Packages" })
+        {
+            string source = Path.Combine(entry.Path, folder);
+            string dest = Path.Combine(outputDir, folder);
 
-        if (Directory.Exists(assetsSource))
-            CopyDirectory(assetsSource, assetsDest);
-        else
-            onLogLine($"Attention : aucun dossier Assets trouvé dans {entry.Path}");
+            if (Directory.Exists(source))
+                CopyDirectory(source, dest);
+            else if (folder == "Assets")
+                onLogLine($"Attention : aucun dossier Assets trouvé dans {entry.Path}");
+        }
 
         File.Copy(scriptsDll, Path.Combine(outputDir, Path.GetFileName(scriptsDll)), overwrite: true);
 

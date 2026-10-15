@@ -59,20 +59,36 @@ public static class TextureCache
             .OrderBy(f => f);
     }
 
+    static readonly string[] ContentFolders = { "Assets", "Packages" };
+
     static string Resolve(string path)
     {
         if (string.IsNullOrEmpty(path)) return path;
 
         string norm = path.Replace('\\', '/');
-        int i = norm.LastIndexOf("/Assets/", StringComparison.OrdinalIgnoreCase);
-        string? rel = i >= 0 ? norm[(i + "/Assets/".Length)..]
-                    : Path.IsPathRooted(path) ? null : norm;
 
-        if (rel != null)
+        // Assets/ et Packages/ sont voisins : dans l'éditeur, à la racine du projet ;
+        // dans le jeu buildé, à côté de l'exécutable.
+        string root = Path.GetDirectoryName(
+            Path.TrimEndingDirectorySeparator(SceneManager.AssetsDirectory)) ?? "";
+
+        foreach (var folder in ContentFolders)
         {
-            string candidate = Path.Combine(SceneManager.AssetsDirectory, rel);
+            string marker = $"/{folder}/";
+            int i = norm.LastIndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (i < 0) continue;
+
+            string candidate = Path.Combine(root, folder, norm[(i + marker.Length)..]);
             if (File.Exists(candidate)) return candidate;
         }
+
+        // Chemin relatif sans marqueur : on le cherche sous Assets
+        if (!Path.IsPathRooted(path))
+        {
+            string candidate = Path.Combine(SceneManager.AssetsDirectory, norm);
+            if (File.Exists(candidate)) return candidate;
+        }
+
         return path;   // repli : chemin d'origine
     }
 

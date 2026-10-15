@@ -339,6 +339,25 @@ EndGlobal
         log($"[ProjectScaffolder] Icônes éditeur copiées : {destination}");
     }
 
+    static void WritePackages(string engineDir, string targetDir, Action<string> log)
+    {
+        string source = Path.Combine(engineDir, "Packages");
+        string destination = Path.Combine(targetDir, "Packages");
+
+        // Le dossier existe toujours dans le projet, même si la source est absente
+        Directory.CreateDirectory(destination);
+
+        if (!Directory.Exists(source))
+        {
+            log($"[ProjectScaffolder] AVERTISSEMENT : dossier Packages du moteur introuvable : {source}");
+            return;
+        }
+
+        // Réutilise le helper existant (copie récursive, sans fichier à ignorer)
+        CopyDirectoryRecursive(source, destination, Array.Empty<string>(), log);
+        log($"[ProjectScaffolder] Packages copiés : {destination}");
+    }
+
     /// <summary>
     /// Recopie les dépendances du moteur (bin/Release/net10.0 si disponible,
     /// sinon bin/Debug/net10.0) du projet principal
