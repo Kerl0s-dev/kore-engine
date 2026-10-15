@@ -128,7 +128,7 @@ public partial class GameObject
     public void Destroy()
     {
         foreach (var c in Components) c.OnDestroy();
-        foreach (var child in children) child.Destroy();
+        foreach (var child in children.ToList()) child.Destroy();
         Scene?.Remove(this);
     }
 }

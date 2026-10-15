@@ -269,13 +269,18 @@ public static class SceneSerializer
             i++;
         }
 
-        // Rétablit la hiérarchie
+        // Garde-fou : un objet sans bloc Transform dans le fichier en reçoit un par défaut
+        foreach (var o in objMap.Values)
+            if (o.GetComponent<Transform>() == null)
+                o.AddComponent(new Transform());
+
+        // Rétablit la hiérarchie — APRÈS l'attache des composants (il faut les Transform)
         foreach (var (id, parentId) in parentMap)
         {
             if (parentId == "none") continue;
             if (objMap.TryGetValue(id, out var obj) &&
                 objMap.TryGetValue(parentId, out var parent))
-                obj.transform.SetParent(parent, scene);
+                obj.transform.AttachToParentKeepLocal(parent, scene);
         }
 
         // Attache les composants

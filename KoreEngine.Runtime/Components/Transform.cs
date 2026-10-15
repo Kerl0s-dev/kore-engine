@@ -119,6 +119,20 @@
             return new Vector2(v.X * cos - v.Y * sin, v.X * sin + v.Y * cos);
         }
 
+        /// <summary>
+        /// Relie parent/enfant sans modifier Position/Rotation/Scale. Réservé au chargement de scène.
+        /// </summary>
+        internal void AttachToParentKeepLocal(GameObject parent, Scene scene)
+        {
+            if (parent == gameObject || parent.transform.IsDescendantOf(gameObject)) return;
+
+            if (Parent != null) Parent.children.Remove(gameObject);
+            else scene.RootObjects.Remove(gameObject);
+
+            Parent = parent;
+            parent.children.Add(gameObject);
+        }
+
         public override IEnumerable<InspectorField> GetInspectorFields()
         {
             yield return new FloatField { Label = "X", Get = () => Position.X, Set = (v) => Position = new Vector2(v, Position.Y) };
