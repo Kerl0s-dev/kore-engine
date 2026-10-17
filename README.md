@@ -6,7 +6,7 @@ Construit sur **SDL3** (rendu, audio, texte), **ImGui.NET** (interface éditeur)
 
 ## Structure du dépôt
 
-```
+```text
 KoreEngine.slnx
 ├── KoreEngine.Runtime/    # Cœur du moteur : Components, Core, Engine, Physics, Input, Animation
 ├── KoreEngine.Editor/     # Éditeur ImGui (panels, gizmos, hot-reload, compilation)
@@ -22,6 +22,7 @@ KoreEngine.slnx
 3. Depuis le Hub : **New Project** pour scaffolder un nouveau projet, ou **Import** pour ouvrir un projet existant. Double-clic sur un projet pour le lancer (clean + build + run automatique).
 
 Voir `docs/` pour la documentation détaillée :
+
 - [`docs/architecture.md`](docs/architecture.md) — structure interne, pipelines (scènes, hot-reload, build)
 - [`docs/components-reference.md`](docs/components-reference.md) — référence de tous les composants du moteur
 - [`docs/editor-guide.md`](docs/editor-guide.md) — utilisation de l'éditeur
