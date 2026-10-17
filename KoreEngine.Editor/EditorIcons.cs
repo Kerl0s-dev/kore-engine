@@ -16,8 +16,12 @@ public static class EditorIcons
     {
         "folder", "cs", "kscene", "wav", "ogg", "mp3",
         "png", "bmp", "jpg", "jpeg", "default",
-        "play", "stop", "pause", "step"
+        "play", "stop", "pause", "step", "camera"
     };
+
+    /// <summary>Retourne l'icône exacte, ou IntPtr.Zero — sans repli vers "default".</summary>
+    public static IntPtr GetExact(string name) =>
+        icons.TryGetValue(name.ToLowerInvariant(), out var t) ? t : IntPtr.Zero;
 
     public static void Init(Renderer r)
     {

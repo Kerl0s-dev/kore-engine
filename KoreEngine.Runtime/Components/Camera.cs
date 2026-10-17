@@ -2,7 +2,7 @@
 
 public class Camera : Component
 {
-    public float Zoom = 1f;
+    [Range(1, 10)] public float Zoom = 1f;
     public int ViewWidth, ViewHeight;
 
     public Color Color;
@@ -30,8 +30,7 @@ public class Camera : Component
     static Camera? main;
     public static Camera Main
     {
-        get => main ?? throw new InvalidOperationException(
-            "Camera.Main indisponible — aucune scène active n'a de Camera assignée.");
+        get => main!;
         internal set => main = value;
     }
 

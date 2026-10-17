@@ -27,6 +27,7 @@ public class FloatField : InspectorField
     public float Value = 0.1f;
     public float Min = 0f;
     public float Max = 0f; // Min == Max == 0 => pas de clamp
+    public bool Slider;
 }
 
 public class IntField : InspectorField
@@ -36,6 +37,7 @@ public class IntField : InspectorField
     public float Value = 1f;
     public int Min = 0;
     public int Max = 0; // Min == Max == 0 => pas de clamp
+    public bool Slider;
 }
 
 public class BoolField : InspectorField

@@ -172,29 +172,37 @@ public class InspectorPanel
             }
 
             case FloatField ff:
-            {
-                float v = ff.Get();
-                DrawField(ff.Label, () =>
                 {
-                    bool changed = ff.Min != ff.Max
-                        ? ImGui.DragFloat($"##{baseId}", ref v, ff.Value, ff.Min, ff.Max)
-                        : ImGui.DragFloat($"##{baseId}", ref v, ff.Value);
-                    if (changed) ff.Set?.Invoke(v);
-                });
-                break;
-            }
+                    float v = ff.Get();
+                    DrawField(ff.Label, () =>
+                    {
+                        bool changed;
+                        if (ff.Slider && ff.Min != ff.Max)
+                            changed = ImGui.SliderFloat($"##{baseId}", ref v, ff.Min, ff.Max, "%.3f", ImGuiSliderFlags.AlwaysClamp);
+                        else if (ff.Min != ff.Max)
+                            changed = ImGui.DragFloat($"##{baseId}", ref v, ff.Value, ff.Min, ff.Max);
+                        else
+                            changed = ImGui.DragFloat($"##{baseId}", ref v, ff.Value);
+                        if (changed) ff.Set?.Invoke(v);
+                    });
+                    break;
+                }
 
             case IntField iF:
             {
                 int v = iF.Get();
-                DrawField(iF.Label, () =>
-                {
-                    bool changed = iF.Min != iF.Max
-                        ? ImGui.DragInt($"##{baseId}", ref v, iF.Value, iF.Min, iF.Max)
-                        : ImGui.DragInt($"##{baseId}", ref v, iF.Value);
-                    if (changed) iF.Set?.Invoke(v);
-                });
-                break;
+                    DrawField(iF.Label, () =>
+                    {
+                        bool changed;
+                        if (iF.Slider && iF.Min != iF.Max)
+                            changed = ImGui.SliderInt($"##{baseId}", ref v, iF.Min, iF.Max, "%d", ImGuiSliderFlags.AlwaysClamp);
+                        else if (iF.Min != iF.Max)
+                            changed = ImGui.DragInt($"##{baseId}", ref v, iF.Value, iF.Min, iF.Max);
+                        else
+                            changed = ImGui.DragInt($"##{baseId}", ref v, iF.Value);
+                        if (changed) iF.Set?.Invoke(v);
+                    });
+                    break;
             }
 
             case BoolField bf:
@@ -357,19 +365,25 @@ public class InspectorPanel
             if (type == typeof(float))
             {
                 float v = val is float f ? f : 0f;
+                var range = field.GetCustomAttribute<RangeAttribute>();
                 DrawField(field.Name, () =>
                 {
-                    if (ImGui.DragFloat(id, ref v, 0.1f))
-                        field.SetValue(c, v);
+                    bool changed = range != null
+                        ? ImGui.SliderFloat(id, ref v, range.Min, range.Max, "%.3f", ImGuiSliderFlags.AlwaysClamp)
+                        : ImGui.DragFloat(id, ref v, 0.1f);
+                    if (changed) field.SetValue(c, v);
                 });
             }
             else if (type == typeof(int))
             {
                 int v = val is int i ? i : 0;
+                var range = field.GetCustomAttribute<RangeAttribute>();
                 DrawField(field.Name, () =>
                 {
-                    if (ImGui.DragInt(id, ref v))
-                        field.SetValue(c, v);
+                    bool changed = range != null
+                        ? ImGui.SliderInt(id, ref v, (int)range.Min, (int)range.Max, "%d", ImGuiSliderFlags.AlwaysClamp)
+                        : ImGui.DragInt(id, ref v);
+                    if (changed) field.SetValue(c, v);
                 });
             }
             else if (type == typeof(byte))

@@ -134,6 +134,63 @@ namespace KoreEngine.Editor
         }
 
         // ---------------------------------------------------------------
+        // Gizmo caméra : cadre de ce que voit chaque Camera de la scène
+        // ---------------------------------------------------------------
+
+        static uint Col(float r, float g, float b, float a) =>
+            ImGui.GetColorU32(new System.Numerics.Vector4(r, g, b, a));
+
+        void DrawCameraGizmos(System.Numerics.Vector2 imageScreenPos, System.Numerics.Vector2 imageSize)
+        {
+            var scene = SceneManager.Current;
+            if (scene == null) return;
+
+            var dl = ImGui.GetWindowDrawList();
+            dl.PushClipRect(imageScreenPos, imageScreenPos + imageSize, true);
+
+            foreach (var obj in scene.AllObjects)
+            {
+                var cam = obj.GetComponent<Camera>();
+                if (cam == null || cam.ViewWidth <= 0 || cam.ViewHeight <= 0) continue;
+
+                bool selected = obj == EditorSelection.Selected;
+                uint color = selected ? Col(1f, 1f, 1f, 1f) : Col(0.75f, 0.75f, 0.75f, 0.6f);
+                float thickness = selected ? 2f : 1.5f;
+
+                // Coins de l'écran de la caméra, convertis en monde puis vers l'écran de l'éditeur
+                var topLeft = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(0, 0)), imageScreenPos);
+                var botRight = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(cam.ViewWidth, cam.ViewHeight)), imageScreenPos);
+
+                dl.AddRect(topLeft, botRight, color, 0f, ImDrawFlags.None, thickness);
+
+                var c = WorldToAbsScreen(cam.Position, imageScreenPos);
+                IntPtr icon = EditorIcons.GetExact("camera");
+
+                if (icon != IntPtr.Zero)
+                {
+                    const float iconSize = 24f;   // taille écran fixe, indépendante du zoom
+                    float h = iconSize * 0.5f;
+                    dl.AddImage(icon,
+                        new System.Numerics.Vector2(c.X - h, c.Y - h),
+                        new System.Numerics.Vector2(c.X + h, c.Y + h),
+                        new System.Numerics.Vector2(0, 0),
+                        new System.Numerics.Vector2(1, 1),
+                        color);
+                }
+                else
+                {
+                    // Repli si camera.png est absent : croix
+                    dl.AddLine(new(c.X - 6, c.Y), new(c.X + 6, c.Y), color, 1.5f);
+                    dl.AddLine(new(c.X, c.Y - 6), new(c.X, c.Y + 6), color, 1.5f);
+                }
+
+                dl.AddText(new(topLeft.X + 6, topLeft.Y + 4), color, obj.Name);
+            }
+
+            dl.PopClipRect();
+        }
+
+        // ---------------------------------------------------------------
         // Sélection par clic dans le viewport
         // ---------------------------------------------------------------
 
@@ -193,7 +250,7 @@ namespace KoreEngine.Editor
         /// </summary>
         public void Draw(bool editorMode)
         {
-            ImGui.Begin("Viewport");
+            ImGui.Begin("Scene");
 
             System.Numerics.Vector2 avail = ImGui.GetContentRegionAvail();
             int availW = (int)avail.X;
@@ -225,6 +282,8 @@ namespace KoreEngine.Editor
 
             if (editorMode)
             {
+                DrawCameraGizmos(imageScreenPos, avail);
+
                 var dragBefore = activeDrag;
                 DrawGizmo(imageScreenPos, io, overViewport);
 
