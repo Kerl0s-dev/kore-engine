@@ -14,9 +14,14 @@ public static class EditorIcons
 
     static readonly string[] IconNames =
     {
-        "folder", "cs", "kscene", "wav", "ogg", "mp3",
-        "png", "bmp", "jpg", "jpeg", "default",
-        "play", "stop", "pause", "step", "camera"
+        "default", "folder", //Assets de base
+        "cs", // Scripts
+        "kscene", // Scènes
+        ".png", ".jpg", ".jpeg", ".bmp", ".tga", // Images
+        ".ttf", ".otf", // Polices
+        ".wav", ".mp3", ".ogg", ".flac", // Audio
+        "play", "stop", "pause", "step", // Boutons de l'éditeur
+        "camera" // Gizmos
     };
 
     /// <summary>Retourne l'icône exacte, ou IntPtr.Zero — sans repli vers "default".</summary>
