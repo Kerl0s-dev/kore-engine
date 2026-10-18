@@ -10,7 +10,7 @@ public class UIText : UIElement
     [Range(1, 256)]
     public int Size = 24;
 
-    public Color Color = new Color(255, 255, 255);
+    public Color Color = new Color(255, 255, 255, 255);
 
     // Police résolue mémorisée : TextureCache.Resolve() touche le disque, on ne le refait
     // que si le chemin ou la taille changent (privé → ni sérialisé, ni affiché).
