@@ -39,6 +39,7 @@ public static class ProjectScaffolder
         WriteSln(projectPath, projectName, Log);
         WriteImGui(engineDir, projectPath, Log);
         WriteEditorIcons(engineDir, projectPath, Log);
+        WritePackages(engineDir, targetDir, Log);
         CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Debug", "net10.0"),
             ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
 

@@ -240,7 +240,7 @@ public class InspectorPanel
             case TextureField texF:
             {
                 var (tex, path) = texF.Get();
-                var (newTex, newPath) = DrawTextureField(texF.Label, tex, path);
+                var (newTex, newPath) = DrawTextureField(texF.Label, tex, path, baseId);
                 if (newPath != path || newTex != tex)
                     texF.Set?.Invoke(newTex, newPath);
                 break;
@@ -249,7 +249,7 @@ public class InspectorPanel
             case AudioClipField acf:
             {
                 string path = acf.Get();
-                string newPath = DrawAudioClipField(acf.Label, path);
+                string newPath = DrawAssetPathField(acf.Label, path, AudioExtensions, baseId);
                 if (newPath != path)
                     acf.Set?.Invoke(newPath);
                 break;
@@ -257,21 +257,9 @@ public class InspectorPanel
 
             case ComponentRefField crf:
             {
-                string popupId = $"picker_comp_{baseId}";
-                if (pendingResults.TryGetValue(popupId, out var pendingGo))
-                {
-                    pendingResults.Remove(popupId);
-                    crf.Set?.Invoke(pendingGo != null
-                        ? pendingGo.GetComponent(crf.ComponentType)
-                        : null);
-                }
-
                 var current = crf.Get();
-                DrawPickerField(crf.Label, current?.gameObject?.Name,
-                    $"None ({crf.ComponentType.Name})",
-                    popupId, crf.ComponentType,
-                    go => pendingResults[popupId] = go,
-                    () => pendingResults[popupId] = null);
+                var picked = DrawComponentPicker(crf.Label, $"cref_{baseId}", crf.ComponentType, current);
+                if (!ReferenceEquals(picked, current)) crf.Set?.Invoke(picked);
                 break;
             }
 
@@ -406,6 +394,16 @@ public class InspectorPanel
             }
             else if (type == typeof(string))
             {
+                var assetAttr = field.GetCustomAttribute<AssetPathAttribute>();
+                if (assetAttr != null)
+                {
+                    string current = val as string ?? "";
+                    
+                    string chosen = DrawAssetPathField(field.Name, current, assetAttr.Extensions,
+                        $"{c.GetHashCode()}_{field.Name}");
+                    if (chosen != current) field.SetValue(c, chosen);
+                    continue;
+                }
                 if (field.Name.EndsWith("Path"))
                 {
                     string texFieldName = field.Name[..^4];
@@ -416,9 +414,12 @@ public class InspectorPanel
                     {
                         string path = val as string ?? "";
                         IntPtr tex = texField.GetValue(c) is IntPtr t ? t : IntPtr.Zero;
-                        (tex, path) = DrawTextureField(field.Name[..^4], tex, path);
-                        field.SetValue(c, path);
-                        texField.SetValue(c, tex);
+
+                        var (newTex, newPath) = DrawTextureField(field.Name[..^4], tex, path,
+                            $"{c.GetHashCode()}_{field.Name}");
+
+                        if (newPath != path) field.SetValue(c, newPath);
+                        if (newTex != tex) texField.SetValue(c, newTex);
                         continue;
                     }
                 }
@@ -447,17 +448,19 @@ public class InspectorPanel
             {
                 var col = val is Color color ? color : new Color(0, 0, 0);
 
-                System.Numerics.Vector3 col3 = new System.Numerics.Vector3(
-                    col.R / 255f, col.G / 255f, col.B / 255f);
+                System.Numerics.Vector4 col4 = new System.Numerics.Vector4(
+                    col.R / 255f, col.G / 255f, col.B / 255f, col.A / 255f);
 
                 DrawField(field.Name, () =>
                 {
-                    if (ImGui.ColorPicker3($"{id}_col", ref col3))
+                    if (ImGui.ColorPicker4($"{id}_col", ref col4))
                     {
                         field.SetValue(c, new Color(
-                            (int)(col3.X * 255),
-                            (int)(col3.Y * 255),
-                            (int)(col3.Z * 255)));
+                            (int)(col4.X * 255),
+                            (int)(col4.Y * 255),
+                            (int)(col4.Z * 255),
+                            (int)(col4.W * 255)
+                        ));
                     }
                 });
             }
@@ -467,7 +470,6 @@ public class InspectorPanel
                 int rx = r.X, ry = r.Y, rw = r.Width, rh = r.Height;
                 DrawField($"{field.Name} X", () => { if (ImGui.DragInt($"{id}_rx", ref rx)) field.SetValue(c, new Rectangle(rx, r.Y, r.Width, r.Height)); });
                 DrawField($"{field.Name} Y", () => { if (ImGui.DragInt($"{id}_ry", ref ry)) field.SetValue(c, new Rectangle(r.X, ry, r.Width, r.Height)); });
-
                 DrawField($"{field.Name} Width", () => { if (ImGui.DragInt($"{id}_rw", ref rw)) field.SetValue(c, new Rectangle(r.X, r.Y, rw, r.Height)); });
                 DrawField($"{field.Name} Height", () => { if (ImGui.DragInt($"{id}_rh", ref rh)) field.SetValue(c, new Rectangle(r.X, r.Y, r.Width, rh)); });
             }
@@ -483,25 +485,8 @@ public class InspectorPanel
             }
             else if (typeof(Component).IsAssignableFrom(type))
             {
-                var current = val as Component;
-                DrawField(field.Name, () =>
-                {
-                    ImGui.SetNextItemWidth(WidthBeforeButton());
-                    string display = current?.gameObject?.Name ?? $"None ({type.Name})";
-                    ImGui.InputText($"{id}_display", ref display, 128,
-                        ImGuiInputTextFlags.ReadOnly);
-                    ImGui.SameLine();
-                    if (ImGui.Button($"•{id}_btn", new System.Numerics.Vector2(20, 0)))
-                    {
-                        pickerPopupId = $"picker_{id}";
-                        pickerSearch = "";
-                        pickerFilterType = type;
-                        ImGui.OpenPopup($"picker_{id}");
-                    }
-                    DrawPickerPopup($"picker_{id}",
-                        obj => field.SetValue(c, obj.GetComponent(type)),
-                        () => field.SetValue(c, null));
-                });
+                var picked = DrawComponentPicker(field.Name, $"{c.GetHashCode()}_{field.Name}", type, val as Component);
+                if (!ReferenceEquals(picked, val)) field.SetValue(c, picked);
             }
             else if (type == typeof(KoreEvent))
             {
@@ -511,25 +496,8 @@ public class InspectorPanel
             }
             else if (type == typeof(GameObject))
             {
-                var current = val as GameObject;
-                DrawField(field.Name, () =>
-                {
-                    ImGui.SetNextItemWidth(WidthBeforeButton());
-                    string display = current?.Name ?? "None (GameObject)";
-                    ImGui.InputText($"{id}_godisplay", ref display, 128,
-                        ImGuiInputTextFlags.ReadOnly);
-                    ImGui.SameLine();
-                    if (ImGui.Button($"•{id}_gobtn", new System.Numerics.Vector2(20, 0)))
-                    {
-                        pickerPopupId = $"gopicker_{id}";
-                        pickerSearch = "";
-                        pickerFilterType = null;
-                        ImGui.OpenPopup($"gopicker_{id}");
-                    }
-                    DrawPickerPopup($"gopicker_{id}",
-                        obj => field.SetValue(c, obj),
-                        () => field.SetValue(c, null));
-                });
+                var picked = DrawObjectField(field.Name, val as GameObject, $"{c.GetHashCode()}_{field.Name}");
+                if (!ReferenceEquals(picked, val)) field.SetValue(c, picked);
             }
         }
     }
@@ -565,21 +533,18 @@ public class InspectorPanel
             ImGui.PushID(lid);
 
             // --- Objet cible ---
-            string popupId = $"picker_ev_{lid}";
-            if (pendingResults.TryGetValue(popupId, out var picked))
+            var current = l.ResolveObject();
+            string noneLabel = string.IsNullOrEmpty(l.TargetObject)
+                ? "None (GameObject)"
+                : $"{l.TargetObject} (missing)";   // cible sauvegardée mais absente de la scène
+
+            var target = DrawObjectField("Object", current, lid, noneLabel);
+            if (!ReferenceEquals(target, current))
             {
-                pendingResults.Remove(popupId);
-                l.TargetObject = picked?.Name ?? "";
+                l.TargetObject = target?.Name ?? "";
                 l.ComponentType = ""; l.MethodName = ""; l.Argument = "";
             }
 
-            DrawPickerField("Object",
-                string.IsNullOrEmpty(l.TargetObject) ? null : l.TargetObject,
-                "None (GameObject)", popupId, null,
-                go => pendingResults[popupId] = go,
-                () => pendingResults[popupId] = null);
-
-            var target = l.ResolveObject();
             if (target != null)
             {
                 // --- Composant ---
@@ -656,146 +621,39 @@ public class InspectorPanel
     }
 
     // ---------------------------------------------------------------
-    // Object picker
+    // Pickers — briques communes
     // ---------------------------------------------------------------
 
-    static string pickerPopupId = "";
+    // Une seule popup de sélection est ouverte à la fois : un état partagé suffit.
+    static string activePopupId = "";
     static string pickerSearch = "";
-    static Type? pickerFilterType;
 
-    static readonly Dictionary<string, GameObject?> pendingResults = new();
-
-    public static GameObject? DrawObjectField(string label, GameObject? current)
-    {
-        string popupId = $"picker_go_{label}";
-
-        if (pendingResults.TryGetValue(popupId, out var pending))
-        {
-            current = pending;
-            pendingResults.Remove(popupId);
-        }
-
-        DrawPickerField(label, current?.Name, "None (GameObject)",
-            popupId, null, obj => pendingResults[popupId] = obj,
-            () => pendingResults[popupId] = null);
-
-        return current;
-    }
-
-    public static T? DrawComponentField<T>(string label, T? current) where T : Component
-    {
-        string popupId = $"picker_comp_{label}_{typeof(T).Name}";
-
-        if (pendingResults.TryGetValue(popupId, out var pending))
-        {
-            current = pending?.GetComponent<T>();
-            pendingResults.Remove(popupId);
-        }
-
-        DrawPickerField(label, current?.gameObject?.Name, $"None ({typeof(T).Name})",
-            popupId, typeof(T),
-            obj => pendingResults[popupId] = obj,
-            () => pendingResults[popupId] = null);
-
-        return current;
-    }
-
-    static void DrawPickerField(string label, string? currentName, string noneLabel, string popupId, Type? filterType, Action<GameObject> onPick, Action onClear)
-    {
-        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text(label);
-        ImGui.SameLine(labelW);
-
-        ImGui.SetNextItemWidth(WidthBeforeButton());
-        string display = currentName ?? noneLabel;
-        ImGui.InputText($"##{popupId}_display", ref display, 128,
-            ImGuiInputTextFlags.ReadOnly);
-
-        ImGui.SameLine();
-        if (ImGui.Button($"•##{popupId}_btn", new System.Numerics.Vector2(20, 0)))
-        {
-            pickerPopupId = popupId;
-            pickerSearch = "";
-            pickerFilterType = filterType;
-            ImGui.OpenPopup(popupId);
-        }
-
-        DrawPickerPopup(popupId, onPick, onClear);
-    }
-
-    static void DrawPickerPopup(string popupId, Action<GameObject> onPick, Action onClear)
-    {
-        if (pickerPopupId != popupId) return;
-
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(260, 300), ImGuiCond.Always);
-        if (!ImGui.BeginPopup(popupId)) return;
-
-        ImGui.SetNextItemWidth(-1f);
-        if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
-        ImGui.InputText("##picker_search", ref pickerSearch, 128);
-        ImGui.Separator();
-
-        ImGui.BeginChild("##picker_list", new System.Numerics.Vector2(0, 0));
-
-        if (ImGui.Selectable("None"))
-        {
-            onClear();
-            ImGui.CloseCurrentPopup();
-        }
-
-        ImGui.Separator();
-
-        string filter = pickerSearch.Trim().ToLowerInvariant();
-        var objects = SceneManager.Current?.AllObjects ?? Enumerable.Empty<GameObject>();
-
-        foreach (var obj in objects)
-        {
-            if (pickerFilterType != null &&
-                obj.GetComponent(pickerFilterType) == null) continue;
-
-            if (filter.Length > 0 &&
-                !obj.Name.ToLowerInvariant().Contains(filter)) continue;
-
-            string itemLabel = pickerFilterType != null
-                ? $"{obj.Name} ({pickerFilterType.Name})"
-                : obj.Name;
-
-            if (ImGui.Selectable(itemLabel))
-            {
-                onPick(obj);
-                ImGui.CloseCurrentPopup();
-            }
-        }
-
-        ImGui.EndChild();
-        ImGui.EndPopup();
-    }
-
-    // ---------------------------------------------------------------
-    // Texture picker
-    // ---------------------------------------------------------------
-
-    static string texPickerPopupId = "";
-    static string texPickerSearch = "";
-
-    static readonly Dictionary<string, string> pendingTextureResults = new();
+    // Choix fait dans une popup, appliqué à la frame suivante : popupId → élément (null = None)
+    static readonly Dictionary<string, object?> pending = new();
     static List<string>? assetFiles;
 
-    public static (IntPtr texture, string path) DrawTextureField(string label, IntPtr currentTexture, string currentPath)
+    static readonly string[] AudioExtensions = { ".wav", ".mp3", ".ogg", ".flac" };
+    static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".tga" };
+
+    static void RefreshAssetFiles() => assetFiles = ProjectPanel.GetAllProjectFiles();
+
+    static IEnumerable<string> FilterAssets(string[] extensions, string filter) =>
+        (assetFiles ?? Enumerable.Empty<string>()).Where(p =>
+            extensions.Contains(Path.GetExtension(p).ToLowerInvariant()) &&
+            (filter.Length == 0 || Path.GetFileName(p).ToLowerInvariant().Contains(filter)));
+
+    static IEnumerable<GameObject> SceneObjects(string filter) =>
+        (SceneManager.Current?.AllObjects ?? Enumerable.Empty<GameObject>())
+            .Where(o => filter.Length == 0 || o.Name.ToLowerInvariant().Contains(filter));
+
+    /// <summary>
+    /// Ligne commune à tous les pickers : libellé à gauche ; à droite, aperçu optionnel +
+    /// champ en lecture seule + bouton "•" qui ouvre la popup. Clic droit sur le champ →
+    /// "Clear / None" si onClear est fourni.
+    /// </summary>
+    static void DrawPickerRow(string label, string display, string popupId,
+        string? tooltip = null, Action? onClear = null, IntPtr preview = default, Action? onOpen = null)
     {
-        string popupId = $"tex_picker_{label}";
-
-        if (pendingTextureResults.TryGetValue(popupId, out var pendingPath))
-        {
-            currentPath = pendingPath;
-            currentTexture = string.IsNullOrEmpty(pendingPath)
-                ? IntPtr.Zero
-                : TextureCache.Get(pendingPath);
-            pendingTextureResults.Remove(popupId);
-        }
-
         float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
 
         ImGui.AlignTextToFramePadding();
@@ -803,88 +661,177 @@ public class InspectorPanel
         ImGui.SameLine(labelW);
 
         ImGui.BeginGroup();
-
-        if (currentTexture != IntPtr.Zero)
+        if (preview != IntPtr.Zero)
         {
-            ImGui.Image(currentTexture, new System.Numerics.Vector2(32, 32));
+            ImGui.Image(preview, new System.Numerics.Vector2(32, 32));
             ImGui.SameLine();
         }
-
         ImGui.SetNextItemWidth(WidthBeforeButton());
-        string display = string.IsNullOrEmpty(currentPath)
-            ? "None"
-            : Path.GetFileName(currentPath);
-
         ImGui.InputText($"##{popupId}_display", ref display, 256, ImGuiInputTextFlags.ReadOnly);
-
         ImGui.EndGroup();
 
-        if (ImGui.BeginPopupContextItem($"##{popupId}_ctx"))
+        bool hovered = ImGui.IsItemHovered();
+
+        if (onClear != null && ImGui.BeginPopupContextItem($"##{popupId}_ctx"))
         {
-            if (ImGui.MenuItem("Clear / None"))
-            {
-                currentPath = "";
-                currentTexture = IntPtr.Zero;
-            }
+            if (ImGui.MenuItem("Clear / None")) onClear();
             ImGui.EndPopup();
         }
 
-        if (ImGui.IsItemHovered() && !string.IsNullOrEmpty(currentPath))
-        {
-            ImGui.SetTooltip(currentPath);
-        }
+        if (hovered && !string.IsNullOrEmpty(tooltip)) ImGui.SetTooltip(tooltip);
 
         ImGui.SameLine();
-        if (ImGui.Button($"•##{popupId}_btn", new System.Numerics.Vector2(20, 0)))
+        if (ImGui.Button($"•##{popupId}_btn", new System.Numerics.Vector2(PickerBtnW, 0)))
         {
-            texPickerPopupId = popupId;
-            texPickerSearch = "";
-            assetFiles = ProjectPanel.GetAllProjectFiles();
+            activePopupId = popupId;
+            pickerSearch = "";
+            onOpen?.Invoke();
             ImGui.OpenPopup(popupId);
         }
-
-        DrawTexturePickerPopup(popupId);
-
-        return (currentTexture, currentPath);
     }
 
-    static void DrawTexturePickerPopup(string popupId)
+    /// <summary>Squelette commun des popups : recherche, entrée "None", liste défilante.</summary>
+    static void DrawPopupFrame(string popupId, System.Numerics.Vector2 size, Action onNone, Action<string> drawItems)
     {
-        if (texPickerPopupId != popupId) return;
+        if (activePopupId != popupId) return;
 
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(360, 400), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(size, ImGuiCond.Always);
         if (!ImGui.BeginPopup(popupId)) return;
 
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
-        ImGui.InputText("##tex_search", ref texPickerSearch, 128);
+        ImGui.InputText("##picker_search", ref pickerSearch, 128);
         ImGui.Separator();
 
         if (ImGui.Selectable("None"))
         {
-            pendingTextureResults[popupId] = "";
+            onNone();
             ImGui.CloseCurrentPopup();
         }
 
         ImGui.Separator();
-        ImGui.BeginChild("##tex_list", new System.Numerics.Vector2(0, 0));
+        ImGui.BeginChild("##picker_list", System.Numerics.Vector2.Zero);
+        drawItems(pickerSearch.Trim().ToLowerInvariant());
+        ImGui.EndChild();
+        ImGui.EndPopup();
+    }
 
-        string filter = texPickerSearch.Trim().ToLowerInvariant();
-        float thumbSize = 64f;
-        float padding = 8f;
-        float cellW = thumbSize + padding;
-        float panelW = ImGui.GetContentRegionAvail().X;
-        int cols = Math.Max(1, (int)(panelW / cellW));
+    // ---------------------------------------------------------------
+    // Picker générique : T = ce qu'on cherche
+    // ---------------------------------------------------------------
+
+    /// <param name="current">Valeur actuelle (null = None).</param>
+    /// <param name="name">Texte d'un élément, dans le champ et dans la liste.</param>
+    /// <param name="search">Éléments qui correspondent au filtre saisi (déjà en minuscules).</param>
+    /// <param name="tooltip">Infobulle d'un élément (champ et liste).</param>
+    /// <param name="preview">Aperçu affiché dans le champ pour la valeur actuelle.</param>
+    /// <param name="drawItems">Rendu personnalisé de la liste (ex. grille) ; reçoit les éléments et le callback de choix.</param>
+    /// <param name="onOpen">Appelé à l'ouverture de la popup (ex. rescanner les fichiers).</param>
+    /// <returns>La nouvelle valeur (la même qu'en entrée s'il n'y a pas eu de changement).</returns>
+    static T? DrawPicker<T>(string label, string id, T? current,
+        Func<T, string> name, Func<string, IEnumerable<T>> search,
+        string noneLabel = "None",
+        Func<T, string?>? tooltip = null,
+        Func<T, IntPtr>? preview = null,
+        Action<IEnumerable<T>, Action<T>>? drawItems = null,
+        Action? onOpen = null,
+        System.Numerics.Vector2? popupSize = null) where T : class
+    {
+        string popupId = $"picker_{id}";
+
+        if (pending.Remove(popupId, out var picked))
+            current = (T?)picked;
+
+        DrawPickerRow(label,
+            current != null ? name(current) : noneLabel,
+            popupId,
+            tooltip: current != null ? tooltip?.Invoke(current) : null,
+            onClear: () => current = null,
+            preview: current != null && preview != null ? preview(current) : IntPtr.Zero,
+            onOpen: onOpen);
+
+        DrawPopupFrame(popupId, popupSize ?? new System.Numerics.Vector2(260, 300),
+            () => pending[popupId] = null,
+            filter =>
+            {
+                var items = search(filter);
+
+                void Pick(T item)
+                {
+                    pending[popupId] = item;
+                    ImGui.CloseCurrentPopup();
+                }
+
+                if (drawItems != null) { drawItems(items, Pick); return; }
+
+                foreach (var item in items)
+                {
+                    // "##" : deux éléments de même nom restent distincts pour ImGui
+                    if (ImGui.Selectable($"{name(item)}##{item.GetHashCode()}")) Pick(item);
+                    if (tooltip != null && ImGui.IsItemHovered()) ImGui.SetTooltip(tooltip(item));
+                }
+            });
+
+        return current;
+    }
+
+    // ---------------------------------------------------------------
+    // Wrappers : un par type cherché
+    // ---------------------------------------------------------------
+
+    public static GameObject? DrawObjectField(string label, GameObject? current,
+        string? id = null, string noneLabel = "None (GameObject)") =>
+        DrawPicker(label, id ?? $"go_{label}", current,
+            go => go.Name, SceneObjects, noneLabel);
+
+    /// <summary>Picker de Component d'un type donné (type connu seulement à l'exécution).</summary>
+    static Component? DrawComponentPicker(string label, string id, Type type, Component? current) =>
+        DrawPicker(label, id, current,
+            c => c.gameObject?.Name ?? "?",
+            filter => SceneObjects(filter).Select(o => o.GetComponent(type)).OfType<Component>(),
+            noneLabel: $"None ({type.Name})");
+
+    public static T? DrawComponentField<T>(string label, T? current, string? id = null) where T : Component =>
+        (T?)DrawComponentPicker(label, id ?? $"comp_{label}_{typeof(T).Name}", typeof(T), current);
+
+    /// <summary>Picker de fichier filtré par extensions (audio, polices, …). Retourne "" pour None.</summary>
+    public static string DrawAssetPathField(string label, string currentPath, string[] extensions, string id) =>
+        DrawPicker(label, $"asset_{id}",
+            string.IsNullOrEmpty(currentPath) ? null : currentPath,
+            p => Path.GetFileName(p),
+            filter => FilterAssets(extensions, filter),
+            tooltip: p => p,
+            onOpen: RefreshAssetFiles,
+            popupSize: new System.Numerics.Vector2(280, 320)) ?? "";
+
+    public static (IntPtr texture, string path) DrawTextureField(
+        string label, IntPtr currentTexture, string currentPath, string? id = null)
+    {
+        string newPath = DrawPicker(label, $"tex_{id ?? label}",
+            string.IsNullOrEmpty(currentPath) ? null : currentPath,
+            p => Path.GetFileName(p),
+            filter => FilterAssets(ImageExtensions, filter),
+            tooltip: p => p,
+            preview: _ => currentTexture,
+            drawItems: DrawTextureGrid,
+            onOpen: RefreshAssetFiles,
+            popupSize: new System.Numerics.Vector2(360, 400)) ?? "";
+
+        if (newPath != currentPath)
+            currentTexture = newPath.Length == 0 ? IntPtr.Zero : TextureCache.Get(newPath);
+
+        return (currentTexture, newPath);
+    }
+
+    static void DrawTextureGrid(IEnumerable<string> paths, Action<string> pick)
+    {
+        const float thumbSize = 64f;
+        const float padding = 8f;
+        int cols = Math.Max(1, (int)(ImGui.GetContentRegionAvail().X / (thumbSize + padding)));
         int col = 0;
 
-        foreach (var path in assetFiles ?? Enumerable.Empty<string>())
+        foreach (var path in paths)
         {
-            string ext = Path.GetExtension(path).ToLowerInvariant();
-            if (ext is not (".png" or ".jpg" or ".jpeg" or ".bmp" or ".tga")) continue;
-
-            string fname = Path.GetFileName(path);
-            if (filter.Length > 0 && !fname.ToLowerInvariant().Contains(filter)) continue;
-
             IntPtr tex = TextureCache.Get(path);
 
             ImGui.BeginGroup();
@@ -896,135 +843,19 @@ public class InspectorPanel
             else
             {
                 ImGui.Dummy(new System.Numerics.Vector2(thumbSize, thumbSize));
-                var dl = ImGui.GetWindowDrawList();
                 var pos = ImGui.GetItemRectMin();
-                dl.AddRectFilled(pos, new System.Numerics.Vector2(pos.X + thumbSize, pos.Y + thumbSize), 0xFF333333);
+                ImGui.GetWindowDrawList().AddRectFilled(pos,
+                    new System.Numerics.Vector2(pos.X + thumbSize, pos.Y + thumbSize), 0xFF333333);
             }
 
-            ImGui.TextUnformatted(fname);
+            ImGui.TextUnformatted(Path.GetFileName(path));
             ImGui.EndGroup();
 
-            if (ImGui.IsItemClicked())
-            {
-                pendingTextureResults[popupId] = path;
-                ImGui.CloseCurrentPopup();
-            }
+            if (ImGui.IsItemClicked()) pick(path);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(path);
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(path);
-            }
-
-            col++;
-            if (col < cols)
-            {
-                ImGui.SameLine();
-            }
-            else
-            {
-                col = 0;
-            }
+            if (++col < cols) ImGui.SameLine();
+            else col = 0;
         }
-
-        ImGui.EndChild();
-        ImGui.EndPopup();
-    }
-
-    // ---------------------------------------------------------------
-    // Audio Clip picker
-    // ---------------------------------------------------------------
-
-    static string audioPickerPopupId = "";
-    static string audioPickerSearch = "";
-    static readonly Dictionary<string, string> pendingAudioResults = new();
-
-    public static string DrawAudioClipField(string label, string currentPath)
-    {
-        string popupId = $"audio_picker_{label}";
-
-        if (pendingAudioResults.TryGetValue(popupId, out var pendingPath))
-        {
-            currentPath = pendingPath;
-            pendingAudioResults.Remove(popupId);
-        }
-
-        float labelW = ImGui.GetContentRegionAvail().X * LabelRatio;
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text(label);
-        ImGui.SameLine(labelW);
-
-        ImGui.SetNextItemWidth(WidthBeforeButton());
-        string display = string.IsNullOrEmpty(currentPath) ? "None" : Path.GetFileName(currentPath);
-        ImGui.InputText($"##{popupId}_display", ref display, 256, ImGuiInputTextFlags.ReadOnly);
-
-        if (ImGui.BeginPopupContextItem($"##{popupId}_ctx"))
-        {
-            if (ImGui.MenuItem("Clear / None"))
-            {
-                currentPath = "";
-            }
-            ImGui.EndPopup();
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button($"•##{popupId}_btn", new System.Numerics.Vector2(20, 0)))
-        {
-            audioPickerPopupId = popupId;
-            audioPickerSearch = "";
-            assetFiles = ProjectPanel.GetAllProjectFiles();
-            ImGui.OpenPopup(popupId);
-        }
-
-        DrawAudioPickerPopup(popupId);
-
-        return currentPath;
-    }
-
-    static void DrawAudioPickerPopup(string popupId)
-    {
-        if (audioPickerPopupId != popupId) return;
-
-        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 320), ImGuiCond.Always);
-        if (!ImGui.BeginPopup(popupId)) return;
-
-        ImGui.SetNextItemWidth(-1f);
-        if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
-        ImGui.InputText("##audio_search", ref audioPickerSearch, 128);
-        ImGui.Separator();
-
-        if (ImGui.Selectable("None"))
-        {
-            pendingAudioResults[popupId] = "";
-            ImGui.CloseCurrentPopup();
-        }
-
-        ImGui.Separator();
-        ImGui.BeginChild("##audio_list", new System.Numerics.Vector2(0, 0));
-
-        string filter = audioPickerSearch.Trim().ToLowerInvariant();
-
-        foreach (var path in assetFiles ?? Enumerable.Empty<string>())
-        {
-            string ext = Path.GetExtension(path).ToLowerInvariant();
-            if (ext is not (".wav" or ".mp3" or ".ogg" or ".flac")) continue;
-
-            string fname = Path.GetFileName(path);
-            if (filter.Length > 0 && !fname.ToLowerInvariant().Contains(filter)) continue;
-
-            if (ImGui.Selectable(fname))
-            {
-                pendingAudioResults[popupId] = path;
-                ImGui.CloseCurrentPopup();
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(path);
-            }
-        }
-
-        ImGui.EndChild();
-        ImGui.EndPopup();
     }
 }

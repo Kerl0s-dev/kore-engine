@@ -72,6 +72,7 @@ public class EditorWindow
 
         Renderer = new Renderer(window);
         TextureCache.Init(Renderer); // Initialise le cache de texture
+        FontManager.Init(Renderer); // Initialise le cache de polices
         EditorIcons.Init(Renderer); //Initialise les icônes de l'éditeur
         AudioManager.Init(); // Initialise le moteur audio (SDL_mixer)
 

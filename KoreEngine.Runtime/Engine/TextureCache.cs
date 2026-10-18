@@ -61,7 +61,7 @@ public static class TextureCache
 
     static readonly string[] ContentFolders = { "Assets", "Packages" };
 
-    static string Resolve(string path)
+    internal static string Resolve(string path)
     {
         if (string.IsNullOrEmpty(path)) return path;
 

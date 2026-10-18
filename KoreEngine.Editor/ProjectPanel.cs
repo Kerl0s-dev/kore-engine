@@ -82,14 +82,23 @@ public class ProjectPanel
     public static List<string> GetAllProjectFiles()
     {
         var allFiles = new List<string>();
+        string[] supportedExtensions = {
+            ".png", ".jpg", ".jpeg", ".bmp", ".tga",
+            ".ttf", ".otf",
+            ".wav", ".mp3", ".ogg", ".flac"
+        };
+
         foreach (var root in folderRoots)
         {
             if (Directory.Exists(root.FullPath))
             {
-                allFiles.AddRange(TextureCache.ScanAssets(root.FullPath));
+                var files = Directory.GetFiles(root.FullPath, "*.*", SearchOption.AllDirectories)
+                    .Where(p => supportedExtensions.Contains(Path.GetExtension(p).ToLowerInvariant()));
+
+                allFiles.AddRange(files);
             }
         }
-        return allFiles;
+        return allFiles.Distinct().ToList();
     }
 
     public void Draw()

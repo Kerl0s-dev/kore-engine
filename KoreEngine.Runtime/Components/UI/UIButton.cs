@@ -46,8 +46,6 @@ public class UIButton : UIElement
     {
         IntPtr tex = hovered ? (pressed ? TexturePressed : TextureHover) : TextureNormal;
         if (tex == IntPtr.Zero) tex = TextureNormal;
-        if (tex != IntPtr.Zero)
-            renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY,
-                                 (int)ScreenWidth, (int)ScreenHeight);
+        if (tex != IntPtr.Zero) renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
     }
 }

@@ -238,6 +238,9 @@ public class HierarchyPanel
         if (ImGui.MenuItem("UI Image"))
             CreatePredefined("UIImage", scene, parent);
 
+        if (ImGui.MenuItem("UI Text"))
+            CreatePredefined("UIText", scene, parent);
+
         ImGui.Separator();
 
         if (ImGui.BeginMenu("Instantiate Prefab"))
@@ -284,6 +287,9 @@ public class HierarchyPanel
 
             "UIImage" => CreateWithComponents("Image",
                 new UI.UIImage()),
+
+            "UIText" => CreateWithComponents("Text",
+                new UI.UIText()),
 
             _ => new GameObject("GameObject")
         };

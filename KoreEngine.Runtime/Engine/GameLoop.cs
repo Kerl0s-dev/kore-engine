@@ -36,6 +36,7 @@ public class GameLoop
 
         Renderer = new Renderer(window);
         TextureCache.Init(Renderer);
+        FontManager.Init(Renderer);
 
         lastTicks = SDL.GetTicks();
     }
