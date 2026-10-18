@@ -138,7 +138,7 @@ public sealed class HubWindow : IDisposable
             foreach (var item in items)
             {
                 item.Exists = item.Entry.Exists;
-                if (!item.Exists) continue;
+                if (!item.Exists) RecentProjectsStore.Remove(item.Entry.Path);
 
                 item.EditorVersion = ProjectInfoService.GetEngineVersion(item.Path);
                 item.Size = ProjectInfoService.FormatSize(ProjectInfoService.GetDirectorySize(item.Path));
