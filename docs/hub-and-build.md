@@ -78,9 +78,6 @@ Génère un `Player.csproj` éphémère dans `.player-build/`, publie en Release
 ### Le `Player/Program.cs` généré par le scaffolder
 
 ```csharp
-string scriptsDllPath = Path.Combine(AppContext.BaseDirectory, "GameScripts.dll");
-if (File.Exists(scriptsDllPath)) Assembly.LoadFrom(scriptsDllPath);
-
 SceneManager.ScanAndRegisterScenes();
 ProjectSettings.Load();
 
@@ -96,15 +93,6 @@ AudioManager.Quit();
 ```
 
 L'ordre compte : `GameLoop` initialise `TextureCache` ; charger la scène avant lui laisserait toutes les textures à zéro (sprites, boutons et images invisibles, sans erreur). La scène de démarrage vient de `ProjectSettings.StartupScene` (défini dans l'éditeur via *Set as Startup Scene*), sinon de la première scène par ordre alphabétique.
-
-### Incohérence connue : chargement des scripts dans le Player publié
-
-Le `Player/Program.cs` cherche `GameScripts.dll`, mais **rien dans le code ne produit ce fichier** (la solution génère `{name}.Scripts.dll`, que seul `ProjectBuilder` copie). Conséquence : un build via le bouton **Build** démarre, charge la scène, mais **aucun composant de script utilisateur n'est enregistré** — `SceneSerializer.FindType` ne les retrouve pas, les composants de script de la scène sont ignorés avec un message « Type inconnu » dans la sortie console.
-
-À corriger, par exemple :
-
-- charger `{name}.Scripts.dll` dans `Player/Program.cs` au lieu de `GameScripts.dll`, **et** copier cette DLL dans `Build/` depuis `BuildService` ; ou
-- faire produire par `BuildService` une copie de `{name}.Scripts.dll` nommée `GameScripts.dll`.
 
 ### Comportement du jeu buildé (`GameLoop`)
 
