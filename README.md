@@ -36,7 +36,6 @@ Développement actif, mono-développeur. Les systèmes suivants sont fonctionnel
 
 Limitations connues, détaillées dans `docs/` :
 
-- **Build joueur** : le bouton **Build** produit un exécutable autonome, mais les composants de script utilisateur n'y sont pas chargés (la DLL attendue, `GameScripts.dll`, n'est produite par aucun chemin de build) — voir `docs/hub-and-build.md`.
 - **Animation de spritesheet** : `SpriteRenderer` affiche toujours la première frame de la feuille.
 - **Callbacks de collision** (`OnCollision`, `OnTriggerEnter`) : appelés par le moteur mais non surchargeables par un script.
 - **Input** : `Input.GetKeyDown` / `GetKeyUp` ne suivent pas la sémantique d'Unity (voir `docs/components-reference.md`).

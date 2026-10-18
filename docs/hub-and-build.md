@@ -8,8 +8,8 @@ Application **SDL3 pure** (SDL3, SDL3_image, SDL3_ttf), sans WPF ni ImGui : un m
 
 ### Écran principal
 
-- **Liste de projets** (`ProjectList`) : une ligne par projet récent — nom et chemin, version du moteur, taille du dossier, date de dernière ouverture. Défilement à la molette, sélection au clic, **ouverture au double-clic**. Un projet dont le dossier a disparu est signalé « Introuvable sur le disque ». Taille et version sont calculées en tâche de fond.
-- **Nouveau projet** et **Ouvrir** (activé quand un projet est sélectionné). Il n'y a pas, dans cette version, de bouton d'import d'un projet existant ni de menu contextuel « Refresh Dependencies » : la resynchronisation des dépendances se fait automatiquement à chaque ouverture (voir plus bas).
+- **Liste de projets** (`ProjectList`) : une ligne par projet récent — nom et chemin, version du moteur, taille du dossier, date de dernière ouverture. Défilement à la molette, sélection au clic, **ouverture au double-clic**. Un projet dont le dossier a disparu est retiré automatiquement de la liste. Taille et version sont calculées en tâche de fond.
+- **Nouveau projet** et **Ouvrir** (activé quand un projet est sélectionné). Il n'y a pas, dans cette version, de bouton d'import d'un projet existant : la resynchronisation des dépendances se fait automatiquement à chaque ouverture (voir plus bas).
 - Une ligne de statut affiche le résultat de la dernière action.
 
 ### Architecture de l'UI
