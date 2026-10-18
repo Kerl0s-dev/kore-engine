@@ -25,7 +25,6 @@
 | `[HideInInspector]` | Exclu de l'Inspector seulement (auto-draw). |
 | `[Range(min, max)]` | Slider borné dans l'Inspector pour `float`, `int`, `byte` (auto-draw uniquement ; n'impose pas les bornes à l'exécution). |
 | `[UnremovableComponent]` | Le menu *Remove Component* est grisé (`Transform`). |
-| `[UserScript]` | Marqueur écrit dans le template « C# Script » ; **aucun code ne le lit** pour l'instant. |
 
 ## `GameObject`
 
