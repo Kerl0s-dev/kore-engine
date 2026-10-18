@@ -29,7 +29,7 @@ Barre horizontale sous la menu bar : bouton **World/Local** à gauche (espace de
 - **Stop** (le bouton Play devient Stop, surligné) : recharge la scène depuis son fichier sauvegardé, remet Playing/Pause à faux.
 - **Pause** : suspend `Update()` sans arrêter le rendu — la scène reste visible et modifiable.
 - **Step** : disponible uniquement en pause, avance la simulation d'exactement une frame.
-- **Build** : publie un exécutable joueur (Release, plateforme courante, self-contained) dans `{projet}/Build/` et copie `Assets/` et `Packages/` à côté. Le libellé passe à « Building... » (désactivé) pendant l'opération ; succès/échec dans la Console. ⚠ Voir `docs/hub-and-build.md` pour une limitation connue sur le chargement des scripts utilisateur dans l'exe produit.
+- **Build** : publie un exécutable joueur (Release, plateforme courante, self-contained) dans `{projet}/Build/` et copie `Assets/` et `Packages/` à côté. Le libellé passe à « Building... » (désactivé) pendant l'opération ; succès/échec dans la Console.
 
 ## Raccourcis clavier
 
