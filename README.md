@@ -1,33 +1,43 @@
 # KoreEngine
 
-KoreEngine est un moteur de jeu 2D écrit en C#/.NET, avec un éditeur intégré façon Unity : composants, hiérarchie de GameObjects, hot-reload de scripts, scènes sérialisées, prefabs, et un launcher de type Unity Hub pour gérer plusieurs projets.
+KoreEngine est un moteur de jeu 2D écrit en C#/.NET, avec un éditeur intégré : composants, hiérarchie de GameObjects avec `Transform`, hot-reload de scripts, scènes sérialisées, prefabs, vues **Scene** et **Game** séparées, événements configurables dans l'Inspector (`KoreEvent`), et un Hub pour gérer plusieurs projets.
 
-Construit sur **SDL3** (rendu, audio, texte), **ImGui.NET** (interface éditeur) et **Roslyn** (compilation à la volée des scripts de gameplay), en .NET 10, ciblant Windows.
+Construit sur **SDL3** (rendu, audio, texte, images), **ImGui.NET** (interface de l'éditeur) et **Roslyn** (compilation à la volée des scripts de gameplay), en .NET 10. Cible principale : Windows ; les paquets natifs et les identifiants de plateforme (RID) Linux sont gérés par le Hub, le Runtime et l'éditeur, mais ce support est récent.
 
 ## Structure du dépôt
 
 ```text
 KoreEngine.slnx
+├── Directory.Build.props  # version unique du moteur (appliquée à tous les projets)
 ├── KoreEngine.Runtime/    # Cœur du moteur : Components, Core, Engine, Physics, Input, Animation
-├── KoreEngine.Editor/     # Éditeur ImGui (panels, gizmos, hot-reload, compilation)
-└── KoreEngine.Hub/        # Launcher WPF façon Unity Hub (créer/ouvrir/gérer des projets)
+├── KoreEngine.Editor/     # Éditeur ImGui (panneaux Scene/Game/Hierarchy/Inspector/Project/Console, gizmos, hot-reload)
+├── KoreEngine.Hub/        # Launcher SDL façon Unity Hub (créer/ouvrir des projets), sans WPF ni ImGui
+└── docs/                  # Documentation détaillée
 ```
 
-`KoreEngine.Runtime` et `KoreEngine.Editor` sont deux bibliothèques (`OutputType=Library`) référencées par `KoreEngine.slnx`. `KoreEngine.Runtime` ne référence jamais `KoreEngine.Editor` — dépendance strictement à sens unique. Un projet de jeu généré par le Hub référence les deux DLL compilées en binaire (jamais le code source du moteur), et embarque en plus un sous-projet `Player/` headless (sans ImGui/Roslyn) pour un build distribuable.
+`KoreEngine.Runtime` et `KoreEngine.Editor` sont deux bibliothèques (`OutputType=Library`) ; `KoreEngine.Runtime` ne référence jamais `KoreEngine.Editor` — dépendance strictement à sens unique. `KoreEngine.Hub` ne référence ni l'un ni l'autre. Un projet de jeu généré par le Hub référence les deux DLL compilées en binaire (jamais le code source du moteur) et embarque en plus un sous-projet `Player/` headless (sans ImGui) pour produire un build distribuable.
 
 ## Démarrer
 
-1. Compiler le moteur : `dotnet build KoreEngine.slnx` (ou ouvrir `KoreEngine.slnx` dans Visual Studio).
-2. Lancer `KoreEngine.Hub` — il détecte automatiquement le dossier racine du moteur (recherche de `KoreEngine.slnx` en remontant depuis l'exécutable), ou demande de le sélectionner manuellement.
-3. Depuis le Hub : **New Project** pour scaffolder un nouveau projet, ou **Import** pour ouvrir un projet existant. Double-clic sur un projet pour le lancer (clean + build + run automatique).
+1. Compiler le moteur : `dotnet build KoreEngine.slnx` (ou ouvrir `KoreEngine.slnx` dans Visual Studio). Cette étape est obligatoire : le Hub refuse de créer un projet si les DLL du moteur sont introuvables.
+2. Lancer `KoreEngine.Hub` — il détecte automatiquement le dossier racine du moteur (recherche de `KoreEngine.slnx` en remontant depuis l'exécutable).
+3. Depuis le Hub : **Nouveau projet** (nom + dossier parent) pour scaffolder un projet, puis **Ouvrir** (ou double-clic) : le Hub resynchronise les dépendances, compile les scripts, publie l'éditeur du projet et le lance.
 
 Voir `docs/` pour la documentation détaillée :
 
-- [`docs/architecture.md`](docs/architecture.md) — structure interne, pipelines (scènes, hot-reload, build)
-- [`docs/components-reference.md`](docs/components-reference.md) — référence de tous les composants du moteur
-- [`docs/editor-guide.md`](docs/editor-guide.md) — utilisation de l'éditeur
-- [`docs/hub-and-build.md`](docs/hub-and-build.md) — le launcher Hub et le pipeline de build/export
+- [`docs/architecture.md`](docs/architecture.md) — structure interne, boucle de l'éditeur, scènes et sérialisation, physique, UI, pipelines
+- [`docs/components-reference.md`](docs/components-reference.md) — référence de tous les composants et des APIs utilisables depuis un script
+- [`docs/editor-guide.md`](docs/editor-guide.md) — utilisation de l'éditeur (panneaux, gizmos, raccourcis, Inspector)
+- [`docs/hub-and-build.md`](docs/hub-and-build.md) — le launcher Hub, la création de projet et le pipeline de build/export
 
 ## État du projet
 
-Développement actif, mono-développeur. Les systèmes suivants sont fonctionnels : rendu (sprites, rects, UI, texte), physique 2D (Swept AABB), audio, animation (state machine par transitions), scripting avec hot-reload, sérialisation de scènes et de prefabs, gizmos de transform, et le Hub de gestion de projets. Le pipeline d'export d'un jeu "joueur" autonome (hors éditeur) est en cours de stabilisation — voir `docs/hub-and-build.md` pour l'état exact et les limitations connues.
+Développement actif, mono-développeur. Les systèmes suivants sont fonctionnels : rendu (sprites, UI, texte), physique 2D (Swept AABB, restitution), audio, animation (state machine par transitions), scripting avec hot-reload, sérialisation de scènes et de prefabs (hiérarchies parent/enfant, `KoreEvent`), gizmos de transform et de caméra, vues Scene et Game, et le Hub de gestion de projets.
+
+Limitations connues, détaillées dans `docs/` :
+
+- **Build joueur** : le bouton **Build** produit un exécutable autonome, mais les composants de script utilisateur n'y sont pas chargés (la DLL attendue, `GameScripts.dll`, n'est produite par aucun chemin de build) — voir `docs/hub-and-build.md`.
+- **Animation de spritesheet** : `SpriteRenderer` affiche toujours la première frame de la feuille.
+- **Callbacks de collision** (`OnCollision`, `OnTriggerEnter`) : appelés par le moteur mais non surchargeables par un script.
+- **Input** : `Input.GetKeyDown` / `GetKeyUp` ne suivent pas la sémantique d'Unity (voir `docs/components-reference.md`).
+- **Physique sur objets enfants** : `PhysicsBody` ignore la position du parent.

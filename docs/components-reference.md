@@ -1,181 +1,236 @@
 # KoreEngine — Référence des Components
 
-> Mis à jour à partir du code source complet le plus récent (archive du 09/09/2026). Couvre tous les composants du moteur, plus les APIs Runtime les plus utilisées depuis un script (Instantiate, Prefabs).
+> Mis à jour à partir du code source complet le plus récent (archive du 18/10/2026). Couvre tous les composants du moteur et les APIs Runtime les plus utilisées depuis un script. Tous les types sont dans le namespace `KoreEngine`, sauf les composants UI (`KoreEngine.UI`).
+>
+> **Changements majeurs depuis la version du 09/09/2026** : `Transform` est maintenant un composant (plus de `LocalPosition`/`WorldPosition` sur `GameObject`), `Owner` est devenu `gameObject`, `RectRenderer` n'existe plus, `InputManager`/`InputAction`/`InputAxis`/`InputMap` ont été remplacés par `Input` + `KeyCode`, `UIButton.OnClick` est un `KoreEvent`, et la physique a une restitution et une gravité `-9.81`.
 
-## `Component` (classe de base, `KoreEngine.Core`)
+## `Component` (classe de base)
 
 | Membre | Rôle |
-|---|---|
-| `GameObject Owner` | `[HideInInspector]`. |
+| --- | --- |
+| `GameObject gameObject` | Objet propriétaire (setter interne). |
+| `Transform transform` | Raccourci vers `gameObject.transform`. |
 | `virtual void Update(float dt)` | Chaque frame de simulation (si Playing, non Paused, sauf Step). |
 | `virtual void Render(Renderer, Camera?)` | Chaque frame de rendu, indépendamment de Playing. |
-| `virtual void Start()` | Appelé une seule fois quand Playing passe à `true`. |
-| `virtual void OnDestroy()` | Retrait du composant ou déchargement de scène. Libérer les ressources natives ici. |
+| `virtual void Start()` | Une seule fois quand Playing passe à `true`. |
+| `virtual void OnDestroy()` | Retrait du composant ou déchargement de scène. Libérer les ressources natives ici ; **peut être appelé plusieurs fois**, à écrire de façon idempotente. |
 | `virtual IEnumerable<InspectorField> GetInspectorFields()` | Vide par défaut → auto-draw par réflexion. |
 | `virtual IEnumerable<string> Serialize()` / `virtual void Deserialize(List<string>)` | Sérialisation personnalisée (listes, types complexes). |
 
-Attributs : `[NonSerialized]` (exclu sérialisation + Inspector), `[HideInInspector]` (exclu Inspector seulement).
+### Attributs (`Core/Attributes/`)
 
-## `GameObject` (`KoreEngine.Core`, `partial class`)
+| Attribut | Effet |
+| --- | --- |
+| `[NonSerialized]` | Exclu de la sérialisation **et** de l'auto-draw de l'Inspector. |
+| `[HideInInspector]` | Exclu de l'Inspector seulement (auto-draw). |
+| `[Range(min, max)]` | Slider borné dans l'Inspector pour `float`, `int`, `byte` (auto-draw uniquement ; n'impose pas les bornes à l'exécution). |
+| `[UnremovableComponent]` | Le menu *Remove Component* est grisé (`Transform`). |
+| `[UserScript]` | Marqueur écrit dans le template « C# Script » ; **aucun code ne le lit** pour l'instant. |
+
+## `GameObject`
 
 | Membre | Rôle |
-|---|---|
+| --- | --- |
 | `string Name` | |
-| `Vector2 LocalPosition` / `WorldPosition` (get) | Additive le long de la hiérarchie. |
-| `Vector2 PreviousPosition` | Champ présent, usage non exploité dans le code actuel [à clarifier]. |
-| `float LocalRotation` / `WorldRotation` (get) | Degrés, additive. |
-| `Vector2 LocalScale` (défaut `(1,1)`) / `WorldScale` (get) | Multiplicative. |
-| `Vector2 Position` | Alias → `LocalPosition`. Encore largement utilisé (`PhysicsBody`, `CollisionSystem`) — voir limite dans `architecture.md`. |
-| `GameObject? Parent`, `IReadOnlyList<GameObject> Children` | |
-| `void SetParent(GameObject?, Scene?)` | Préserve la position monde. Suppose parent sans rotation/scale. |
-| `bool IsDescendantOf(GameObject)` | |
+| `Transform transform` | Lève `InvalidOperationException` si l'objet n'a pas de `Transform`. |
 | `List<Component> Components`, `Scene? Scene` | |
-| `AddComponent<T>` / `RemoveComponent<T>`/`RemoveComponent(Component)` (appelle `OnDestroy()`) / `GetComponent<T>()`/`GetComponent(Type)` | |
-| `virtual Update(float dt)` / `Render(...)` | Récursif sur les enfants. |
+| `IReadOnlyList<GameObject> Children` | La liste `children` est publique ; le parent se lit via `transform.Parent`. |
+| `GameObject(string? name = null)` | Crée l'objet **avec** un `Transform`. |
+| `GameObject()` | Constructeur sans paramètre : **sans** `Transform` (utilisé par le chargement de scène, qui l'ajoute depuis le fichier). |
+| `AddComponent<T>(T)` / `AddComponent<T>()` | N'ajoute jamais un second `Transform` (renvoie l'existant). |
+| `RemoveComponent(Component)` | Appelle `OnDestroy()`. |
+| `GetComponent<T>()` / `GetComponent(Type)` | Premier composant assignable. |
+| `Update(dt)` / `Render(...)` | Récursifs sur les enfants. |
+| `Instantiate(Scene, Vector2? position = null)` | Clone l'objet et ses enfants (voir plus bas). |
+| `Destroy()` | `OnDestroy` des composants, destruction des enfants, retrait de la scène. |
 
-## `Scene` (`KoreEngine.Core`)
-
-| Membre | Rôle |
-|---|---|
-| `List<GameObject> RootObjects`, `IEnumerable<GameObject> AllObjects` (aplati) | |
-| `CollisionSystem Collisions`, `Camera? Camera` | |
-| `void FindCamera()` | Premier `Camera` trouvé dans `AllObjects`. |
-| `void Add(GameObject)` / `Remove(GameObject)` | `Remove` appelle `DestroyRecursive` puis détache + désenregistre colliders. |
-| `void Start()` | Appelle `Start()` sur tous les composants (renommé depuis `OnStart()`). |
-| `void Update(float dt)` | 3 passes ordonnées : composants hors `PhysicsBody` → `PhysicsBody` → `Collisions.Update`. |
-| `void Render(Renderer)`, `void RefreshColliders()`, `void DestroyAll()` | |
-
-## `Camera` (`KoreEngine.Components`)
+## `Transform` (composant, `[UnremovableComponent]`)
 
 | Membre | Rôle |
-|---|---|
-| `float Zoom`, `int ViewWidth, ViewHeight` | |
-| `virtual Vector2 Position` | Délègue à `Owner.WorldPosition`/`LocalPosition` si attachée, sinon `_position` (cas `EditorCamera`). |
+| --- | --- |
+| `Vector2 Position` | **Locale** (relative au parent). |
+| `float Rotation` | Locale, en degrés. |
+| `Vector2 Scale` | Locale, défaut `(1, 1)`. |
+| `Vector2 WorldPosition` / `float WorldRotation` / `Vector2 WorldScale` | En lecture ; composent l'échelle et la rotation du parent. |
+| `GameObject? Parent` | Lecture seule. |
+| `SetParent(GameObject?, Scene?)` | **Préserve** position/rotation/échelle monde. `scene` est nécessaire pour (dé)rattacher aux racines. |
+| `IsDescendantOf(GameObject)`, `Translate(Vector2)`, `Rotate(float)` | |
+
+Inspector : X, Y, Rotation, Scale X, Scale Y (champs locaux).
+
+## `Scene`
+
+| Membre | Rôle |
+| --- | --- |
+| `string Name`, `List<GameObject> RootObjects`, `IEnumerable<GameObject> AllObjects` | `AllObjects` est aplati. |
+| `CollisionSystem Collisions` | |
+| `Camera Camera` | **Lève une exception si la scène n'a pas de caméra.** Le setter met aussi à jour `Camera.Main`. |
+| `FindCamera()` | Première `Camera` trouvée ; sinon crée un objet « Main Camera ». |
+| `Add(GameObject)` / `Remove(GameObject)` | `Remove` : `OnDestroy` récursif, détache, désenregistre les colliders. |
+| `Start()`, `Update(dt)`, `Render(Renderer)` | `Update` : composants hors `PhysicsBody` → `PhysicsBody` → `Collisions.Update`. |
+| `RefreshColliders()`, `RegisterColliders(GameObject)`, `DestroyAll()` | |
+
+## `SceneManager` (statique)
+
+`Current`, `CurrentSceneName`, `CurrentScenePath`, `AssetsDirectory`, `SaveLocked`, `ScanAndRegisterScenes()`, `SceneFiles()`, `LoadScene(name)`, `LoadSceneFromFile(path)` (sauvegarde la scène courante d'abord), `SaveCurrentScene()`, `ApplyPendingScene()`, `Update(dt)`, `Render(renderer)`, `NotifyStart()`, `UnloadScene()`, `NotifyPathRenamed(old, new)`, `OnSceneChanging`. État viewport partagé : `ViewportWidth/Height`, `ViewportMouseX/Y`, `ViewportMouseInBounds` (renseignés par le Game view dans l'éditeur, par `GameLoop` dans un jeu buildé).
+
+## `Camera`
+
+| Membre | Rôle |
+| --- | --- |
+| `float Zoom` | Défaut `1`. L'Inspector le borne à `[1, 10]` (`[Range(1, 10)]`) ; le code peut le dépasser. |
+| `int ViewWidth, ViewHeight` | Taille de vue en pixels. Recalées à chaque frame sur le Game view (éditeur) ou la fenêtre (jeu). |
+| `Color Color` | Couleur de fond (défaut noir). |
+| `virtual Vector2 Position` | `gameObject.transform.WorldPosition` si attachée à un objet, sinon une position interne (`EditorCamera`). Le setter écrit `transform.Position`. |
+| `static Camera Main` | Dernière caméra assignée via `Scene.Camera`. |
 | `WorldToScreen(Vector2)` / `ScreenToWorld(Vector2)` | Conversion Y-haut (monde) ↔ Y-bas (écran), centrée sur `Position`, échelle `Zoom`. |
-| `Rectangle Bounds` | Rectangle de vue centré sur `Position`. |
-| `GetInspectorFields()` | Position/ViewW/H en lecture seule, Zoom éditable. |
+| `Rectangle Bounds` | Rectangle de vue (`ViewWidth/Zoom` × `ViewHeight/Zoom`). |
 
 ### `EditorCamera` (`KoreEngine.Editor`, hérite de `Camera`)
-Jamais attachée à un `GameObject`. `Reset()` → position `(0,0)`, zoom `1`.
 
-## `RectRenderer` (`KoreEngine.Components`)
+Jamais attachée à un `GameObject`. `Reset()` → position `(0, 0)`, zoom `1`.
 
-`Vector2 Size`, `Color Color` (défaut blanc). `Render()` : rectangle plein centré sur `WorldPosition`, mis à l'échelle par `WorldScale`. Pas de rotation supportée (limite SDL `RenderFillRect`).
-
-## `SpriteRenderer` (`KoreEngine.Components`)
+## `SpriteRenderer`
 
 | Membre | Rôle |
-|---|---|
-| `AnimationStateMachine? StateMachine` | Voir section Animation plus bas. |
-| `IntPtr Texture`, `string TexturePath` | Via `TextureCache`, éditable (`TextureField`). |
-| `Vector2 Size` (taille finale avant `WorldScale`), `Vector2 FrameSize` (taille d'une frame spritesheet) | |
+| --- | --- |
+| `IntPtr Texture`, `string TexturePath` | Via `TextureCache` (picker `TextureField`). |
+| `Vector2 Size` | Taille finale avant `WorldScale` (défaut `16×16`). |
+| `Vector2 FrameSize` | Taille d'une frame de spritesheet (défaut `16×16`). |
 | `bool FlipX, FlipY` | |
-| `FilteringMode Filtering` (Nearest/PixelArt/Linear) | Appliqué immédiatement au changement. |
-| `Render(...)` | Centré sur `WorldPosition`, scale + rotation (`WorldRotation`) appliqués. Log `Warning` si `StateMachine` null. |
+| `FilteringMode Filtering` | `Nearest` (défaut), `PixelArt`, `Linear`. |
+| `AnimationStateMachine? StateMachine` | Alimentée par l'`Animator`. |
 
-## `Collider` (`KoreEngine.Components`)
+`Render` : ne dessine rien si `Texture` est nulle. Centré sur `WorldPosition`, `WorldScale` et `WorldRotation` appliqués. Avec une `StateMachine`, dessine via `DrawTexturePart` ; sans, loggue un avertissement et dessine la texture entière.
 
-`int Width, Height`, `int OffsetX, OffsetY`, `string Tag`, `bool IsTrigger`. Callbacks `Action<Collider, CollisionInfo>? OnCollision`, `OnTriggerEnter`. `Rectangle Bounds` : AABB centrée sur `WorldPosition + Offset`, dimensions × `WorldScale`. Ne suit pas la rotation (AABB, pas OBB).
+**⚠ Animation de spritesheet** : `Render` remplace le `SourceRect` de la frame courante par `(0, 0, FrameSize.X, FrameSize.Y)` avant de dessiner. Le `SourceRect` calculé par `Animation` / `Animator` (ligne, colonne) n'est donc **pas utilisé** : le sprite affiche toujours la première frame de la feuille. À corriger pour que les animations s'affichent réellement.
 
-## `PhysicsBody` (`KoreEngine.Components`)
+## `Collider`
+
+`int Width, Height`, `int OffsetX, OffsetY`, `string Tag`, `bool IsTrigger`. `Rectangle Bounds` : AABB centrée sur `WorldPosition + Offset`, dimensions × `WorldScale` (pas de rotation).
+
+**⚠** `OnCollision(Collider)` et `OnTriggerEnter(Collider)` sont des méthodes **vides et non virtuelles** : `CollisionSystem` les appelle, mais un script ne peut pas les surcharger — les callbacks de collision ne sont pas encore utilisables.
+
+## `PhysicsBody`
 
 | Membre | Rôle |
-|---|---|
+| --- | --- |
 | `Vector2 Velocity` | |
-| `bool IsStatic` | Corps statique : n'intègre ni vélocité ni gravité (mur/sol fixe). |
-| `float GravityScale` | Multiplicateur de `GlobalGravity` (`static float`, `800f` par défaut, partagé). |
-| `float Friction` | Amortissement exponentiel de `Velocity.X` (`Pow(1-Friction, dt)`). |
-| `float Mass` | Répartition d'impulsion entre corps dynamiques en collision. |
-| `float MaxFallSpeed` | Clamp `Velocity.Y` si `GravityScale > 0`. |
-| `bool IsGrounded` | Reset à `false` chaque frame, rétabli par `CollisionSystem`. |
-| `ApplyForce(Vector2)` / `ApplyImpulse(Vector2)` | |
+| `bool IsStatic` | N'intègre ni vélocité ni gravité (mur/sol fixe). |
+| `float GravityScale` | Défaut `1`. |
+| `float Friction` | Défaut `0` ; amortissement exponentiel de `Velocity.X`. |
+| `float Mass` | Défaut `20`. |
+| `float Restitution` | Défaut `0` (pas de rebond) ; `1` = rebond parfait. |
+| `float MaxFallSpeed` | Défaut `1000`. |
+| `bool IsGrounded` | Remis à `false` chaque frame, rétabli par `CollisionSystem`. |
+| `ApplyForce(Vector2)` (÷ `Mass`) / `ApplyImpulse(Vector2)` | |
 
-`Update(dt)` : reset vélocité Y si au sol, reset `IsGrounded`, intègre gravité (clampée), applique friction, déplace `Owner.Position` (⚠ alias `LocalPosition`, pas `WorldPosition` — voir limite dans `architecture.md` pour un corps enfant d'un autre objet).
+`Update(dt)` : `Physics.CalculatePhysics` (gravité `Physics.gravity = -9.81` × `GravityScale` × `Mass`, friction), clamp de chute, puis intégration `transform.Position += Velocity * dt` (⚠ valeur **locale** — voir la limite pour les objets enfants dans `architecture.md`).
 
-## Physique — `CollisionSystem` / `CollisionInfo` (`KoreEngine.Physics`)
+**Collisions** : `CollisionSystem` (`KoreEngine.Physics` n'existe plus comme namespace, les types sont dans `KoreEngine`) ignore toute paire dont un des deux objets n'a pas de `PhysicsBody` : **un mur doit avoir un `PhysicsBody` avec `IsStatic`**.
 
-- **`CollisionInfo`** (struct) : `Collider Other`, `Vector2 Normal`, `float Penetration` (toujours `0` dans le code actuel, jamais calculé).
-- **`CollisionSystem`** : détection par paires O(n²), résolution par **Swept AABB** (calcule le temps d'impact le long du mouvement relatif, évite le tunneling à vitesse élevée). Gère : deux statiques (ignorés), statique+dynamique (le dynamique est repoussé au point de contact), deux dynamiques (répartition proportionnelle à la masse). `CheckGrounded` détecte le sol via une marge verticale entre les `Bounds`. Les triggers déclenchent `OnTriggerEnter` sans résolution.
-
-## Animation (`Animation`, `AnimationFrame`, `AnimationStateMachine`)
+## Animation
 
 - **`AnimationFrame`** (struct) : `Rectangle SourceRect`, `float Duration`.
-- **`Animation`** : `Name`, `AnimationFrame[] Frames`, `Loop`. `Animation.FromStrip(name, frameW, frameH, row, startCol, frameCount, frameDuration, loop)` génère les frames d'une bande spritesheet uniforme.
-- **`AnimationStateMachine`** : dictionnaire nom→`Animation` + liste de transitions (`From`, `To`, `Func<bool> Condition`). `Update(dt)` teste les transitions de l'état courant (première vraie l'emporte), avance le timer de frame, boucle ou marque `IsFinished`.
+- **`Animation`** : `Name`, `AnimationFrame[] Frames`, `Loop`. `Animation.FromStrip(...)` génère les frames d'une bande uniforme.
+- **`AnimationStateMachine`** : `Add(Animation)`, `AddTransition(from, to, Func<bool>)`, `SetDefault`, `GoTo`, `Update(dt)`, `CurrentState`, `CurrentFrame`, `IsFinished`.
 
-## `Animator` (`KoreEngine.Components`)
+### `Animator`
 
 | Type | Rôle |
-|---|---|
+| --- | --- |
 | `AnimationDefinition` | `Name`, `SizeX/Y`, `Row`, `StartCol`, `FrameCount`, `FrameDuration`, `Looping`. |
-| `AnimationCondition` (enum) | `Always`, `IsGrounded`, `IsNotGrounded`, `VelocityXAbsGreaterThan/LessThan`, `VelocityYGreaterThan/LessThan`. |
+| `AnimationCondition` (enum) | `Always`, `IsGrounded`, `IsNotGrounded`, `VelocityXAbsGreaterThan`, `VelocityXAbsLessThan`, `VelocityYGreaterThan`, `VelocityYLessThan`. |
 | `AnimationTransition` | `From`, `To`, `Condition`, `Threshold`. |
 
-`Definitions`/`Transitions` éditées via `ListField`. `Apply()` reconstruit la state machine (appelé dans `Start()` et via bouton "Apply" dans l'Inspector). `Serialize()`/`Deserialize()` personnalisés (`Def: ...`, `Trans: ...`). Cherche `PhysicsBody`/`SpriteRenderer` sur le même objet dans `Start()`.
+`Definitions` / `Transitions` sont éditées via `ListField`. `Apply()` reconstruit la state machine (appelée dans `Start()` et par le bouton « Apply »). `Serialize()` / `Deserialize()` personnalisés. Cherche `PhysicsBody` et `SpriteRenderer` sur le même objet.
 
-## `AudioSource` (`KoreEngine.Components`)
+## `AudioSource`
 
-> **Nom de classe réel : `AudioSource`**, pas `AudioSourceComponent` comme désigné précédemment dans les échanges — le fichier et la classe s'appellent `AudioSource.cs`/`AudioSource`.
+`string ClipPath`, `float Volume` (0–1), `float Pitch` (0.1–3), `bool Loop`, `bool Spatial2D` (position de la piste synchronisée sur `WorldPosition` chaque frame ; listener SDL_mixer fixe à l'origine), `bool PlayOnStart`. `Play()` / `Stop()` / `Pause()` / `Resume()` (aussi en boutons dans l'Inspector, avec une ligne « Status »). `OnDestroy()` libère piste et audio, de façon idempotente.
 
-`string ClipPath` (picker `AudioClipField`), `float Volume` (0–1), `float Pitch` (0.1–3), `bool Loop`, `bool Spatial2D` (position du track synchronisée sur `WorldPosition` chaque frame — listener SDL_mixer fixe à (0,0,0), voir `architecture.md`), `bool PlayOnStart`. `Play()`/`Stop()`/`Pause()`/`Resume()` (exposées aussi en `ActionField`). `Start()` (pas `OnStart()`) déclenche `Play()` si `PlayOnStart`. `OnDestroy()` libère `track`/`audio`.
+## UI (`KoreEngine.UI`)
 
-## UI (`KoreEngine.Components.UI`)
+- **`UIElement`** (abstrait) : `Rectangle Rect` (coordonnées de référence), `bool Visible`, `UICanvas? Canvas`. `ScreenX/Y/Width/Height` = valeurs × `Canvas.ScaleX/Y`. `Render()` délègue à `Draw(Renderer)` si `Visible`.
+- **`UICanvas`** : `ReferenceWidth/Height` (1920×1080), `ScaleX/Y` = `SceneManager.ViewportWidth/Height ÷ Reference`. `Add<T>(element)` crée un `GameObject` enfant et y attache l'élément — **le canvas doit déjà être dans la scène**.
+- **`UIButton`** : `TextureNormal/Hover/Pressed` (+ chemins `…Path`), `KoreEvent OnClick`. Hover = souris dans le rectangle (via `SceneManager.ViewportMouse*`) ; clic déclenché à l'appui du bouton gauche (`SDL.GetMouseState`). Hover/pressed retombent sur la texture normale si absentes.
+- **`UIImage`** : `Texture`/`TexturePath`, `Filtering` (défaut `Linear`) ; dessine sans interaction.
 
-- **`UIElement`** (abstrait) : `X, Y, Width, Height` (coordonnées de référence), `Visible`, `UICanvas? Canvas`. `ScreenX/Y/Width/Height` = valeurs × `Canvas.ScaleX/Y`. `Render()` délègue à `Draw(Renderer)` (abstrait) si `Visible`.
-- **`UICanvas`** : `ReferenceWidth/Height` (défaut 1920×1080), `ScaleX/Y` calculés dynamiquement depuis `SceneManager.ViewportWidth/Height`. `Add<T>(element)` crée un `GameObject` enfant et y attache l'élément — **le GameObject du Canvas doit déjà être dans la scène** (exception explicite sinon).
-- **`UIButton`** : `TextureNormal/Hover/Pressed` (+ chemins), `ActionType` (`None`/`LoadScene`/`Quit`, sérialisable) + `ActionParam`, `OnClick` (délégué, `[HideInInspector]`, non sérialisable). Hover/pressed testés directement via `SceneManager.ViewportMouseX/Y/InBounds` + `SDL.GetMouseState` (pas via `InputManager`).
-- **`UIImage`** : `Texture`/`TexturePath`, dessine sans état d'interaction.
+Menu *Create* de la Hierarchy : `UI Canvas`, `UI Button`, `UI Image` (composants vides, sans texture par défaut).
 
-## Input (`KoreEngine.Input`, `KoreEngine.Engine.InputManager`)
+### `KoreEvent` / `PersistentListener` (style `UnityEvent`)
 
-- **`InputManager`** (statique, namespace `KoreEngine`) : `IsKeyDown` (maintenue), `IsKeyPressed` (une frame, vidé par `NewFrame()`), `IsAnyKeyDown`/`IsAnyKeyPressed`.
-- **`InputAction`** : liaison nommée, `BindKey` (→`IsDown`), `BindKeyPressed` (→`IsPressed`), plusieurs touches par action.
-- **`InputAxis`** : 1D (`BindKeys(neg, pos)`) ou 2D (`BindKeys(up, down, left, right)`), retourne `Vector2` normalisé ou non.
-- **`InputMap`** : registre nommé d'actions/axes, façade `IsDown(name)`/`IsPressed(name)`/`GetAxis(name)`.
+```csharp
+public KoreEvent OnClick = new();           // déclaré comme champ public
+// par code :
+button.OnClick.AddListener(() => Console.WriteLine("clic"));
+button.OnClick.Invoke();
+```
 
-Coexiste avec l'accès direct à `InputManager` déjà utilisé ailleurs (`UIButton` interroge SDL directement pour la souris) — commodité optionnelle, pas une couche obligatoire.
+| Membre | Rôle |
+| --- | --- |
+| `List<PersistentListener> Listeners` | Listeners persistants, édités dans l'Inspector et sérialisés. |
+| `AddListener(Action)` / `RemoveListener(Action)` | Abonnés par code, **non** sérialisés. |
+| `Invoke()` | Listeners persistants, puis abonnés code. |
 
-## Types de champs Inspector (`InspectorField` et dérivés, `KoreEngine.Core`)
+`PersistentListener` : `TargetObject` (nom du GameObject), `ComponentType` (nom du type), `MethodName`, `Argument` (chaîne). Méthodes éligibles : publiques, d'instance, `void`, 0 ou 1 paramètre `string`/`int`/`float`/`bool`. Résolution par nom à chaque appel.
+
+## Input (`KoreEngine`, statique)
+
+| Membre | Comportement actuel |
+| --- | --- |
+| `NewFrame()` | À appeler en début de frame (fait par `EditorWindow`/`GameLoop`). |
+| `HandleEvent(SDL.Event)` | Alimente les ensembles internes depuis les événements clavier. |
+| `GetKey(KeyCode)` / `GetAnyKey()` | Vrai **seulement** quand un événement « touche enfoncée » a été reçu pendant la frame (suit l'auto-répétition de l'OS). |
+| `GetKeyDown(KeyCode)` / `GetAnyKeyDown()` | ⚠ Reste vrai **indéfiniment** après la première pression : l'ensemble interne n'est jamais vidé au relâchement. |
+| `GetKeyUp(KeyCode)` | ⚠ Faux après la première pression de la touche. |
+
+Les noms ne suivent donc pas la convention d'Unity : en attendant un correctif, éviter `GetKeyDown`/`GetKeyUp` pour du gameplay. `KeyCode` mappe les codes de touches SDL.
+
+## Types de champs Inspector (`InspectorField` et dérivés)
+
+Tous ont `Label` (requis) et `ReadOnly`.
 
 | Type | Usage |
-|---|---|
+| --- | --- |
 | `TextField` | Lecture seule (`Func<string> Get`). |
-| `FloatField` / `IntField` | `Get`/`Set`, `Speed`, `Min`/`Max` (si égaux, pas de clamp). |
+| `FloatField` / `IntField` | `Get`/`Set`, `Value` (vitesse de drag), `Min`/`Max` (si égaux, pas de clamp), `Slider` (slider au lieu d'un drag, borné par `Min`/`Max`). |
 | `BoolField` | Checkbox. |
-| `StringField` | `InputText`, `MaxLength`. |
-| `EnumField` | Combo, `Names` + `Get`/`Set` par index. |
-| `TextureField` | Picker miniatures, scanne `Assets/`. |
-| `AudioClipField` | Picker `.wav/.ogg/.mp3` sous `Assets/`. |
+| `StringField` | `InputText`, `MaxLength` (défaut 64). |
+| `EnumField` | Combo : `Names` + `Get`/`Set` par index. |
+| `TextureField` | Picker de textures, scanne `Assets/` et `Packages/`. |
+| `AudioClipField` | Picker `.wav/.mp3/.ogg/.flac`. |
 | `ComponentRefField` | Référence `Component`, picker filtré par type. |
-| `ActionField` | Bouton d'action, `Tooltip` optionnel. |
-| `ListField` | Liste éditable (ajout/suppression/champs par item), `ItemContextActions` en plus de "Remove". Utilisé par `Animator`. |
+| `GameObjectField` | Référence `GameObject` (lecture via `Get`). |
+| `ButtonField` | Bouton d'action (`Action`), `Tooltip` optionnel. |
+| `KoreEventField` | Éditeur de `KoreEvent` (liste de listeners). |
+| `ListField` | Liste éditable (ajout/suppression/champs par item), `ItemContextActions`. Utilisé par `Animator`. |
 
-## Types de base (`KoreEngine.Core`)
+Pour les composants **sans** `GetInspectorFields()`, l'auto-draw par réflexion gère : `float`, `int`, `byte`, `bool`, `string` (avec picker de texture pour les paires `XxxPath`/`Xxx`), `Vector2`, `Color`, `Rectangle`, enums, références `Component` et `GameObject`, et `KoreEvent`.
 
-- **`Vector2`** (struct) : `+`, `-` (unaire/binaire), `*`/`/` scalaire, `Zero`/`One`/`NegativeOne`/`Up` (=`(0,-1)`)/`Down` (=`(0,1)`), `Length()`, `Normalize()`, `Lerp`/`LerpUnclamped`.
-- **`Rectangle`** (struct) : `X, Y, Width, Height`, `Left/Right/Top/Bottom` calculés, `Intersects(other)`.
-- **`Color`** (classe) : `R, G, B` (int), constantes `Black/White/Red/Green/Blue`. Pas de canal alpha stocké (passé séparément en paramètre `byte a` par `Renderer`).
-
-## Instanciation dynamique — `GameObject.Instantiate` (`KoreEngine.Core`)
-
-Équivalent d'un `Object.Instantiate(prefab)` à la Unity, appelable depuis un script pour faire apparaître dynamiquement des objets (balles, ennemis, objets ramassables...) :
+## Instanciation dynamique — `GameObject.Instantiate`
 
 ```csharp
 GameObject clone = someObject.Instantiate(targetScene, position: null);
 ```
 
-Fonctionne par round-trip de sérialisation (`SerializeObjectTree` → `DeserializeObjectTree`). Les champs qui référencent un objet **hors** de la hiérarchie clonée (ex : une référence directe vers la Camera de la scène gardée sur un script) ne sont **pas** recopiés sur le clone — à réassigner soi-même après coup si besoin.
+Round-trip de sérialisation (`SerializeObjectTree` → `DeserializeObjectTree`) : les composants, la hiérarchie d'enfants et les `KoreEvent` sont copiés. Les champs qui référencent un objet **hors** de la hiérarchie clonée ne sont **pas** recopiés — à réassigner après coup.
 
-## Prefabs — `PrefabManager` (`KoreEngine.Engine`, statique)
+## Prefabs — `PrefabManager` (statique)
 
 | Membre | Rôle |
-|---|---|
-| `PrefabFiles()` | Tous les `.kprefab` sous `Assets/` (comme `SceneManager.SceneFiles()`). |
-| `Save(GameObject obj, string path)` | Sérialise l'objet et ses enfants dans un fichier `.kprefab` (même format texte que les scènes, réutilise `SceneSerializer.SerializeObjectTree`). |
-| `Instantiate(string path, Scene scene, GameObject? parent = null, Vector2? position = null)` | Désérialise et ajoute l'objet à `scene`, optionnellement sous `parent` et/ou à `position` (sinon la position d'origine du prefab). |
+| --- | --- |
+| `PrefabFiles()` | Tous les `.kprefab` sous `Assets/`. |
+| `Save(GameObject obj, string path)` | Sérialise l'objet et ses enfants. |
+| `Instantiate(string path, Scene scene, GameObject? parent = null, Vector2? position = null)` | Désérialise et ajoute à `scene`, éventuellement sous `parent` et/ou à `position`. |
 
-Côté éditeur : *Create Prefab* (clic droit sur un objet, Hierarchy) écrit sous `Assets/Prefabs/{Name}.kprefab` ; *Instantiate Prefab* (clic droit sur l'espace vide) liste tous les prefabs disponibles. Le Project Panel permet aussi de double-cliquer/glisser un `.kprefab` pour l'instancier.
+## `ProjectSettings` (statique)
 
-## `ProjectSettings` (`KoreEngine.Engine`, statique)
+`StartupScene` (`string?`), `Load()` / `Save()` sur `Assets/ProjectSettings.txt`.
 
-`StartupScene` (string?) — nom de la scène à charger au démarrage d'un jeu buildé (`GameLoop`, sans éditeur pour choisir une scène à la main). Persisté en texte simple dans `Assets/ProjectSettings.txt` via `Load()`/`Save()`.
+## Types de base
+
+- **`Vector2`** (struct, `float`) : `+ − * /`, `Zero`, `One`, `NegativeOne`, `Up (0, 1)`, `Down (0, −1)`, `Left`, `Right`, `Length()`, `LengthSquared()`, `Normalize()`, `Distance`, `DistanceSquared`, `Dot`, `Cross`, `Lerp`, `LerpUnclamped`.
+- **`Rectangle`** (struct, **`int`**) : `X, Y, Width, Height`, `Left/Right/Top/Bottom`, `Intersects(other)`.
+- **`Color`** (classe) : `R, G, B` (int), `Black/White/Red/Green/Blue`. Pas d'alpha (passé en `byte a` au `Renderer`).
+- **`Logger`** (statique) : `Log`, `Warning`, `Error(message, file?, line?)`, `Sucess` (sic), `Clear`, `Entries`, `OnLog`. Niveaux : `Info`, `Warning`, `Error`, `Sucess`.
