@@ -19,7 +19,7 @@ public class SpriteRenderer : Component
     public Vector2 FrameSize = new Vector2(16, 16);
     public bool FlipX = false;
     public bool FlipY = false;
-    public FilteringMode Filtering = FilteringMode.Nearest;
+    public FilteringMode Filtering = FilteringMode.Linear;
 
     static readonly string[] FilteringNames =
         Enum.GetNames<FilteringMode>();

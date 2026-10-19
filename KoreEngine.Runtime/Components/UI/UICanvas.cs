@@ -1,6 +1,6 @@
 ﻿namespace KoreEngine.UI;
 
-public class UICanvas : Component
+public class UICanvas : UIElement
 {
     public float ReferenceWidth = 1920f;
     public float ReferenceHeight = 1080f;
@@ -32,10 +32,7 @@ public class UICanvas : Component
         return element;
     }
 
-    // Update et Render : les enfants sont des GameObjects, traversés
-    // automatiquement par la scène — rien à faire ici.
-    public override void Update(float dt) { }
-    public override void Render(Renderer renderer, Camera? camera) { }
+    public override void Draw(Renderer renderer) { }
 
     public override IEnumerable<InspectorField> GetInspectorFields()
     {

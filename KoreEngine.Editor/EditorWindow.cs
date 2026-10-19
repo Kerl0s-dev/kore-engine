@@ -443,6 +443,7 @@ public class EditorWindow
             }
             else
             {
+                AudioManager.StopAllTracks(0);
                 string? path = SceneManager.CurrentScenePath;
 
                 if (path != null && File.Exists(path))

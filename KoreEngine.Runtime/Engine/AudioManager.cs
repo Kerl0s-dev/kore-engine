@@ -46,6 +46,7 @@ public static class AudioManager
     public static void PauseTrack(IntPtr track) => Mixer.PauseTrack(track);
     public static void ResumeTrack(IntPtr track) => Mixer.ResumeTrack(track);
     public static void StopTrack(IntPtr track) => Mixer.StopTrack(track, 10);
+    public static bool StopAllTracks(long fadeOutSeconds = 0) => Mixer.StopAllTracks(mixer, fadeOutSeconds);
 
     public static void SetTrackVolume(IntPtr track, float gain) => Mixer.SetTrackGain(track, gain);
     public static void SetMasterVolume(float gain) => Mixer.SetMixerGain(mixer, gain);
