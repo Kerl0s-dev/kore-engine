@@ -38,7 +38,7 @@ public class UICanvas : UIElement
     {
         yield return new IntField
         {
-            Label = "Ref Width",
+            Label = "Reference Width",
             Get = () => (int)ReferenceWidth,
             Set = v => ReferenceWidth = v,
             Min = 1,
@@ -47,14 +47,11 @@ public class UICanvas : UIElement
 
         yield return new IntField
         {
-            Label = "Ref Height",
+            Label = "Reference Height",
             Get = () => (int)ReferenceHeight,
             Set = v => ReferenceHeight = v,
             Min = 1,
             Max = 4320
         };
-
-        yield return new TextField { Label = "Scale X", Get = () => $"{ScaleX:F3}" };
-        yield return new TextField { Label = "Scale Y", Get = () => $"{ScaleY:F3}" };
     }
 }

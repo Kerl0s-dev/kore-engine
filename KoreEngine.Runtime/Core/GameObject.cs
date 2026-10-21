@@ -89,6 +89,23 @@ public partial class GameObject
         foreach (var child in children) child.Update(dt);
     }
 
+    // Appelle directement la méthode virtuelle sans réflexion
+    internal void DispatchCollision(Collider other)
+    {
+        for (int i = 0; i < Components.Count; i++)
+        {
+            Components[i].OnCollision(other);
+        }
+    }
+
+    internal void DispatchTrigger(Collider other)
+    {
+        for (int i = 0; i < Components.Count; i++)
+        {
+            Components[i].OnTriggerEnter(other);
+        }
+    }
+
     public virtual void Render(Renderer renderer, Camera? camera)
     {
         foreach (var c in Components) c.Render(renderer, camera);

@@ -1,4 +1,6 @@
-﻿namespace KoreEngine;
+﻿using System.ComponentModel;
+
+namespace KoreEngine;
 
 public class Collider : Component
 {
@@ -7,8 +9,19 @@ public class Collider : Component
     public string Tag = ""; // "player", "enemy", "trigger"...
     public bool IsTrigger = false; // trigger = détecte sans résoudre
 
-    public void OnCollision(Collider other) { }
-    public void OnTriggerEnter(Collider other) { }
+    // Les événements renvoient désormais vers le GameObject
+    // Masqué dans Visual Studio pour ne pas polluer l'autocomplétion de l'utilisateur
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public override void OnCollision(Collider other)
+    {
+        gameObject.DispatchCollision(other);
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public override void OnTriggerEnter(Collider other)
+    {
+        gameObject.DispatchTrigger(other);
+    }
 
     public Rectangle Bounds
     {

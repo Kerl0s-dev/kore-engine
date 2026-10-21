@@ -462,7 +462,6 @@ public class ProjectPanel
                 File.WriteAllText(path,
 $@"using KoreEngine;
 
-[UserScript]
 public class {newItemName.Trim()} : Component
 {{
     public override void Start()

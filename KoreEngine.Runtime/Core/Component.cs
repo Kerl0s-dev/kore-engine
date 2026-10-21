@@ -1,10 +1,14 @@
-﻿namespace KoreEngine;
+﻿using System.ComponentModel;
+
+namespace KoreEngine;
 
 public abstract class Component
 {
     public GameObject gameObject { get; internal set; } = null!;
     public Transform transform => gameObject.transform;
     public virtual void Update(float dt) { }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public virtual void Render(Renderer renderer, Camera? camera) { }
 
     /// <summary>
@@ -15,6 +19,8 @@ public abstract class Component
     /// Par défaut : aucun champ personnalisé — InspectorPanel retombe alors
     /// sur l'auto-draw par réflexion.
     /// </summary>
+    
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public virtual IEnumerable<InspectorField> GetInspectorFields()
         => Enumerable.Empty<InspectorField>();
 
@@ -33,12 +39,16 @@ public abstract class Component
     /// </summary>
     public virtual void OnDestroy() { }
 
+    public virtual void OnCollision(Collider other) { }
+    public virtual void OnTriggerEnter(Collider other) { }
+
     /// <summary>
     /// Sérialisation personnalisée — retourne des lignes supplémentaires
     /// à écrire dans le bloc du composant dans le fichier .kscene.
     /// À surcharger pour les champs non couverts par le sérialiseur standard
     /// (listes, types complexes, etc.).
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public virtual IEnumerable<string> Serialize()
         => Enumerable.Empty<string>();
 
@@ -47,5 +57,6 @@ public abstract class Component
     /// qui n'ont pas été reconnues par le sérialiseur standard.
     /// À surcharger en parallèle de Serialize().
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public virtual void Deserialize(List<string> extraLines) { }
 }
