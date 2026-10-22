@@ -9,16 +9,12 @@ namespace KoreEngine;
 public static class ProjectSettings
 {
     public static string? StartupScene { get; set; }
-    public static Vector2 EditorCameraPosition { get; set; } = Vector2.Zero;
-    public static float EditorCameraZoom { get; set; } = 1f;
 
     static string FilePath => Path.Combine(SceneManager.AssetsDirectory, "ProjectSettings.txt");
 
     public static void Load()
     {
         StartupScene = null;
-        EditorCameraPosition = Vector2.Zero;
-        EditorCameraZoom = 1f;
 
         if (!File.Exists(FilePath)) return;
 
