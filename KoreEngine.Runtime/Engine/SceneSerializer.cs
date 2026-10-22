@@ -23,8 +23,6 @@ public static class SceneSerializer
 
     public static void SaveScene(Scene scene, string path)
     {
-        Logger.Log($"[Module 2] Sauvegarde de la scène '{scene.Name}' vers {path}");
-
         var sb = new StringBuilder();
         var idMap = new Dictionary<GameObject, string>();
         int counter = 0;
@@ -42,7 +40,6 @@ public static class SceneSerializer
 
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
-        Logger.Log("[Module 2] Scène sauvegardée avec succès.");
     }
 
     public static string SerializeObjectTree(GameObject root)
@@ -129,11 +126,8 @@ public static class SceneSerializer
 
     public static Scene LoadScene(string path)
     {
-        Logger.Log($"[Module 2] Chargement de la scène depuis {path}");
-
         if (!File.Exists(path))
         {
-            Logger.Warning($"[Module 2] Fichier introuvable : {path}");
             return new Scene();
         }
 
@@ -153,8 +147,6 @@ public static class SceneSerializer
         LoadObjectsInto(lines, scene);
         scene.FindCamera();
         scene.RefreshColliders();
-
-        Logger.Log($"[Module 2] Scène '{scene.Name}' chargée avec succès.");
         return scene;
     }
 
@@ -193,8 +185,6 @@ public static class SceneSerializer
             i++;
         }
 
-        Logger.Log($"[Module 2] Objets parsés : {objMap.Count}, Blocs composants trouvés : {compBlocks.Count}");
-
         // Garde-fou Transform par défaut si manquant
         foreach (var o in objMap.Values)
         {
@@ -222,7 +212,6 @@ public static class SceneSerializer
             var type = FindType(typeName);
             if (type == null)
             {
-                Logger.Warning($"[Module 2] Type de composant inconnu : '{typeName}'");
                 continue;
             }
 
@@ -384,6 +373,7 @@ public static class SceneSerializer
     {
         var members = GetSerializableMembers(comp.GetType()).ToDictionary(m => m.Name);
         string compName = comp.GetType().Name;
+        var compType = comp.GetType();
 
         foreach (var line in fieldLines)
         {
@@ -397,16 +387,29 @@ public static class SceneSerializer
 
             try
             {
-                var parsed = ParseValue(rawValue, GetMemberType(member));
+                var memberType = GetMemberType(member);
+                var parsed = ParseValue(rawValue, memberType);
                 if (parsed != null)
                 {
                     SetMemberValue(member, comp, parsed);
-                    Logger.Log($"[Module 2] -> Appliqué : {compName}.{key} = {parsed}");
+
+                    // Convention XxxTexturePath -> charge et applique XxxTexture (IntPtr)
+                    if (memberType == typeof(string) && key.EndsWith("Path"))
+                    {
+                        string targetName = key[..^4];
+                        var targetMember = compType.GetMember(targetName, BindingFlags.Public | BindingFlags.Instance).FirstOrDefault();
+
+                        if (targetMember != null && GetMemberType(targetMember) == typeof(IntPtr) && !string.IsNullOrEmpty(rawValue))
+                        {
+                            IntPtr textureHandle = TextureCache.Get(rawValue);
+                            SetMemberValue(targetMember, comp, textureHandle);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Warning($"[Module 2] Erreur sur {compName}.{key}: {ex.Message}");
+                Console.WriteLine($"[Module 2] Erreur sur {compName}.{key}: {ex.Message}");
             }
         }
     }

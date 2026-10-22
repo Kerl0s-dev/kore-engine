@@ -39,7 +39,7 @@ public static class ProjectScaffolder
         WriteSln(projectPath, projectName, Log);
         WriteImGui(engineDir, projectPath, Log);
         WriteEditorIcons(engineDir, projectPath, Log);
-        WritePackages(engineDir, targetDir, Log);
+        WritePackages(engineDir, projectPath, Log);
         CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Debug", "net10.0"),
             ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
 
@@ -301,7 +301,7 @@ EndGlobal
 
     static void WriteImGui(string engineDir, string targetDir, Action<string> log)
     {
-        var source = Path.Combine(ResolveEngineOutputDir(engineDir, "KoreEngine.Editor"), "imgui.ini");
+        var source = Path.Combine(engineDir, "imgui.ini");
         var destination = Path.Combine(targetDir, "bin", "Debug", "net10.0", "imgui.ini");
 
         if (File.Exists(destination))
