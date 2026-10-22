@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class ProjectPanel
 {

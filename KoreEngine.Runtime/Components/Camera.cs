@@ -3,7 +3,9 @@
 public class Camera : Component
 {
     [Range(1, 10)] public float Zoom = 1f;
-    public int ViewWidth, ViewHeight;
+
+    [HideInInspector] public int ViewWidth;
+    [HideInInspector] public int ViewHeight;
 
     public Color Color;
 

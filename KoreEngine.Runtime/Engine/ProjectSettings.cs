@@ -1,35 +1,56 @@
-﻿namespace KoreEngine;
+﻿using System.Globalization;
+using System.Text;
+
+namespace KoreEngine;
 
 /// <summary>
-/// Réglages globaux du projet, volontairement minimalistes (même esprit texte
-/// simple que le format .kscene) : pour l'instant juste la scène de démarrage.
-///
-/// Nécessaire parce qu'un jeu buildé (GameLoop) n'a personne pour choisir
-/// une scène à la main comme dans l'éditeur — il faut bien qu'il sache
-/// laquelle charger tout seul au lancement.
+/// Réglages globaux du projet (scène de démarrage, état de la caméra éditeur, etc.)
 /// </summary>
 public static class ProjectSettings
 {
     public static string? StartupScene { get; set; }
+    public static Vector2 EditorCameraPosition { get; set; } = Vector2.Zero;
+    public static float EditorCameraZoom { get; set; } = 1f;
 
     static string FilePath => Path.Combine(SceneManager.AssetsDirectory, "ProjectSettings.txt");
 
     public static void Load()
     {
         StartupScene = null;
+        EditorCameraPosition = Vector2.Zero;
+        EditorCameraZoom = 1f;
+
         if (!File.Exists(FilePath)) return;
 
-        foreach (var line in File.ReadAllLines(FilePath))
+        var inv = CultureInfo.InvariantCulture;
+
+        foreach (var line in File.ReadAllLines(FilePath, Encoding.UTF8))
         {
             string trimmed = line.Trim();
-            if (trimmed.StartsWith("StartupScene:"))
-                StartupScene = trimmed["StartupScene:".Length..].Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith("#")) continue;
+
+            int colon = trimmed.IndexOf(':');
+            if (colon < 0) continue;
+
+            string key = trimmed[..colon].Trim();
+            string val = trimmed[(colon + 1)..].Trim();
+
+            if (key == "StartupScene")
+            {
+                StartupScene = val;
+            }
         }
     }
 
     public static void Save()
     {
+        var inv = CultureInfo.InvariantCulture;
         Directory.CreateDirectory(SceneManager.AssetsDirectory);
-        File.WriteAllText(FilePath, $"StartupScene: {StartupScene}{Environment.NewLine}");
+
+        var sb = new StringBuilder();
+        sb.AppendLine("# KoreEngine Project Settings");
+        sb.AppendLine($"StartupScene: {StartupScene ?? ""}");
+
+        File.WriteAllText(FilePath, sb.ToString(), Encoding.UTF8);
     }
 }

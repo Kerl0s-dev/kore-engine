@@ -1,6 +1,6 @@
 ﻿using SDL3;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 /// <summary>
 /// Cache des icônes de l'éditeur chargées depuis Assets/Editor/Icons/.

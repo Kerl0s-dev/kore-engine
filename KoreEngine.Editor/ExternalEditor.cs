@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 /// <summary>
 /// Lance Visual Studio sur un fichier dans le contexte de la solution du projet.

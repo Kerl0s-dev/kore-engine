@@ -1,6 +1,6 @@
 ﻿using ImGuiNET;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class HierarchyPanel
 {

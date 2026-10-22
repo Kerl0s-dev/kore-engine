@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Reflection;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class InspectorPanel
 {

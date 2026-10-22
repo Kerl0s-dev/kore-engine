@@ -3,7 +3,7 @@ using ImGuiNET;
 using SDL3;
 using System.Runtime.InteropServices;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class ImGuiBackend
 {

@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
+using SDL3;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class GamePanel
 {
@@ -36,10 +37,15 @@ public class GamePanel
     /// L'UI du jeu (UICanvas.ScaleX/Y) lit SceneManager.ViewportWidth/Height :
     /// à appeler avant SceneManager.Update ET avant le rendu de ce panneau.
     /// </summary>
+    const float LogicalH = 1080f;
+
+    float LogicalScale => renderTexture.Height / LogicalH;           // pixels texture par unité logique
+    int LogicalW => (int)MathF.Round(renderTexture.Width / LogicalScale);
+
     public void BindUiSize()
     {
-        SceneManager.ViewportWidth = renderTexture.Width;
-        SceneManager.ViewportHeight = renderTexture.Height;
+        SceneManager.ViewportWidth = LogicalW;
+        SceneManager.ViewportHeight = (int)LogicalH;
     }
 
     public void RenderScene(Scene? scene)
@@ -50,10 +56,17 @@ public class GamePanel
         if (scene != null)
         {
             var cam = scene.Camera;
-            cam.ViewWidth = renderTexture.Width;
-            cam.ViewHeight = renderTexture.Height;
-            renderer.Clear(cam.Color);      // fond = ce que verra le joueur
+            cam.ViewWidth = LogicalW;          // 1920 en 16:9, plus large/étroit sinon : pas de distorsion
+            cam.ViewHeight = (int)LogicalH;
+
+            float s = LogicalScale;
+            SDL.SetRenderScale(renderer.Handle, s, s);
+
+            renderer.Clear(cam.Color);
             scene.Render(renderer);
+
+            renderer.Flush();                  // soumettre avec l'échelle active
+            SDL.SetRenderScale(renderer.Handle, 1f, 1f);   // sinon ImGui est dessiné à la mauvaise échelle
         }
 
         renderTexture.EndRender();
@@ -81,6 +94,7 @@ public class GamePanel
         // Free : on remplit le panneau. Preset : on garde le ratio (bandes noires).
         float texW = renderTexture.Width, texH = renderTexture.Height;
         float scale = free ? 1f : MathF.Min(avail.X / texW, avail.Y / texH);
+
         var size = free
             ? new System.Numerics.Vector2(availW, availH)
             : new System.Numerics.Vector2(texW * scale, texH * scale);
@@ -95,8 +109,8 @@ public class GamePanel
 
         // Souris en coordonnées "écran du jeu" (pixels de la texture), pas du panneau.
         var mouse = ImGui.GetIO().MousePos;
-        SceneManager.ViewportMouseX = (mouse.X - imagePos.X) / scale;
-        SceneManager.ViewportMouseY = (mouse.Y - imagePos.Y) / scale;
+        SceneManager.ViewportMouseX = (mouse.X - imagePos.X) / size.X * SceneManager.ViewportWidth;
+        SceneManager.ViewportMouseY = (mouse.Y - imagePos.Y) / size.Y * SceneManager.ViewportHeight;
         SceneManager.ViewportMouseInBounds = ImGui.IsItemHovered();
 
         ImGui.End();

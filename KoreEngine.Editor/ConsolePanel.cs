@@ -1,7 +1,7 @@
 ﻿using ImGuiNET;
 using System.Numerics;
 
-namespace KoreEngine.Editor;
+namespace KoreEngine;
 
 public class ConsolePanel
 {
