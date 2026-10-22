@@ -1,4 +1,6 @@
-﻿namespace KoreEngine;
+﻿using System.ComponentModel;
+
+namespace KoreEngine;
 
 public partial class GameObject
 {
@@ -22,9 +24,11 @@ public partial class GameObject
     // ---------------------------------------------------------------
     // Composants
     // ---------------------------------------------------------------
-
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public List<Component> Components = new();
-    public Scene? Scene;
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal Scene? Scene;
 
     public GameObject(string? name = null)
     {
@@ -94,6 +98,8 @@ public partial class GameObject
     {
         for (int i = 0; i < Components.Count; i++)
         {
+            if (Components[i] is Collider) continue;
+
             Components[i].OnCollision(other);
         }
     }
@@ -102,11 +108,13 @@ public partial class GameObject
     {
         for (int i = 0; i < Components.Count; i++)
         {
+            if (Components[i] is Collider) continue;
+
             Components[i].OnTriggerEnter(other);
         }
     }
 
-    public virtual void Render(Renderer renderer, Camera? camera)
+    internal virtual void Render(Renderer renderer, Camera? camera)
     {
         foreach (var c in Components) c.Render(renderer, camera);
         foreach (var child in children) child.Render(renderer, camera);

@@ -4,7 +4,7 @@ using System.Text;
 namespace KoreEngine;
 
 /// <summary>
-/// Sérialise/désérialise les scènes au format .kscene
+/// Module 2 : Socle + Réflexion automatique pour tous les composants et scripts custom.
 /// </summary>
 public static class SceneSerializer
 {
@@ -17,12 +17,14 @@ public static class SceneSerializer
         typeof(Color)
     };
 
-    // ---------------------------------------------------------------
-    // Sauvegarde
-    // ---------------------------------------------------------------
+    // =========================================================================
+    // 1. SAUVEGARDE
+    // =========================================================================
 
     public static void SaveScene(Scene scene, string path)
     {
+        Logger.Log($"[Module 2] Sauvegarde de la scène '{scene.Name}' vers {path}");
+
         var sb = new StringBuilder();
         var idMap = new Dictionary<GameObject, string>();
         int counter = 0;
@@ -30,30 +32,49 @@ public static class SceneSerializer
         foreach (var obj in scene.AllObjects)
             idMap[obj] = $"obj_{counter++}";
 
-        sb.AppendLine("# KoreEngine Scene File");
+        sb.AppendLine("# KoreEngine Scene File - Module 2");
         sb.AppendLine($"Scene: {scene.Name}");
 
         foreach (var obj in scene.AllObjects)
+        {
             WriteObject(sb, obj, idMap);
+        }
 
-        Console.WriteLine(path);
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        Logger.Log("[Module 2] Scène sauvegardée avec succès.");
+    }
+
+    public static string SerializeObjectTree(GameObject root)
+    {
+        var sb = new StringBuilder();
+        var flat = FlattenTree(root).ToList();
+        var idMap = new Dictionary<GameObject, string>();
+        int counter = 0;
+
+        foreach (var obj in flat)
+            idMap[obj] = $"obj_{counter++}";
+
+        foreach (var obj in flat)
+        {
+            WriteObject(sb, obj, idMap);
+        }
+
+        return sb.ToString();
     }
 
     static void WriteObject(StringBuilder sb, GameObject obj, Dictionary<GameObject, string> idMap)
     {
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
-
         string id = idMap[obj];
         string parent = obj.transform.Parent != null && idMap.TryGetValue(obj.transform.Parent, out var pid)
             ? pid : "none";
 
         sb.AppendLine();
         sb.AppendLine($"Object: {id} {{");
-        sb.AppendLine($"  Name: {obj.Name}");
-        sb.AppendLine($"  Parent: {parent}");
+        sb.AppendLine($"    Name: {obj.Name}");
+        sb.AppendLine($"    Parent: {parent}");
 
+        // Sauvegarde dynamique de TOUS les composants de l'objet
         foreach (var c in obj.Components)
         {
             WriteComponent(sb, c, idMap);
@@ -62,103 +83,60 @@ public static class SceneSerializer
         sb.AppendLine("}");
     }
 
-    static void WriteComponent(StringBuilder sb, Component c,
-        Dictionary<GameObject, string> idMap)
+    static void WriteComponent(StringBuilder sb, Component c, Dictionary<GameObject, string> idMap)
     {
+        string typeName = c.GetType().FullName ?? c.GetType().Name;
         sb.AppendLine();
-        sb.AppendLine($"  Component: {c.GetType().FullName} {{");
+        sb.AppendLine($"    Component: {typeName} {{");
 
-        // Champs primitifs / types simples
-        foreach (var field in GetSerializableFields(c.GetType()))
+        // Champs et propriétés sérialisables
+        foreach (var member in GetSerializableMembers(c.GetType()))
         {
-            var value = field.GetValue(c);
+            var value = GetMemberValue(member, c);
             if (value == null) continue;
-            sb.AppendLine($"    {field.Name}: {FormatValue(value, field.FieldType)}");
+            sb.AppendLine($"        {member.Name}: {FormatValue(value, GetMemberType(member))}");
         }
 
-        foreach (var field in GetEventFields(c.GetType()))
-            if (field.GetValue(c) is KoreEvent ev)
-                foreach (var line in ev.Serialize(field.Name))
-                    sb.AppendLine($"    {line}");
-
-        // Champs référence : Component et GameObject
+        // Références vers GameObject ou Component (@obj_X)
         foreach (var field in GetReferenceFields(c.GetType()))
         {
             var value = field.GetValue(c);
             if (value == null) continue;
 
-            if (value is Component comp && comp.gameObject != null
-                && idMap.TryGetValue(comp.gameObject, out var refId))
+            if (value is Component comp && comp.gameObject != null && idMap.TryGetValue(comp.gameObject, out var refId))
             {
-                // @obj_2:Camera
-                sb.AppendLine($"    {field.Name}: @{refId}:{comp.GetType().Name}");
+                sb.AppendLine($"        {field.Name}: @{refId}:{comp.GetType().Name}");
             }
             else if (value is GameObject go && idMap.TryGetValue(go, out var goId))
             {
-                // @obj_2
-                sb.AppendLine($"    {field.Name}: @{goId}");
+                sb.AppendLine($"        {field.Name}: @{goId}");
             }
         }
 
-        // Sérialisation personnalisée (listes, types complexes)
+        // Sérialisation personnalisée (si le composant l'implémente)
         foreach (var line in c.Serialize())
-            sb.AppendLine($"    {line}");
+        {
+            sb.AppendLine($"        {line}");
+        }
 
-        sb.AppendLine("  }");
+        sb.AppendLine("    }");
     }
 
-    static IEnumerable<FieldInfo> GetReferenceFields(Type type) =>
-        type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-            .Where(f => !f.IsInitOnly
-                && f.GetCustomAttribute<NonSerializedAttribute>() == null
-                && f.GetCustomAttribute<HideInInspectorAttribute>() == null
-                && (f.FieldType == typeof(GameObject)
-                    || typeof(Component).IsAssignableFrom(f.FieldType)));
 
-    static IEnumerable<FieldInfo> GetEventFields(Type type) =>
-        type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-            .Where(f => f.FieldType == typeof(KoreEvent)
-                && f.GetCustomAttribute<NonSerializedAttribute>() == null
-                && f.GetCustomAttribute<HideInInspectorAttribute>() == null);
-
-    static string FormatValue(object value, Type type)
-    {
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
-
-        if (type == typeof(Vector2))
-        {
-            var v = (Vector2)value;
-            return $"{v.X.ToString(inv)}, {v.Y.ToString(inv)}";
-        }
-        if (type == typeof(Rectangle))
-        {
-            var r = (Rectangle)value;
-            return $"{r.X.ToString(inv)} {r.Y.ToString(inv)} {r.Width.ToString(inv)} {r.Height.ToString(inv)}";
-        }
-        if (type == typeof(Color))
-        {
-            var col = (Color)value;
-            return $"{col.R.ToString(inv)} {col.G.ToString(inv)} {col.B.ToString(inv)}";
-        }
-        if (type == typeof(bool))
-            return value.ToString()!.ToLower();
-        if (type == typeof(string))
-        {
-            var s = (string)value;
-            return s.Contains(' ') ? $"\"{s}\"" : s;
-        }
-        if (type == typeof(float) || type == typeof(double))
-            return ((IFormattable)value).ToString(null, inv);
-
-        return value.ToString() ?? "";
-    }
-
-    // ---------------------------------------------------------------
-    // Chargement
-    // ---------------------------------------------------------------
+    // =========================================================================
+    // 2. CHARGEMENT
+    // =========================================================================
 
     public static Scene LoadScene(string path)
     {
+        Logger.Log($"[Module 2] Chargement de la scène depuis {path}");
+
+        if (!File.Exists(path))
+        {
+            Logger.Warning($"[Module 2] Fichier introuvable : {path}");
+            return new Scene();
+        }
+
         var lines = File.ReadAllLines(path, Encoding.UTF8);
         var scene = new Scene();
 
@@ -173,83 +151,26 @@ public static class SceneSerializer
         }
 
         LoadObjectsInto(lines, scene);
-
-        // Résout automatiquement la caméra de la scène
         scene.FindCamera();
-
-        // Réenregistre TOUS les colliders : chaque Scene.Add() (fait par
-        // ParseObject) a eu lieu AVANT que les composants (dont Collider)
-        // soient attachés, donc rien n'a pu être enregistré jusqu'ici.
         scene.RefreshColliders();
 
+        Logger.Log($"[Module 2] Scène '{scene.Name}' chargée avec succès.");
         return scene;
     }
 
-    // ---------------------------------------------------------------
-    // Clonage d'un sous-arbre (GameObject.Instantiate) — même format texte
-    // que SaveScene/LoadScene, pour ne pas dupliquer la logique de clonage.
-    // ---------------------------------------------------------------
-
-    /// <summary>
-    /// Sérialise UN objet et toute sa hiérarchie d'enfants (mêmes règles que
-    /// SaveScene). Les références vers des objets HORS de cette
-    /// sous-arborescence (ex: un champ pointant vers la Camera de la scène)
-    /// sont silencieusement omises — elles ne peuvent pas survivre à un clone
-    /// partiel, exactement comme pour un prefab qui sortirait de sa scène.
-    /// </summary>
-    public static string SerializeObjectTree(GameObject root)
-    {
-        var sb = new StringBuilder();
-        var flat = FlattenTree(root).ToList();
-        var idMap = new Dictionary<GameObject, string>();
-        int counter = 0;
-
-        foreach (var obj in flat)
-            idMap[obj] = $"obj_{counter++}";
-
-        foreach (var obj in flat)
-            WriteObject(sb, obj, idMap);
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Réciproque de SerializeObjectTree : reconstruit la sous-arborescence
-    /// comme nouvel objet racine de targetScene, et retourne cette racine.
-    /// Utilisé par GameObject.Instantiate().
-    /// </summary>
     public static GameObject? DeserializeObjectTree(string text, Scene targetScene)
     {
         var lines = text.Replace("\r\n", "\n").Split('\n');
         var root = LoadObjectsInto(lines, targetScene);
 
-        // Seuls les colliders de la NOUVELLE sous-arborescence doivent être
-        // (re)enregistrés ici — un RefreshColliders() global dupliquerait tous
-        // les colliders déjà enregistrés du reste de la scène à chaque appel.
         if (root != null) targetScene.RegisterColliders(root);
-
         return root;
     }
 
-    static IEnumerable<GameObject> FlattenTree(GameObject root)
-    {
-        yield return root;
-        foreach (var child in root.Children)
-            foreach (var descendant in FlattenTree(child))
-                yield return descendant;
-    }
-
-    /// <summary>
-    /// Cœur commun à LoadScene (fichier .kscene complet) et
-    /// DeserializeObjectTree (sous-arborescence pour Instantiate) : parse les
-    /// blocs "Object:", reconstruit la hiérarchie et les composants, résout
-    /// les références internes. Retourne le premier objet créé sans parent
-    /// (la racine du bloc parsé).
-    /// </summary>
     static GameObject? LoadObjectsInto(string[] lines, Scene scene)
     {
         var objMap = new Dictionary<string, GameObject>();
-        var parentMap = new Dictionary<string, string>(); // id -> parentId
+        var parentMap = new Dictionary<string, string>();
         var compBlocks = new List<(string objId, string typeName, List<string> lines)>();
 
         int i = 0;
@@ -257,8 +178,11 @@ public static class SceneSerializer
         {
             string line = lines[i].Trim();
 
-            if (line.StartsWith("#") || line.Length == 0) { i++; continue; }
-            if (line.StartsWith("Scene:")) { i++; continue; }
+            if (line.StartsWith("#") || line.Length == 0 || line.StartsWith("Scene:"))
+            {
+                i++;
+                continue;
+            }
 
             if (line.StartsWith("Object:"))
             {
@@ -269,116 +193,113 @@ public static class SceneSerializer
             i++;
         }
 
-        // Garde-fou : un objet sans bloc Transform dans le fichier en reçoit un par défaut
+        Logger.Log($"[Module 2] Objets parsés : {objMap.Count}, Blocs composants trouvés : {compBlocks.Count}");
+
+        // Garde-fou Transform par défaut si manquant
         foreach (var o in objMap.Values)
+        {
             if (o.GetComponent<Transform>() == null)
                 o.AddComponent(new Transform());
+        }
 
-        // Rétablit la hiérarchie — APRÈS l'attache des composants (il faut les Transform)
+        // Restauration de la hiérarchie parent/enfant
         foreach (var (id, parentId) in parentMap)
         {
             if (parentId == "none") continue;
-            if (objMap.TryGetValue(id, out var obj) &&
-                objMap.TryGetValue(parentId, out var parent))
+            if (objMap.TryGetValue(id, out var obj) && objMap.TryGetValue(parentId, out var parent))
+            {
                 obj.transform.AttachToParentKeepLocal(parent, scene);
+            }
         }
 
-        // Attache les composants
-        // compBlocks contient aussi les lignes de référence (@obj_X)
-        // qu'on traite dans une passe séparée après tout avoir instancié.
+        // Instanciation dynamique de TOUS les composants
         var allComps = new List<(Component comp, List<string> refLines)>();
 
         foreach (var (objId, typeName, fieldLines) in compBlocks)
         {
             if (!objMap.TryGetValue(objId, out var obj)) continue;
+
             var type = FindType(typeName);
-            if (type == null) { Console.WriteLine($"[KScene] Type inconnu : {typeName}"); continue; }
+            if (type == null)
+            {
+                Logger.Warning($"[Module 2] Type de composant inconnu : '{typeName}'");
+                continue;
+            }
 
-            var comp = (Component?)Activator.CreateInstance(type);
-            if (comp == null) continue;
+            // Évite de dupliquer le Transform créé par défaut par le constructeur de GameObject
+            Component? comp = null;
+            if (type == typeof(Transform))
+            {
+                comp = obj.GetComponent<Transform>();
+            }
 
-            obj.AddComponent(comp);
+            if (comp == null)
+            {
+                comp = (Component?)Activator.CreateInstance(type);
+                if (comp == null) continue;
+                obj.AddComponent(comp);
+            }
 
-            var knownKeys = GetSerializableFields(type)
-                .Select(f => f.Name).ToHashSet();
-
-            var standardLines = fieldLines
-                .Where(l => { var k = l.Split(':')[0].Trim(); return knownKeys.Contains(k); })
-                .ToList();
-            var refLines = fieldLines
-                .Where(l => l.Contains(": @"))
-                .ToList();
-            var extraLines = fieldLines
-                .Where(l => { var k = l.Split(':')[0].Trim(); return !knownKeys.Contains(k) && !l.Contains(": @"); })
-                .ToList();
+            // Sépare les lignes standards, les références et les lignes personnalisées
+            var knownKeys = GetSerializableMembers(type).Select(m => m.Name).ToHashSet();
+            var standardLines = fieldLines.Where(l => { var k = l.Split(':')[0].Trim(); return knownKeys.Contains(k); }).ToList();
+            var refLines = fieldLines.Where(l => l.Contains(": @")).ToList();
+            var extraLines = fieldLines.Where(l => { var k = l.Split(':')[0].Trim(); return !knownKeys.Contains(k) && !l.Contains(": @"); }).ToList();
 
             ApplyFields(comp, standardLines);
-
-            foreach (var evField in GetEventFields(type))
-            {
-                var ev = evField.GetValue(comp) as KoreEvent;
-                if (ev == null) { ev = new KoreEvent(); evField.SetValue(comp, ev); }
-                ev.Deserialize(evField.Name, extraLines);
-            }
 
             if (extraLines.Count > 0) comp.Deserialize(extraLines);
             if (refLines.Count > 0) allComps.Add((comp, refLines));
         }
 
-        // Passe de résolution des références (@obj_X et @obj_X:Type)
+        // Passe de liaison des références croisées (@obj_X)
         foreach (var (comp, refLines) in allComps)
         {
-            var fields = comp.GetType()
-                .GetFields(BindingFlags.Public | BindingFlags.Instance);
+            var fields = comp.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var line in refLines)
             {
                 int colon = line.IndexOf(':');
                 if (colon < 0) continue;
                 string fieldName = line[..colon].Trim();
-                string refVal = line[(colon + 1)..].Trim(); // "@obj_2:Camera" ou "@obj_2"
+                string refVal = line[(colon + 1)..].Trim();
 
                 if (!refVal.StartsWith("@")) continue;
-                refVal = refVal[1..]; // retire le @
+                refVal = refVal[1..];
 
                 var field = fields.FirstOrDefault(f => f.Name == fieldName);
                 if (field == null) continue;
 
                 if (refVal.Contains(':'))
                 {
-                    // Référence à un composant : @obj_2:Camera
                     var parts = refVal.Split(':');
                     string oId = parts[0].Trim();
                     string cTypeName = parts[1].Trim();
 
                     if (objMap.TryGetValue(oId, out var refObj))
                     {
-                        var refComp = refObj.Components
-                            .FirstOrDefault(c => c.GetType().Name == cTypeName);
+                        var refComp = refObj.Components.FirstOrDefault(c => c.GetType().Name == cTypeName);
                         if (refComp != null) field.SetValue(comp, refComp);
                     }
                 }
                 else
                 {
-                    // Référence à un GameObject : @obj_2
                     if (objMap.TryGetValue(refVal, out var refObj))
                         field.SetValue(comp, refObj);
                 }
             }
         }
 
-        // La racine du bloc parsé est le premier objet dont le Parent déclaré
-        // est "none" (donc resté objet racine de `scene` après la passe de
-        // hiérarchie ci-dessus).
         foreach (var (id, parentId) in parentMap)
+        {
             if (parentId == "none" && objMap.TryGetValue(id, out var rootObj))
                 return rootObj;
+        }
 
         return objMap.Values.FirstOrDefault();
     }
 
-    static int ParseObject(string[] lines, int i,
-        Scene scene,
+    static int ParseObject(string[] lines, int i, Scene scene,
         Dictionary<string, GameObject> objMap,
         Dictionary<string, string> parentMap,
         List<(string, string, List<string>)> compBlocks)
@@ -393,7 +314,7 @@ public static class SceneSerializer
 
         string? currentComp = null;
         var compLines = new List<string>();
-        int depth = 0; // 0 = dans l'objet, 1 = dans un composant
+        int depth = 0;
 
         while (i < lines.Length)
         {
@@ -403,7 +324,6 @@ public static class SceneSerializer
             {
                 if (depth == 1)
                 {
-                    // Ferme le bloc composant courant
                     if (currentComp != null)
                     {
                         compBlocks.Add((objId, currentComp, new List<string>(compLines)));
@@ -414,7 +334,6 @@ public static class SceneSerializer
                 }
                 else
                 {
-                    // Ferme le bloc objet
                     i++;
                     break;
                 }
@@ -423,39 +342,48 @@ public static class SceneSerializer
             }
 
             if (line.StartsWith("Name:"))
+            {
                 obj.Name = line["Name:".Length..].Trim();
-
+            }
             else if (line.StartsWith("Parent:"))
+            {
                 parentMap[objId] = line["Parent:".Length..].Trim();
-
+            }
             else if (line.StartsWith("Component:"))
             {
-                // Sauvegarde le composant précédent si pas encore fermé
                 if (currentComp != null)
+                {
                     compBlocks.Add((objId, currentComp, new List<string>(compLines)));
-
+                }
                 currentComp = line["Component:".Length..].Trim().TrimEnd('{').Trim();
                 compLines.Clear();
                 depth = 1;
             }
-
             else if (depth == 1 && line.Contains(':'))
+            {
                 compLines.Add(line);
+            }
 
             i++;
         }
 
-        // Composant non fermé (sécurité)
         if (currentComp != null)
+        {
             compBlocks.Add((objId, currentComp, new List<string>(compLines)));
+        }
 
         return i;
     }
 
+
+    // =========================================================================
+    // 3. APPLICATION ET FORMATAGE DES VALEURS
+    // =========================================================================
+
     static void ApplyFields(Component comp, List<string> fieldLines)
     {
-        var fields = GetSerializableFields(comp.GetType())
-            .ToDictionary(f => f.Name);
+        var members = GetSerializableMembers(comp.GetType()).ToDictionary(m => m.Name);
+        string compName = comp.GetType().Name;
 
         foreach (var line in fieldLines)
         {
@@ -463,67 +391,107 @@ public static class SceneSerializer
             if (colon < 0) continue;
 
             string key = line[..colon].Trim();
-            string value = line[(colon + 1)..].Trim().Trim('"');
+            string rawValue = line[(colon + 1)..].Trim().Trim('"');
 
-            if (!fields.TryGetValue(key, out var field)) continue;
+            if (!members.TryGetValue(key, out var member)) continue;
 
             try
             {
-                var parsed = ParseValue(value, field.FieldType);
-                if (parsed != null) field.SetValue(comp, parsed);
-
-                // Convention XxxTexturePath -> charge XxxTexture (IntPtr)
-                if (field.FieldType == typeof(string) && key.EndsWith("Path"))
+                var parsed = ParseValue(rawValue, GetMemberType(member));
+                if (parsed != null)
                 {
-                    string texFieldName = key[..^4];
-                    var texField = comp.GetType().GetField(texFieldName,
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (texField?.FieldType == typeof(IntPtr) && !string.IsNullOrEmpty(value))
-                        texField.SetValue(comp, TextureCache.Get(value));
+                    SetMemberValue(member, comp, parsed);
+                    Logger.Log($"[Module 2] -> Appliqué : {compName}.{key} = {parsed}");
                 }
             }
-            catch { /* champ inconnu ou type incompatible */ }
+            catch (Exception ex)
+            {
+                Logger.Warning($"[Module 2] Erreur sur {compName}.{key}: {ex.Message}");
+            }
         }
+    }
+
+    static string FormatValue(object value, Type type)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+
+        if (type == typeof(Vector2))
+        {
+            var v = (Vector2)value;
+            return $"{v.X.ToString(inv)}, {v.Y.ToString(inv)}";
+        }
+        if (type == typeof(Rectangle))
+        {
+            var r = (Rectangle)value;
+            return $"{r.X.ToString(inv)}, {r.Y.ToString(inv)}, {r.Width.ToString(inv)}, {r.Height.ToString(inv)}";
+        }
+        if (type == typeof(Color))
+        {
+            var col = (Color)value;
+            return $"{col.R.ToString(inv)}, {col.G.ToString(inv)}, {col.B.ToString(inv)}";
+        }
+        if (type == typeof(bool))
+            return value.ToString()!.ToLower();
+        if (type == typeof(string))
+        {
+            var s = (string)value;
+            return s.Contains(' ') ? $"\"{s}\"" : s;
+        }
+        if (type == typeof(float) || type == typeof(double))
+            return ((IFormattable)value).ToString(null, inv);
+
+        return value.ToString() ?? "";
     }
 
     static object? ParseValue(string value, Type type)
     {
         var inv = System.Globalization.CultureInfo.InvariantCulture;
 
-        if (type == typeof(int)) return int.Parse(value);
+        if (type == typeof(int)) return int.Parse(value, inv);
         if (type == typeof(float)) return float.Parse(value, inv);
         if (type == typeof(double)) return double.Parse(value, inv);
         if (type == typeof(bool)) return value == "true";
         if (type == typeof(string)) return value;
-        if (type == typeof(byte)) return byte.Parse(value);
-        if (type == typeof(long)) return long.Parse(value);
+        if (type == typeof(byte)) return byte.Parse(value, inv);
+        if (type == typeof(long)) return long.Parse(value, inv);
 
         if (type == typeof(Vector2))
         {
-            var p = value.Split(',');
-            return new Vector2(
-                float.Parse(p[0].Trim(), inv),
-                float.Parse(p[1].Trim(), inv)
-            );
+            var parts = value.Split(',');
+            if (parts.Length >= 2 &&
+                float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float, inv, out float x) &&
+                float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float, inv, out float y))
+            {
+                return new Vector2(x, y);
+            }
+            return null;
         }
 
         if (type == typeof(Rectangle))
         {
-            var p = value.Split(' ');
-            return new Rectangle(
-                int.Parse(p[0]), int.Parse(p[1]),
-                int.Parse(p[2]), int.Parse(p[3])
-            );
+            var parts = value.Split(',');
+            if (parts.Length >= 4 &&
+                int.TryParse(parts[0].Trim(), out int rx) &&
+                int.TryParse(parts[1].Trim(), out int ry) &&
+                int.TryParse(parts[2].Trim(), out int rw) &&
+                int.TryParse(parts[3].Trim(), out int rh))
+            {
+                return new Rectangle(rx, ry, rw, rh);
+            }
+            return null;
         }
 
         if (type == typeof(Color))
         {
-            var p = value.Split(' ');
-            return new Color(
-                int.Parse(p[0].Trim()),
-                int.Parse(p[1].Trim()),
-                int.Parse(p[2].Trim())
-            );
+            var parts = value.Split(',');
+            if (parts.Length >= 3 &&
+                int.TryParse(parts[0].Trim(), out int cr) &&
+                int.TryParse(parts[1].Trim(), out int cg) &&
+                int.TryParse(parts[2].Trim(), out int cb))
+            {
+                return new Color(cr, cg, cb);
+            }
+            return null;
         }
 
         if (type.IsEnum) return Enum.Parse(type, value);
@@ -531,15 +499,67 @@ public static class SceneSerializer
         return null;
     }
 
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
 
-    static IEnumerable<FieldInfo> GetSerializableFields(Type type) =>
+    // =========================================================================
+    // 4. HELPERS DE RÉFLEXION
+    // =========================================================================
+
+    static IEnumerable<GameObject> FlattenTree(GameObject root)
+    {
+        yield return root;
+        foreach (var child in root.Children)
+            foreach (var descendant in FlattenTree(child))
+                yield return descendant;
+    }
+
+    static IEnumerable<MemberInfo> GetSerializableMembers(Type type)
+    {
+        foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (f.IsInitOnly || f.GetCustomAttribute<NonSerializedAttribute>() != null || f.GetCustomAttribute<HideInInspectorAttribute>() != null)
+                continue;
+            if (SerializableTypes.Contains(f.FieldType) || f.FieldType.IsEnum)
+                yield return f;
+        }
+
+        foreach (var p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!p.CanRead || !p.CanWrite || p.GetCustomAttribute<NonSerializedAttribute>() != null || p.GetCustomAttribute<HideInInspectorAttribute>() != null)
+                continue;
+            if (SerializableTypes.Contains(p.PropertyType) || p.PropertyType.IsEnum)
+                yield return p;
+        }
+    }
+
+    static Type GetMemberType(MemberInfo member) => member switch
+    {
+        FieldInfo f => f.FieldType,
+        PropertyInfo p => p.PropertyType,
+        _ => throw new InvalidOperationException()
+    };
+
+    static object? GetMemberValue(MemberInfo member, object target) => member switch
+    {
+        FieldInfo f => f.GetValue(target),
+        PropertyInfo p => p.GetValue(target),
+        _ => null
+    };
+
+    static void SetMemberValue(MemberInfo member, object target, object value)
+    {
+        switch (member)
+        {
+            case FieldInfo f: f.SetValue(target, value); break;
+            case PropertyInfo p: p.SetValue(target, value); break;
+        }
+    }
+
+    static IEnumerable<FieldInfo> GetReferenceFields(Type type) =>
         type.GetFields(BindingFlags.Public | BindingFlags.Instance)
             .Where(f => !f.IsInitOnly
                 && f.GetCustomAttribute<NonSerializedAttribute>() == null
-                && (SerializableTypes.Contains(f.FieldType) || f.FieldType.IsEnum));
+                && f.GetCustomAttribute<HideInInspectorAttribute>() == null
+                && (f.FieldType == typeof(GameObject) || typeof(Component).IsAssignableFrom(f.FieldType)));
 
     static Type? FindType(string name)
     {

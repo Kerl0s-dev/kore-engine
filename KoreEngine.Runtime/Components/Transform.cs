@@ -30,7 +30,7 @@
         }
 
         // Local scale
-        public Vector2 Scale = Vector2.One;
+        public Vector2 Scale;
 
         public Vector2 WorldScale
         {
