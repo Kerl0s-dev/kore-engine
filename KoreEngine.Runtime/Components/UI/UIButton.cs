@@ -1,8 +1,17 @@
 ﻿using SDL3;
 
 namespace KoreEngine.UI;
+
+public enum ButtonType
+{
+    Color,
+    Image
+}
+
 public class UIButton : UIElement
 {
+    public ButtonType ButtonType = ButtonType.Image;
+
     public IntPtr TextureNormal;
     public IntPtr TextureHover;
     public IntPtr TexturePressed;
@@ -10,6 +19,10 @@ public class UIButton : UIElement
     public string TextureNormalPath = "";
     public string TextureHoverPath = "";
     public string TexturePressedPath = "";
+
+    public Color NormalColor = new Color(255, 255, 255, 255);
+    public Color HoverColor = new Color(200, 200, 200, 255);
+    public Color PressedColor = new Color(150, 150, 150, 255);
 
     public KoreEvent OnClick = new();
 
@@ -46,6 +59,78 @@ public class UIButton : UIElement
     {
         IntPtr tex = hovered ? (pressed ? TexturePressed : TextureHover) : TextureNormal;
         if (tex == IntPtr.Zero) tex = TextureNormal;
-        if (tex != IntPtr.Zero) renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
+        //if (tex != IntPtr.Zero) renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
+
+        if (ButtonType == ButtonType.Color)
+        {
+            Color color = hovered ? (pressed ? PressedColor : HoverColor) : NormalColor;
+            renderer.DrawRect((int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight,
+                color, (byte)color.A);
+        }
+        else if (ButtonType == ButtonType.Image)
+        {
+            if (tex != IntPtr.Zero)
+                renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
+        }
+    }
+
+    public override IEnumerable<InspectorField> GetInspectorFields()
+    {
+        yield return new EnumField
+        {
+            Label = "Button Type",
+            Names = Enum.GetNames<ButtonType>(),
+            Get = () => (int)ButtonType,
+            Set = v => { ButtonType = (ButtonType)v; }
+        };
+
+        if (ButtonType == ButtonType.Image)
+        {
+            yield return new TextureField
+            {
+                Label = "Normal Texture",
+                Get = () => (TextureNormal, TextureNormalPath),
+                Set = (tex, path) => { TextureNormal = tex; TextureNormalPath = path; }
+            };
+            yield return new TextureField
+            {
+                Label = "Hover Texture",
+                Get = () => (TextureHover, TextureHoverPath),
+                Set = (tex, path) => { TextureHover = tex; TextureHoverPath = path; }
+            };
+            yield return new TextureField
+            {
+                Label = "Pressed Texture",
+                Get = () => (TexturePressed, TexturePressedPath),
+                Set = (tex, path) => { TexturePressed = tex; TexturePressedPath = path; }
+            };
+        }
+        else if (ButtonType == ButtonType.Color)
+        {
+            yield return new TextureField
+            {
+                Label = "Normal Texture",
+                Get = () => (TextureNormal, TextureNormalPath),
+                Set = (tex, path) => { TextureNormal = tex; TextureNormalPath = path; }
+            };
+            yield return new ColorField
+            {
+                Label = "Normal Color",
+                Get = () => NormalColor,
+                Set = v => NormalColor = v
+            };
+            yield return new ColorField
+            {
+                Label = "Hover Color",
+                Get = () => HoverColor,
+                Set = v => HoverColor = v
+            };
+            yield return new ColorField
+            {
+                Label = "Pressed Color",
+                Get = () => PressedColor,
+                Set = v => PressedColor = v
+            };
+        }
     }
 }

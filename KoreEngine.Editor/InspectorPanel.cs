@@ -246,6 +246,28 @@ public class InspectorPanel
                 break;
             }
 
+            case ColorField colF:
+            {
+                Color col = colF.Get();
+
+                System.Numerics.Vector4 col4 = new System.Numerics.Vector4(
+                    col.R / 255f, col.G / 255f, col.B / 255f, col.A / 255f);
+
+                DrawField(colF.Label, () =>
+                {
+                    if (ImGui.ColorPicker4($"{baseId}_col", ref col4))
+                    {
+                        colF.Set?.Invoke(new Color(
+                            (int)(col4.X * 255),
+                            (int)(col4.Y * 255),
+                            (int)(col4.Z * 255),
+                            (int)(col4.W * 255)
+                        ));
+                    }
+                });
+                break;
+            }
+
             case AudioClipField acf:
             {
                 string path = acf.Get();

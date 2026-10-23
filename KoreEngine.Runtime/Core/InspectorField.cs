@@ -54,6 +54,13 @@ public class EnumField : InspectorField
     public Action<int>? Set;
 }
 
+/// <summary>Champ de sélection de couleur (color picker).</summary>
+public class ColorField : InspectorField
+{
+    public required Func<Color> Get;
+    public Action<Color>? Set;
+}
+
 /// <summary>Champ de sélection de texture (asset browser).</summary>
 public class TextureField : InspectorField
 {
