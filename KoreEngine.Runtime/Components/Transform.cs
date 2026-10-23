@@ -7,7 +7,7 @@
 
         public Vector2 Position;
 
-        public Vector2 WorldPosition
+        public virtual Vector2 WorldPosition
         {
             get
             {
@@ -24,15 +24,15 @@
         // Local rotation in degrees
         public float Rotation;
 
-        public float WorldRotation
+        public virtual float WorldRotation
         {
             get => Parent != null ? Parent.transform.WorldRotation + Rotation : Rotation;
         }
 
         // Local scale
-        public Vector2 Scale;
+        public Vector2 Scale = Vector2.One;
 
-        public Vector2 WorldScale
+        public virtual Vector2 WorldScale
         {
             get => Parent != null
                 ? Parent.transform.WorldScale * Scale
@@ -75,9 +75,7 @@
                 var deltaPos = worldPos - parentTransform.WorldPosition;
                 var unrotatedPos = RotateVector(deltaPos, -parentTransform.WorldRotation);
 
-                Position = unrotatedPos / safeParentScale;
-                Rotation = worldRot - parentTransform.WorldRotation;
-                Scale = worldScale / safeParentScale;
+                Position = ComputeLocalPosition(worldPos, parentTransform, safeParentScale);
             }
             else
             {
@@ -88,6 +86,22 @@
                 Rotation = worldRot;
                 Scale = worldScale;
             }
+        }
+
+        protected virtual Vector2 ComputeLocalPosition(Vector2 worldPos, Transform parentTransform, Vector2 safeParentScale)
+        {
+            var deltaPos = worldPos - parentTransform.WorldPosition;
+            var unrotatedPos = RotateVector(deltaPos, -parentTransform.WorldRotation);
+            return unrotatedPos / safeParentScale;
+        }
+
+        /// Reprend la hiérarchie et les valeurs locales d'un Transform remplacé.
+        internal void AdoptFrom(Transform old)
+        {
+            Parent = old.Parent;
+            Position = old.Position;
+            Rotation = old.Rotation;
+            Scale = old.Scale;
         }
 
         public bool IsDescendantOf(GameObject ancestor)

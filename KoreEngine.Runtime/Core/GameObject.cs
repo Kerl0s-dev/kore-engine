@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using KoreEngine.UI;
+using System.ComponentModel;
 
 namespace KoreEngine;
 
@@ -42,26 +43,46 @@ public partial class GameObject
 
     public GameObject() { }
 
+    public static GameObject CreateUI(string? name = null)
+    {
+        var go = new GameObject(name);
+        go.SetTransform(new RectTransform());
+        return go;
+    }
+
+    internal Transform SetTransform(Transform t)
+    {
+        var old = GetComponent<Transform>();
+        if (ReferenceEquals(old, t)) return t;
+
+        int index = old != null ? Components.IndexOf(old) : 0;
+        if (old != null) { t.AdoptFrom(old); Components.RemoveAt(index); }
+
+        t.gameObject = this;
+        Components.Insert(index, t);
+        return t;
+    }
+
     public T AddComponent<T>(T component) where T : Component
     {
-        // Empêche de doubler le Transform s'il existe déjà
-        if (component is Transform existingTransform && GetComponent<Transform>() is T current)
+        if (component is Transform t)
         {
-            return current;
+            var cur = GetComponent<Transform>();
+            if (cur != null && cur.GetType() == t.GetType()) return (T)(object)cur;
+            return (T)(object)SetTransform(t);   // Transform -> RectTransform
         }
 
         component.gameObject = this;
         Components.Add(component);
+
+        // Comme Unity : un élément UI force un RectTransform
+        if (component is UIElement && transform is not RectTransform)
+            SetTransform(new RectTransform());
+
         return component;
     }
 
-    public T AddComponent<T>() where T : Component
-    {
-        var component = Activator.CreateInstance<T>();
-        component.gameObject = this;
-        Components.Add(component);
-        return component;
-    }
+    public T AddComponent<T>() where T : Component => AddComponent(Activator.CreateInstance<T>());
 
     public void RemoveComponent<T>(T component) where T : Component
     {

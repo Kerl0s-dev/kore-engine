@@ -1,4 +1,5 @@
 ﻿using ImGuiNET;
+using KoreEngine.UI;
 
 namespace KoreEngine;
 
@@ -94,12 +95,14 @@ public class ViewportPanel
         }
 
         renderTexture.BeginRender();
-        scene?.Render(renderer);
-
-        // Overlay collider — uniquement en mode édition
-        if (editorMode && camera != null)
-            RenderColliderOverlay(camera);
-
+        UIContext.HideUI = true;
+        try
+        {
+            scene?.Render(renderer);
+            if (editorMode && camera != null)
+                RenderColliderOverlay(camera);
+        }
+        finally { UIContext.HideUI = false; }   // le Game panel et l'UI Editor rendent juste après
         renderTexture.EndRender();
 
         if (scene != null && previous != null)
@@ -194,6 +197,8 @@ public class ViewportPanel
 
     Rectangle? GetClickBounds(GameObject obj)
     {
+        if (obj.GetComponent<UIElement>() != null) return null;
+
         var collider = obj.GetComponent<Collider>();
         if (collider != null) return collider.Bounds;
 
@@ -399,6 +404,8 @@ public class ViewportPanel
             activeDrag = DragMode.None;
             return;
         }
+
+        if (obj.transform is RectTransform) { activeDrag = DragMode.None; return; }
 
         var dl = ImGui.GetWindowDrawList();
         Vector2 originWorld = obj.transform.WorldPosition;

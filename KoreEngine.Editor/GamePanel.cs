@@ -15,7 +15,7 @@ public class GamePanel
         ("2560x1440 (16:9)", 2560, 1440),
         ("1920x1080 (16:9)", 1920, 1080),
         ("1280x720 (16:9)", 1280, 720),
-        ("1024x768 (4:3)", 1024, 768),
+        ("1024x768 (4:3)", 1024, 768)
     };
     static readonly string[] PresetNames = Presets.Select(p => p.Name).ToArray();
     int presetIndex = 0;

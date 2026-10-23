@@ -47,10 +47,11 @@ public class EditorWindow
 
     public ViewportPanel? viewportPanel;
     public GamePanel? gamePanel;
-    HierarchyPanel? hierarchyPanel;
-    InspectorPanel? inspectorPanel;
-    ProjectPanel? projectPanel;
-    ConsolePanel? consolePanel;
+    public UIEditorPanel? uiEditorPanel;
+    public HierarchyPanel? hierarchyPanel;
+    public InspectorPanel? inspectorPanel;
+    public ProjectPanel? projectPanel;
+    public ConsolePanel? consolePanel;
 
     ScriptWatcher? scriptWatcher;
 
@@ -190,6 +191,7 @@ public class EditorWindow
         var viewportTexture = new RenderTexture(Renderer, width, height);
         viewportPanel = new ViewportPanel(Renderer, viewportTexture);
         gamePanel = new GamePanel(Renderer, width, height);
+        uiEditorPanel = new UIEditorPanel(Renderer, width, height);
         hierarchyPanel = new HierarchyPanel();
         inspectorPanel = new InspectorPanel(Renderer);
         projectPanel = new ProjectPanel();
@@ -331,6 +333,9 @@ public class EditorWindow
             gamePanel?.ApplyPendingResize();
             gamePanel?.RenderScene(SceneManager.Current);
 
+            uiEditorPanel?.ApplyPendingResize();
+            uiEditorPanel?.RenderScene(SceneManager.Current);
+
             //    d) Écran réel : clear + panneaux ImGui.
             Renderer.Clear(SceneManager.Current?.Camera?.Color);
 
@@ -340,6 +345,7 @@ public class EditorWindow
             projectPanel?.Draw();
             viewportPanel?.Draw(editorMode: true);
             gamePanel?.Draw();
+            uiEditorPanel?.Draw();
             consolePanel?.Draw();
 
             // 8. ImGui render

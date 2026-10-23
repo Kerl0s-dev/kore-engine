@@ -6,7 +6,7 @@ public enum FilteringMode
 {
     Nearest = 0,
     PixelArt = 1,
-    Linear = 2,
+    Linear = 2
 }
 
 public class SpriteRenderer : Component

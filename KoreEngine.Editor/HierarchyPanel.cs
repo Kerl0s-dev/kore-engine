@@ -229,17 +229,14 @@ public class HierarchyPanel
 
         ImGui.Separator();
 
-        if (ImGui.MenuItem("UI Canvas"))
-            CreatePredefined("UICanvas", scene, parent);
-
-        if (ImGui.MenuItem("UI Button"))
-            CreatePredefined("UIButton", scene, parent);
-
-        if (ImGui.MenuItem("UI Image"))
-            CreatePredefined("UIImage", scene, parent);
-
-        if (ImGui.MenuItem("UI Text"))
-            CreatePredefined("UIText", scene, parent);
+        if (ImGui.BeginMenu("UI"))
+        {
+            if (ImGui.MenuItem("Canvas")) CreatePredefined("UICanvas", scene, parent);
+            if (ImGui.MenuItem("Button")) CreatePredefined("UIButton", scene, parent);
+            if (ImGui.MenuItem("Image")) CreatePredefined("UIImage", scene, parent);
+            if (ImGui.MenuItem("Text")) CreatePredefined("UIText", scene, parent);
+            ImGui.EndMenu();
+        }
 
         ImGui.Separator();
 
@@ -267,30 +264,35 @@ public class HierarchyPanel
 
     void CreatePredefined(string type, Scene scene, GameObject? parent)
     {
+        bool isUIChild = type is "UIButton" or "UIImage" or "UIText";
+
+        // Un élément UI vit toujours dans un canvas (comme Unity) :
+        // on prend celui du parent, sinon le premier de la scène, sinon on en crée un.
+        if (isUIChild && UI.UIContext.FindCanvas(parent) == null)
+        {
+            var canvas = scene.AllObjects
+                .Select(o => o.GetComponent<UI.UICanvas>())
+                .FirstOrDefault(c => c != null);
+
+            if (canvas == null)
+            {
+                var canvasObj = CreateWithComponents("Canvas", new UI.UICanvas());
+                scene.Add(canvasObj);
+                canvas = canvasObj.GetComponent<UI.UICanvas>();
+            }
+
+            parent = canvas!.gameObject;
+        }
+
         var obj = type switch
         {
-            "Camera" => CreateWithComponents("Camera",
-                new Camera()),
-
-            "Sprite" => CreateWithComponents("Sprite",
-                new SpriteRenderer() { Size = new Vector2(16, 16) }),
-
-            "Physics" => CreateWithComponents("Physics Object",
-                new PhysicsBody(),
-                new Collider()),
-
-            "UICanvas" => CreateWithComponents("Canvas",
-                new UI.UICanvas()),
-
-            "UIButton" => CreateWithComponents("Button",
-                new UI.UIButton()),
-
-            "UIImage" => CreateWithComponents("Image",
-                new UI.UIImage()),
-
-            "UIText" => CreateWithComponents("Text",
-                new UI.UIText()),
-
+            "Camera" => CreateWithComponents("Camera", new Camera()),
+            "Sprite" => CreateWithComponents("Sprite", new SpriteRenderer() { Size = new Vector2(16, 16) }),
+            "Physics" => CreateWithComponents("Physics Object", new PhysicsBody(), new Collider()),
+            "UICanvas" => CreateWithComponents("Canvas", new UI.UICanvas()),
+            "UIButton" => CreateWithComponents("Button", new UI.UIButton()),
+            "UIImage" => CreateWithComponents("Image", new UI.UIImage()),
+            "UIText" => CreateWithComponents("Text", new UI.UIText()),
             _ => new GameObject("GameObject")
         };
 
@@ -298,6 +300,18 @@ public class HierarchyPanel
 
         if (parent != null)
             obj.transform.SetParent(parent, scene);
+
+        // Après le SetParent : centré sur son ancre, avec une taille par défaut.
+        if (isUIChild && obj.transform is UI.RectTransform rt)
+        {
+            rt.Position = new Vector2(0, 0);
+            rt.SizeDelta = type switch
+            {
+                "UIButton" => new Vector2(160, 40),
+                "UIText" => new Vector2(160, 40),
+                _ => new Vector2(100, 100)
+            };
+        }
 
         EditorSelection.Selected = obj;
     }

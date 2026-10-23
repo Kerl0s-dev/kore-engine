@@ -9,10 +9,13 @@ public static class FontManager
     static Dictionary<string, IntPtr> fonts = new();
     static bool initialized = false;
 
+    static Renderer Renderer = null!;
+
     public static void Init(Renderer renderer)
     {
         if (initialized) return;
         TTF.Init();
+        Renderer = renderer;
         rendererHandle = renderer.Handle;
         initialized = true;
     }
@@ -50,8 +53,8 @@ public static class FontManager
     {
         if (!TryGetTextTexture(fontHandle, content, r, g, b, a, out var cached)) return;
 
-        var dest = new SDL.FRect { X = x, Y = y, W = cached.W * scale, H = cached.H * scale };
-        SDL.RenderTexture(rendererHandle, cached.Texture, IntPtr.Zero, dest);
+        SDL.FRect dest = new SDL.FRect { X = x, Y = y, W = cached.W * scale, H = cached.H * scale };
+        Renderer.DrawTexture(cached.Texture, (int)dest.X, (int)dest.Y, (int)dest.W, (int)dest.H);
     }
 
     static bool TryGetTextTexture(IntPtr fontHandle, string content, byte r, byte g, byte b, byte a, out (IntPtr Texture, int W, int H) cached)

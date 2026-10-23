@@ -7,7 +7,6 @@ public class UIText : UIElement
     [AssetPath(".ttf", ".otf")]
     public string FontPath = "";
 
-    [Range(1, 256)]
     public int Size = 24;
 
     public Color Color = new Color(255, 255, 255, 255);

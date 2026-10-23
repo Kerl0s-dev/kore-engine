@@ -5,34 +5,47 @@ public class UICanvas : UIElement
     public float ReferenceWidth = 1920f;
     public float ReferenceHeight = 1080f;
 
-    public float ScaleX => SceneManager.ViewportWidth / ReferenceWidth;
-    public float ScaleY => SceneManager.ViewportHeight / ReferenceHeight;
+    readonly Camera overlayCamera = new();
 
-    /// <summary>
-    /// Crée un GameObject enfant du Owner, y attache le composant UIElement,
-    /// et l'ajoute à la scène — exactement comme Unity où chaque élément UI
-    /// est un GameObject enfant du Canvas.
-    /// IMPORTANT : scene.Add(ownerGameObject) doit être appelé avant Add().
-    /// </summary>
+    public void SyncSize() => RectTransform.SizeDelta = new Vector2(ReferenceWidth, ReferenceHeight);
+
+    /// Vue Scene : la caméra éditeur. Vue Game : caméra virtuelle qui cadre le canvas (match hauteur).
+    public Camera ViewCamera
+    {
+        get
+        {
+            SyncSize();
+            if (UIContext.WorldCamera != null) return UIContext.WorldCamera;
+
+            var r = RectTransform.Rect;
+            overlayCamera.ViewWidth = SceneManager.ViewportWidth;
+            overlayCamera.ViewHeight = SceneManager.ViewportHeight;
+            overlayCamera.Zoom = ReferenceHeight > 0 ? SceneManager.ViewportHeight / ReferenceHeight : 1f;
+            overlayCamera.Position = new Vector2((r.Min.X + r.Max.X) * 0.5f, (r.Min.Y + r.Max.Y) * 0.5f);
+            return overlayCamera;
+        }
+    }
+
+    // Compat : UIText & co utilisent peut-être encore ScaleX/ScaleY
+    public float ScaleX => ViewCamera.Zoom;
+    public float ScaleY => ViewCamera.Zoom;
+
+    protected override Camera ResolveCamera() => ViewCamera;
+
     public T Add<T>(T element) where T : UIElement
     {
         if (gameObject?.Scene == null)
-            throw new InvalidOperationException(
-                "UICanvas.Add() : appelle scene.Add(canvasObject) avant canvas.Add(...).");
+            throw new InvalidOperationException("UICanvas.Add() : appelle scene.Add(canvasObject) avant canvas.Add(...).");
 
-        // Crée le GameObject qui portera le composant
-        var go = new GameObject(element.GetType().Name);
-        gameObject.Scene.Add(go);          // ajoute en racine…
-        go.transform.SetParent(gameObject, gameObject.Scene); // …puis enfant du Canvas owner
-
-        // Attache le composant et configure la référence Canvas
+        var go = GameObject.CreateUI(element.GetType().Name);
+        gameObject.Scene.Add(go);
+        go.transform.AttachToParentKeepLocal(gameObject, gameObject.Scene); // garde la position locale : centré dans le canvas
         element.Canvas = this;
         go.AddComponent(element);
-
         return element;
     }
 
-    public override void Draw(Renderer renderer) { }
+    public override void Draw(Renderer renderer) => SyncSize();
 
     public override IEnumerable<InspectorField> GetInspectorFields()
     {
