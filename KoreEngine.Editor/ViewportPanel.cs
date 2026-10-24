@@ -198,6 +198,7 @@ public class ViewportPanel
     Rectangle? GetClickBounds(GameObject obj)
     {
         if (obj.GetComponent<UIElement>() != null) return null;
+        if (!obj.ActiveInHierarchy) return null;
 
         var collider = obj.GetComponent<Collider>();
         if (collider != null) return collider.Bounds;

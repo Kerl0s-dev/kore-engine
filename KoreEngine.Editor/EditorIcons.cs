@@ -12,16 +12,25 @@ public static class EditorIcons
     static Renderer? renderer;
     static readonly Dictionary<string, IntPtr> icons = new();
 
+    // Noms de fichiers à charger (sans extension .png)
     static readonly string[] IconNames =
     {
-        "default", "folder", //Assets de base
-        "cs", // Scripts
-        "kscene", // Scènes
-        ".png", ".jpg", ".jpeg", ".bmp", ".tga", // Images
-        ".ttf", ".otf", // Polices
-        ".wav", ".mp3", ".ogg", ".flac", // Audio
-        "play", "stop", "pause", "step", // Boutons de l'éditeur
-        "camera" // Gizmos
+        "default", "folder",            // Base
+        "cs", "kscene", "kprefab",      // Scripts, scènes, prefabs
+        "audio", "font",                // Catégories d'assets
+        "play", "stop", "pause", "step",// Boutons de l'éditeur
+        "camera"                        // Gizmos
+    };
+
+    // Extension (sans point, minuscules) -> nom d'icône. Absente = même nom que l'extension.
+    static readonly Dictionary<string, string> ExtensionToIcon = new()
+    {
+        ["wav"] = "audio",
+        ["mp3"] = "audio",
+        ["ogg"] = "audio",
+        ["flac"] = "audio",
+        ["ttf"] = "font",
+        ["otf"] = "font",
     };
 
     /// <summary>Retourne l'icône exacte, ou IntPtr.Zero — sans repli vers "default".</summary>
@@ -71,6 +80,8 @@ public static class EditorIcons
     public static IntPtr Get(string extOrName)
     {
         string key = extOrName.ToLowerInvariant().TrimStart('.');
+        if (ExtensionToIcon.TryGetValue(key, out var mapped)) key = mapped;
+
         if (icons.TryGetValue(key, out var tex)) return tex;
         if (icons.TryGetValue("default", out var def)) return def;
         return IntPtr.Zero;

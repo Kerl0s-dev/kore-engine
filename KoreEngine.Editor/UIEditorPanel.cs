@@ -19,6 +19,12 @@ public class UIEditorPanel
     RectTransform? dragTarget;
     Vector2 dragStartMouse, dragStartMin, dragStartMax, dragStartPos;
 
+    public bool SnapEnabled = true;
+    const float SnapPx = 6f;
+
+    readonly List<RectF> snapTargets = new();
+    readonly List<(bool vertical, float pos)> guides = new();
+
     const float HandlePx = 8f;
     const float HitPx = 10f;
 
@@ -99,7 +105,12 @@ public class UIEditorPanel
     {
         if (!ImGui.Begin("UI Editor")) { ImGui.End(); return; }
 
+        ImGui.Checkbox("Snap", ref SnapEnabled);
+        ImGui.SameLine();
+        ImGui.TextDisabled("(Ctrl : désactiver)");
+
         var avail = ImGui.GetContentRegionAvail();
+
         int w = (int)avail.X, h = (int)avail.Y;
         if (w > 0 && h > 0 && (w != pendingW || h != pendingH))
         {
@@ -162,9 +173,9 @@ public class UIEditorPanel
         GameObject? hit = null;   // dernier dessiné = au-dessus
         void Walk(GameObject o)
         {
-            foreach (var c in o.Children)
+            foreach (var c in o.children)
             {
-                if (c.transform is RectTransform rt && c.GetComponent<UIElement>() is { Visible: true })
+                if (c.ActiveInHierarchy && c.transform is RectTransform rt && c.GetComponent<UIElement>() is { Visible: true })
                 {
                     var r = rt.Rect;
                     if (p.X >= r.Min.X && p.X <= r.Max.X && p.Y >= r.Min.Y && p.Y <= r.Max.Y) hit = c;
@@ -185,6 +196,9 @@ public class UIEditorPanel
         dragStartMin = r.Min;
         dragStartMax = r.Max;
         dragStartPos = rt.Position;
+
+        GatherSnapTargets(rt);
+        guides.Clear();
     }
 
     void DrawRectTool(System.Numerics.Vector2 imagePos, System.Numerics.Vector2 size, ImGuiIOPtr io, bool hovered)
@@ -247,27 +261,121 @@ public class UIEditorPanel
         // --- Drag en cours ---
         if (active != Handle.None && dragTarget != null)
         {
-            if (!io.MouseDown[0]) { active = Handle.None; dragTarget = null; }
+            if (!io.MouseDown[0]) { active = Handle.None; dragTarget = null; guides.Clear(); }
             else
             {
                 var d = ToWorld(io.MousePos, imagePos);
                 float dx = d.X - dragStartMouse.X, dy = d.Y - dragStartMouse.Y;
 
+                bool snap = SnapEnabled && !io.KeyCtrl;
+                float thr = SnapPx / View.Zoom;   // 6 px écran, converti en unités canvas
+                guides.Clear();
+
                 if (active == Handle.Body)
-                    dragTarget.Position = new Vector2(MathF.Round(dragStartPos.X + dx), MathF.Round(dragStartPos.Y + dy));
+                {
+                    float w = dragStartMax.X - dragStartMin.X, h = dragStartMax.Y - dragStartMin.Y;
+                    float minX = dragStartMin.X + dx, minY = dragStartMin.Y + dy;
+                    float ndx = dx, ndy = dy;
+                    bool snappedX = false, snappedY = false;
+
+                    if (snap)
+                    {
+                        if (SnapAxis(new[] { minX, minX + w * 0.5f, minX + w }, true, thr, out var ox, out var tx))
+                        { ndx += ox; snappedX = true; guides.Add((true, tx)); }
+
+                        if (SnapAxis(new[] { minY, minY + h * 0.5f, minY + h }, false, thr, out var oy, out var ty))
+                        { ndy += oy; snappedY = true; guides.Add((false, ty)); }
+                    }
+
+                    float px = dragStartPos.X + ndx, py = dragStartPos.Y + ndy;
+                    // Quand on est aimanté, on ne re-arrondit pas : sinon un centre à .5 décalerait l'élément du guide.
+                    dragTarget.Position = new Vector2(snappedX ? px : MathF.Round(px), snappedY ? py : MathF.Round(py));
+                }
                 else
                 {
                     float minX = dragStartMin.X, minY = dragStartMin.Y, maxX = dragStartMax.X, maxY = dragStartMax.Y;
-                    if (LeftEdge(active)) minX = MathF.Min(MathF.Round(minX + dx), maxX - 1f);
-                    if (RightEdge(active)) maxX = MathF.Max(MathF.Round(maxX + dx), minX + 1f);
-                    if (BottomEdge(active)) minY = MathF.Min(MathF.Round(minY + dy), maxY - 1f);
-                    if (TopEdge(active)) maxY = MathF.Max(MathF.Round(maxY + dy), minY + 1f);
+
+                    if (LeftEdge(active)) minX = MathF.Min(SnapOrRound(minX + dx, true, snap, thr), maxX - 1f);
+                    if (RightEdge(active)) maxX = MathF.Max(SnapOrRound(maxX + dx, true, snap, thr), minX + 1f);
+                    if (BottomEdge(active)) minY = MathF.Min(SnapOrRound(minY + dy, false, snap, thr), maxY - 1f);
+                    if (TopEdge(active)) maxY = MathF.Max(SnapOrRound(maxY + dy, false, snap, thr), minY + 1f);
+
                     dragTarget.SetWorldRect(new Vector2(minX, minY), new Vector2(maxX, maxY));
                 }
             }
         }
 
+        if (active != Handle.None && guides.Count > 0)
+        {
+            var cr = canvas!.RectTransform.Rect;
+            uint guideColor = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.25f, 0.85f, 1f));
+
+            foreach (var (vertical, pos) in guides)
+            {
+                var a = vertical ? ToScreen(new Vector2(pos, cr.Max.Y), imagePos) : ToScreen(new Vector2(cr.Min.X, pos), imagePos);
+                var b = vertical ? ToScreen(new Vector2(pos, cr.Min.Y), imagePos) : ToScreen(new Vector2(cr.Max.X, pos), imagePos);
+                dl.AddLine(a, b, guideColor, 1f);
+            }
+        }
+
         dl.PopClipRect();
+    }
+
+    /// Cibles : le canvas + tous les éléments visibles, sauf l'élément déplacé et ses descendants
+    /// (ils bougent avec lui).
+    void GatherSnapTargets(RectTransform exclude)
+    {
+        snapTargets.Clear();
+        snapTargets.Add(canvas!.RectTransform.Rect);
+
+        void Walk(GameObject o)
+        {
+            foreach (var c in o.children)
+            {
+                bool inDragged = c == exclude.gameObject || c.transform.IsDescendantOf(exclude.gameObject);
+                if (!inDragged && c.ActiveInHierarchy && c.transform is RectTransform rt && c.GetComponent<UIElement>() is { Visible: true })
+                    snapTargets.Add(rt.Rect);
+                Walk(c);
+            }
+        }
+        Walk(canvas.gameObject);
+    }
+
+    /// Cherche le meilleur alignement entre les valeurs mobiles (bords/centre) et les cibles
+    /// (bords/centre) sur un axe. offset = décalage à appliquer, target = position du guide.
+    bool SnapAxis(float[] moving, bool xAxis, float threshold, out float offset, out float target)
+    {
+        offset = 0f; target = 0f;
+        float best = threshold;
+        bool found = false;
+
+        foreach (var r in snapTargets)
+        {
+            float lo = xAxis ? r.Min.X : r.Min.Y;
+            float hi = xAxis ? r.Max.X : r.Max.Y;
+
+            for (int k = 0; k < 3; k++)
+            {
+                float t = k == 0 ? lo : k == 1 ? (lo + hi) * 0.5f : hi;
+                foreach (var m in moving)
+                {
+                    float d = t - m;
+                    if (MathF.Abs(d) <= best) { best = MathF.Abs(d); offset = d; target = t; found = true; }
+                }
+            }
+        }
+        return found;
+    }
+
+    /// Pour un bord déplacé : s'aimante si possible (et enregistre le guide), sinon arrondit au pixel.
+    float SnapOrRound(float v, bool xAxis, bool snap, float threshold)
+    {
+        if (snap && SnapAxis(new[] { v }, xAxis, threshold, out _, out var t))
+        {
+            guides.Add((xAxis, t));
+            return t;
+        }
+        return MathF.Round(v);
     }
 
     public void Destroy() => renderTexture.Destroy();

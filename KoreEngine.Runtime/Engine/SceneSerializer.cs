@@ -30,7 +30,7 @@ public static class SceneSerializer
         foreach (var obj in scene.AllObjects)
             idMap[obj] = $"obj_{counter++}";
 
-        sb.AppendLine("# KoreEngine Scene File - Module 2");
+        sb.AppendLine("# KoreEngine Scene File");
         sb.AppendLine($"Scene: {scene.Name}");
 
         foreach (var obj in scene.AllObjects)
@@ -70,6 +70,7 @@ public static class SceneSerializer
         sb.AppendLine($"Object: {id} {{");
         sb.AppendLine($"    Name: {obj.Name}");
         sb.AppendLine($"    Parent: {parent}");
+        sb.AppendLine($"    Enabled: {obj.Enabled.ToString().ToLower()}");
 
         // Sauvegarde dynamique de TOUS les composants de l'objet
         foreach (var c in obj.Components)
@@ -338,6 +339,10 @@ public static class SceneSerializer
             {
                 parentMap[objId] = line["Parent:".Length..].Trim();
             }
+            else if (depth == 0 && line.StartsWith("Enabled:"))
+            {
+                obj.Enabled = line["Enabled:".Length..].Trim() == "true";
+            }
             else if (line.StartsWith("Component:"))
             {
                 if (currentComp != null)
@@ -510,7 +515,7 @@ public static class SceneSerializer
     static IEnumerable<GameObject> FlattenTree(GameObject root)
     {
         yield return root;
-        foreach (var child in root.Children)
+        foreach (var child in root.children)
             foreach (var descendant in FlattenTree(child))
                 yield return descendant;
     }

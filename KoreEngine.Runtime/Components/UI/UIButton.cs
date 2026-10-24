@@ -64,8 +64,7 @@ public class UIButton : UIElement
         if (ButtonType == ButtonType.Color)
         {
             Color color = hovered ? (pressed ? PressedColor : HoverColor) : NormalColor;
-            renderer.DrawRect((int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight,
-                color, (byte)color.A);
+            renderer.DrawTextureColor(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight, color);
         }
         else if (ButtonType == ButtonType.Image)
         {

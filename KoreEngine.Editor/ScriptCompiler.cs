@@ -21,12 +21,12 @@ public static class ScriptCompiler
     static readonly string OutputDll = Path.Combine(
         Directory.GetCurrentDirectory(), "Scripts.dll");
 
-    public static async Task CompileAsync(IEnumerable<string> csFiles)
+    public static void CompileScripts(IEnumerable<string> csFiles)
     {
         IsCompiling = true;
         Status = "Compilation en cours...";
 
-        await Task.Run(() => Compile(csFiles.ToList()));
+        Compile(csFiles.ToList());
     }
 
     static void Compile(List<string> csFiles)

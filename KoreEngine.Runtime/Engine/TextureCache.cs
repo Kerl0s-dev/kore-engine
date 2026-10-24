@@ -1,4 +1,6 @@
-﻿namespace KoreEngine;
+﻿using SDL3;
+
+namespace KoreEngine;
 
 /// <summary>
 /// Cache global de textures SDL indexées par chemin de fichier.
@@ -11,7 +13,7 @@ public static class TextureCache
     static readonly Dictionary<string, IntPtr> cache = new();
 
     public static readonly string[] SupportedExtensions =
-        { ".png", ".bmp", ".jpg", ".jpeg" };
+        { ".png", ".bmp" };
 
     public static void Init(Renderer r) => renderer = r;
 
@@ -32,8 +34,8 @@ public static class TextureCache
         try
         {
             tex = renderer.LoadTexture(Resolve(path));
+            SDL.SetTextureScaleMode(tex, ToSdl(GetFilter(path)));
             cache[path] = tex;
-            Console.WriteLine($"Loaded texture \'{tex} ({path})\'");
             return tex;
         }
         catch
@@ -42,6 +44,38 @@ public static class TextureCache
             cache[path] = IntPtr.Zero;
             return IntPtr.Zero;
         }
+    }
+
+    // Filtre par fichier physique (clé = chemin résolu). Nécessaire car le cache est indexé par le chemin
+    // *tel que demandé* : "Assets/a.png" (scène) et "C:/.../Assets/a.png" (picker, Project Panel)
+    // donnent deux textures SDL différentes pour le même fichier.
+    static readonly Dictionary<string, TextureFilterMode> filterByFile = new(StringComparer.OrdinalIgnoreCase);
+
+    static string Normalize(string path) => Path.GetFullPath(Resolve(path)).Replace('\\', '/');
+
+    static SDL.ScaleMode ToSdl(TextureFilterMode m) =>
+        m == TextureFilterMode.Nearest ? SDL.ScaleMode.Nearest : SDL.ScaleMode.Linear;
+
+    public static TextureFilterMode GetFilter(string path)
+    {
+        string key = Normalize(path);
+        if (!filterByFile.TryGetValue(key, out var mode))
+        {
+            mode = TextureImportSettings.Load(path).FilterMode;
+            filterByFile[key] = mode;
+        }
+        return mode;
+    }
+
+    /// Applique le filtre à TOUTES les textures en cache qui pointent vers ce fichier.
+    public static void SetFilter(string path, TextureFilterMode mode)
+    {
+        string key = Normalize(path);
+        filterByFile[key] = mode;
+
+        foreach (var (k, tex) in cache)
+            if (tex != IntPtr.Zero && Normalize(k) == key)
+                SDL.SetTextureScaleMode(tex, ToSdl(mode));
     }
 
     /// <summary>

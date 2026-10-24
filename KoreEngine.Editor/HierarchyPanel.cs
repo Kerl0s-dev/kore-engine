@@ -94,7 +94,7 @@ public class HierarchyPanel
     void DrawNode(GameObject obj, Scene scene)
     {
         bool isSelected = EditorSelection.Selected == obj;
-        bool hasChildren = obj.Children.Count > 0;
+        bool hasChildren = obj.children.Count > 0;
 
         ImGuiTreeNodeFlags flags =
             ImGuiTreeNodeFlags.OpenOnArrow |
@@ -103,8 +103,12 @@ public class HierarchyPanel
         if (isSelected) flags |= ImGuiTreeNodeFlags.Selected;
         if (!hasChildren) flags |= ImGuiTreeNodeFlags.Leaf;
 
-        bool open = ImGui.TreeNodeEx(
-            $"{obj.Name}##{obj.GetHashCode()}", flags);
+        bool inactive = !obj.ActiveInHierarchy;
+        if (inactive) ImGui.PushStyleColor(ImGuiCol.Text, ImGui.GetColorU32(ImGuiCol.TextDisabled));
+
+        bool open = ImGui.TreeNodeEx($"{obj.Name}##{obj.GetHashCode()}", flags);
+
+        if (inactive) ImGui.PopStyleColor();
 
         // Sélection au clic (pas sur la flèche — OpenOnArrow s'en charge)
         if (ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen())
@@ -168,7 +172,7 @@ public class HierarchyPanel
         // --- Enfants (récursif) ---
         if (open)
         {
-            foreach (var child in obj.Children.ToList())
+            foreach (var child in obj.children.ToList())
                 DrawNode(child, scene);
 
             ImGui.TreePop();

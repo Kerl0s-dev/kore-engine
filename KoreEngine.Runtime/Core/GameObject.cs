@@ -9,6 +9,19 @@ public partial class GameObject
 
     public string Name { get; set; } = "";
 
+    public bool Enabled { get; set; } = true;
+
+    public bool ActiveInHierarchy
+    {
+        get
+        {
+            for (var o = this; o != null; o = o.transform.Parent)
+                if (!o.Enabled) return false;
+            return true;
+        }
+    }
+
+
     // ---------------------------------------------------------------
     // Transform hiérarchique
     // ---------------------------------------------------------------
@@ -20,7 +33,6 @@ public partial class GameObject
     // ---------------------------------------------------------------
 
     public readonly List<GameObject> children = new();
-    public IReadOnlyList<GameObject> Children => children;
 
     // ---------------------------------------------------------------
     // Composants
@@ -110,8 +122,18 @@ public partial class GameObject
 
     public virtual void Update(float dt)
     {
+        if (!Enabled) return;
+
         foreach (var c in Components) c.Update(dt);
         foreach (var child in children) child.Update(dt);
+    }
+
+    internal virtual void Render(Renderer renderer, Camera? camera)
+    {
+        if (!Enabled) return;
+
+        foreach (var c in Components) c.Render(renderer, camera);
+        foreach (var child in children) child.Render(renderer, camera);
     }
 
     // Appelle directement la méthode virtuelle sans réflexion
@@ -133,12 +155,6 @@ public partial class GameObject
 
             Components[i].OnTriggerEnter(other);
         }
-    }
-
-    internal virtual void Render(Renderer renderer, Camera? camera)
-    {
-        foreach (var c in Components) c.Render(renderer, camera);
-        foreach (var child in children) child.Render(renderer, camera);
     }
 
     // ---------------------------------------------------------------

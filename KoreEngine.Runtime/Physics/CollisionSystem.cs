@@ -4,6 +4,8 @@
     {
         List<Collider> colliders = new();
 
+        readonly List<Collider> active = new();
+
         public void Register(Collider c) => colliders.Add(c);
         public void Unregister(Collider c) => colliders.Remove(c);
 
@@ -12,12 +14,18 @@
         //   pour B, la normale de repoussage est -normal.
         public void Update(float dt)
         {
-            for (int i = 0; i < colliders.Count; i++)
+            // Colliders des objets actifs uniquement (un parent désactivé exclut tout son sous-arbre).
+            active.Clear();
+            foreach (var c in colliders)
+                if (c.gameObject != null && c.gameObject.ActiveInHierarchy)
+                    active.Add(c);
+
+            for (int i = 0; i < active.Count; i++)
             {
-                for (int j = i + 1; j < colliders.Count; j++)
+                for (int j = i + 1; j < active.Count; j++)
                 {
-                    var a = colliders[i];
-                    var b = colliders[j];
+                    var a = active[i];
+                    var b = active[j];
 
                     PhysicsBody? bodyA = a.gameObject.GetComponent<PhysicsBody>();
                     PhysicsBody? bodyB = b.gameObject.GetComponent<PhysicsBody>();

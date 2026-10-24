@@ -18,7 +18,21 @@ public static class EditorSelection
         SceneManager.OnSceneChanging += () => Selected = null;
     }
 
-    public static GameObject? Selected { get; set; }
+    static GameObject? selected;
+    static string? selectedAssetPath;
+
+    public static GameObject? Selected
+    {
+        get => selected;
+        set { selected = value; if (value != null) selectedAssetPath = null; }
+    }
+
+    /// Chemin complet de l'asset sélectionné dans le Project Panel (null = aucun).
+    public static string? SelectedAssetPath
+    {
+        get => selectedAssetPath;
+        set { selectedAssetPath = value; if (value != null) selected = null; }
+    }
 
     // Objet en cours de drag depuis la hiérarchie — lu par InspectorPanel
     // pour les champs de type GameObject/Component assignables par drop.

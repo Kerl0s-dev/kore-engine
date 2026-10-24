@@ -58,7 +58,7 @@ public class ScriptWatcher : IDisposable
             .Distinct()
             .ToList();
 
-        _ = ScriptCompiler.CompileAsync(csFiles);
+        ScriptCompiler.CompileScripts(csFiles);
     }
     void OnChanged(object sender, FileSystemEventArgs e)
     {
@@ -123,7 +123,7 @@ public class ScriptWatcher : IDisposable
             .Distinct()
             .ToList();
 
-        _ = ScriptCompiler.CompileAsync(csFiles);
+        ScriptCompiler.CompileScripts(csFiles);
     }
 
     public void Dispose()

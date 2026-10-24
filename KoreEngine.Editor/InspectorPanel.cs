@@ -21,6 +21,13 @@ public class InspectorPanel
     {
         ImGui.Begin("Inspector");
 
+        if (EditorSelection.SelectedAssetPath is { } assetPath)
+        {
+            AssetInspector.Draw(assetPath);
+            ImGui.End();
+            return;
+        }
+
         GameObject? obj = EditorSelection.Selected;
 
         if (obj == null)
@@ -29,6 +36,16 @@ public class InspectorPanel
             ImGui.End();
             return;
         }
+
+        bool enabled = obj.Enabled;
+        ImGui.SetNextItemWidth(-1f);
+        if (ImGui.Checkbox("##enabled", ref enabled))
+            obj.Enabled = enabled;
+
+        if (obj.Enabled && !obj.ActiveInHierarchy)
+            ImGui.TextDisabled("Désactivé par un parent.");
+
+        ImGui.SameLine();
 
         // --- Nom ---
         string name = obj.Name;
@@ -159,7 +176,7 @@ public class InspectorPanel
 
     static readonly Dictionary<string, bool> listItemOpen = new();
 
-    static void DrawFieldDescriptor(Component c, InspectorField f)
+    internal static void DrawFieldDescriptor(object c, InspectorField f)
     {
         string baseId = $"{c.GetHashCode()}_{f.Label}";
 
@@ -655,7 +672,7 @@ public class InspectorPanel
     static List<string>? assetFiles;
 
     static readonly string[] AudioExtensions = { ".wav", ".mp3", ".ogg", ".flac" };
-    static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".tga" };
+    static readonly string[] ImageExtensions = { ".png", ".bmp" };
 
     static void RefreshAssetFiles() => assetFiles = ProjectPanel.GetAllProjectFiles();
 

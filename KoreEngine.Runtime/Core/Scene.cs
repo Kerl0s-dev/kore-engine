@@ -91,7 +91,7 @@ public class Scene
 
     public void Update(float dt)
     {
-        var all = AllObjects.ToList();
+        var all = ActiveObjects.ToList();
 
         // Passe 1 : tous les composants sauf PhysicsBody
         // (input, controllers, animations, state machines...)
@@ -129,7 +129,20 @@ public class Scene
         foreach (var obj in objects)
         {
             yield return obj;
-            foreach (var desc in Flatten(obj.Children))
+            foreach (var desc in Flatten(obj.children))
+                yield return desc;
+        }
+    }
+
+    public IEnumerable<GameObject> ActiveObjects => FlattenActive(RootObjects);
+
+    static IEnumerable<GameObject> FlattenActive(IEnumerable<GameObject> objects)
+    {
+        foreach (var obj in objects)
+        {
+            if (!obj.Enabled) continue;
+            yield return obj;
+            foreach (var desc in FlattenActive(obj.children))
                 yield return desc;
         }
     }
@@ -158,14 +171,14 @@ public class Scene
     {
         var collider = obj.GetComponent<Collider>();
         if (collider != null) Collisions.Register(collider);
-        foreach (var child in obj.Children) RegisterColliders(child);
+        foreach (var child in obj.children) RegisterColliders(child);
     }
 
     void UnregisterColliders(GameObject obj)
     {
         var collider = obj.GetComponent<Collider>();
         if (collider != null) Collisions.Unregister(collider);
-        foreach (var child in obj.Children) UnregisterColliders(child);
+        foreach (var child in obj.children) UnregisterColliders(child);
     }
 
     /// <summary>
@@ -177,7 +190,7 @@ public class Scene
     {
         foreach (var c in obj.Components)
             c.OnDestroy();
-        foreach (var child in obj.Children)
+        foreach (var child in obj.children)
             DestroyRecursive(child);
     }
 

@@ -83,7 +83,7 @@ public class ProjectPanel
     {
         var allFiles = new List<string>();
         string[] supportedExtensions = {
-            ".png", ".jpg", ".jpeg", ".bmp", ".tga",
+            ".png", ".bmp",
             ".ttf", ".otf",
             ".wav", ".mp3", ".ogg", ".flac"
         };
@@ -131,7 +131,7 @@ public class ProjectPanel
             {
                 try
                 {
-                    if (File.Exists(pendingDelete)) File.Delete(pendingDelete);
+                    if (File.Exists(pendingDelete)) { File.Delete(pendingDelete); AssetMeta.Delete(pendingDelete); }
                     else if (Directory.Exists(pendingDelete)) Directory.Delete(pendingDelete, true);
                 }
                 catch (Exception e) { Logger.Error($"Delete: {e.Message}"); }
@@ -289,12 +289,11 @@ public class ProjectPanel
         else
         {
             string ext = Path.GetExtension(fullPath).ToLowerInvariant();
-            if (ext is ".png" or ".bmp" or ".jpg" or ".jpeg")
+            if (ext is ".png" or ".bmp")
             {
                 IntPtr tex = TextureCache.Get(fullPath);
                 if (tex != IntPtr.Zero)
                 {
-                    SDL.SetTextureScaleMode(tex, SDL.ScaleMode.Linear);
                     ImGui.Image(tex, new System.Numerics.Vector2(iconSize, iconSize));
                 }
                 else
@@ -320,6 +319,15 @@ public class ProjectPanel
         ImGui.TextUnformatted(shortLabel);
 
         ImGui.EndGroup();
+
+        bool isSelectedAsset = !isDir && string.Equals(EditorSelection.SelectedAssetPath, fullPath, StringComparison.OrdinalIgnoreCase);
+
+        if (isSelectedAsset) {
+            ImGui.GetWindowDrawList().AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0xFFC5C5C5, 4f); // Draw a border around the selected asset
+        }
+
+        if (!isDir && ImGui.IsItemClicked(ImGuiMouseButton.Left))
+            EditorSelection.SelectedAssetPath = fullPath;
 
         // 3. Interactions
         bool isHovered = ImGui.IsItemHovered();
@@ -612,6 +620,10 @@ public class {newItemName.Trim()} : Component
 
             File.Move(renameTargetPath, newPath);
 
+            AssetMeta.Move(renameTargetPath, newPath);
+            if (string.Equals(EditorSelection.SelectedAssetPath, renameTargetPath, StringComparison.OrdinalIgnoreCase))
+                EditorSelection.SelectedAssetPath = newPath;
+
             if (ext.Equals(".cs", StringComparison.OrdinalIgnoreCase))
             {
                 string oldClassName = Path.GetFileNameWithoutExtension(renameTargetPath);
@@ -689,7 +701,7 @@ public class {newItemName.Trim()} : Component
             : new List<string>();
 
         currentFiles = Directory.Exists(selectedDir)
-            ? Directory.GetFiles(selectedDir).OrderBy(f => f).ToList()
+            ? Directory.GetFiles(selectedDir).Where(f => !AssetMeta.IsMeta(f)).OrderBy(f => f).ToList()
             : new List<string>();
     }
 
@@ -783,7 +795,7 @@ public class {newItemName.Trim()} : Component
         }
     }
 
-    bool IsPathReadOnly(string path)
+    public static bool IsPathReadOnly(string path)
     {
         var root = folderRoots.FirstOrDefault(r =>
             path.Equals(r.FullPath, StringComparison.OrdinalIgnoreCase) ||

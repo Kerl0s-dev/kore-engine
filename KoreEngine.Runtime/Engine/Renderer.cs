@@ -216,5 +216,14 @@ namespace KoreEngine
             var screen = camera.WorldToScreen(new Vector2(x, y));
             DrawTexturePart(texture, src, (int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), flipX, flipY);
         }
+
+        public void DrawTextureColor(IntPtr texture, int x, int y, int w, int h, Color color)
+        {
+            SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
+            SDL.SetTextureAlphaMod(texture, (byte)color.A);
+            DrawTexture(texture, x, y, w, h);
+            SDL.SetTextureColorMod(texture, 255, 255, 255);
+            SDL.SetTextureAlphaMod(texture, 255);
+        }
     }
 }
