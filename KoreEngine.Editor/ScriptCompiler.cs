@@ -18,24 +18,23 @@ public static class ScriptCompiler
     static AssemblyLoadContext? _pendingUnloadContext;
     static WeakReference? _pendingUnloadRef;
 
-    static readonly string OutputDll = Path.Combine(
-        Directory.GetCurrentDirectory(), "Scripts.dll");
+    static readonly string OutputDll = Path.Combine(Directory.GetCurrentDirectory(), "Scripts.dll");
 
-    public static void CompileScripts(IEnumerable<string> csFiles)
+    static readonly CSharpParseOptions ParseOptions = new(preprocessorSymbols: new[] { "KORE_ENGINE_EDITOR" });
+
+    public static async Task CompileScripts(IEnumerable<string> csFiles)
     {
         IsCompiling = true;
         Status = "Compilation en cours...";
 
-        Compile(csFiles.ToList());
+        await Task.Run(() => Compile(csFiles.ToList()));
     }
 
     static void Compile(List<string> csFiles)
     {
         try
         {
-            var syntaxTrees = csFiles
-                .Select(f => CSharpSyntaxTree.ParseText(File.ReadAllText(f), path: f))
-                .ToList();
+            var syntaxTrees = csFiles.Select(f => CSharpSyntaxTree.ParseText(File.ReadAllText(f), ParseOptions, path: f)).ToList();
 
             var references = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))

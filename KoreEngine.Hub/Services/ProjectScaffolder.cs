@@ -156,7 +156,7 @@ class Program
     $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <RuntimeIdentifier>{rid}</RuntimeIdentifier>
         <SelfContained>true</SelfContained>
@@ -172,8 +172,8 @@ class Program
 
     <ItemGroup>
         <PackageReference Include=""ImGui.NET"" Version=""1.91.6.1"" />
-        <PackageReference Include=""Microsoft.CodeAnalysis.CSharp"" Version=""5.3.0"" />
-        <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
+        <PackageReference Include=""Microsoft.CodeAnalysis.CSharp"" Version=""5.9.0"" />
+        <PackageReference Include=""SDL3-CS"" Version=""3.4.18.1"" />
     </ItemGroup>
 
 {SdlPackages.PlatformItemGroups(includeShadercross: true)}
@@ -229,6 +229,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 	<ItemGroup>
 		<Compile Include=""Assets/**/*.cs"" />
 	</ItemGroup>
+
+    <PropertyGroup>
+        <DefineConstants>$(DefineConstants);KORE_ENGINE_EDITOR</DefineConstants>
+    </PropertyGroup>
 
 	<ItemGroup>
 	<!-- Les scripts n'ont besoin que des types managés SDL (ex: SDL.Keycode
@@ -579,7 +583,7 @@ class Program
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
+        <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <RuntimeIdentifier>{rid}</RuntimeIdentifier>
         <SelfContained>true</SelfContained>
@@ -593,8 +597,14 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
     <ItemGroup>
-    <!-- Pas d'ImGui.NET ici : le Player n'affiche jamais d'éditeur. -->
+        <!-- Pas d'ImGui.NET ici : le Player n'affiche jamais d'éditeur. -->
         <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Les scripts du jeu (Assets/ et Packages/) sont compilés directement dans l'exécutable. -->
+        <Compile Include=""../Assets/**/*.cs"" LinkBase=""Assets"" />
+        <Compile Include=""../Packages/**/*.cs"" LinkBase=""Packages"" />
     </ItemGroup>
 
 {SdlPackages.PlatformItemGroups(includeShadercross: true)}

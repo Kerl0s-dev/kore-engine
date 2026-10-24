@@ -234,7 +234,7 @@ public class EditorWindow
 
                 // Ne transmet les événements clavier au jeu que si ImGui
                 // n'est pas en train de capturer le clavier (champ texte actif, etc.)
-                if (!ImGui.GetIO().WantCaptureKeyboard)
+                if (!ImGui.GetIO().WantCaptureKeyboard || e.Type == (uint)SDL.EventType.KeyUp || e.Type == (uint)SDL.EventType.WindowFocusLost)
                     Input.HandleEvent(e);
             }
 

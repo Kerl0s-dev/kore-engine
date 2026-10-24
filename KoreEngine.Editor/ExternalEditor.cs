@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace KoreEngine;
 
@@ -20,46 +22,125 @@ public static class ExternalEditor
     /// </summary>
     public static void OpenFileAtLine(string path, int line)
     {
+        string absolutePath = Path.GetFullPath(path);
         string? devenv = FindDevenv();
-        if (devenv == null)
+
+        if (devenv == null || !OperatingSystem.IsWindows())
         {
-            Logger.Warning("[ExternalEditor] devenv.exe introuvable — ouverture fallback OS.");
+            if (devenv == null) Logger.Warning("[ExternalEditor] devenv.exe introuvable — ouverture fallback OS.");
             FallbackOpen(path);
             return;
         }
 
-        try
+        string? solutionPath = GetSolutionPath();
+
+        // Pas de solution : ancien comportement (ouvre le fichier seul, à la ligne voulue).
+        if (string.IsNullOrEmpty(solutionPath))
         {
-            string absolutePath = Path.GetFullPath(path);
-            string? solutionPath = GetSolutionPath();
-
-            string arguments;
-            if (!string.IsNullOrEmpty(solutionPath))
+            try
             {
-                // Ouvre la solution et charge le fichier voulue
-                arguments = $"\"{solutionPath}\" /Command \"File.OpenFile {absolutePath}\"";
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = devenv,
+                    Arguments = $"/Edit \"{absolutePath}\" /Command \"Edit.GoTo {line}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
             }
-            else
+            catch (Exception e)
             {
-                // Ouvre le fichier direct dans Visual Studio si pas de solution détectée
-                arguments = $"/Edit \"{absolutePath}\" /Command \"Edit.GoTo {line}\"";
+                Logger.Error($"[ExternalEditor] Erreur lors du lancement de Visual Studio: {e.Message}");
+                FallbackOpen(path);
             }
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = devenv,
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            Process.Start(psi);
+            return;
         }
-        catch (Exception e)
+
+        // Thread de fond : le démarrage de VS peut prendre plusieurs dizaines de secondes.
+        Task.Run(() =>
         {
-            Logger.Error($"[ExternalEditor] Erreur lors du lancement de Visual Studio: {e.Message}");
-            FallbackOpen(path);
+            try { OpenInSolution(devenv, solutionPath, absolutePath, line); }
+            catch (Exception e)
+            {
+                Logger.Error($"[ExternalEditor] {e.Message}");
+                FallbackOpen(path);
+            }
+        });
+    }
+
+    private static void OpenInSolution(string devenv, string solution, string file, int line)
+    {
+        // 1. VS tourne déjà avec cette solution : on lui parle directement.
+        if (TryGoTo(solution, file, line)) return;
+
+        // 2. Sinon on lance VS sur la solution, puis on attend qu'elle soit chargée.
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = devenv,
+            Arguments = $"\"{solution}\"",
+            UseShellExecute = false
+        });
+
+        for (int i = 0; i < 120; i++)   // 120 x 500 ms = 60 s max
+        {
+            Thread.Sleep(500);
+            if (TryGoTo(solution, file, line)) return;
         }
+
+        Logger.Warning("[ExternalEditor] Visual Studio n'a pas fini de charger la solution à temps.");
+    }
+
+    /// <summary>
+    /// Trouve l'instance de VS qui a CETTE solution ouverte, y ouvre le fichier et saute à la ligne.
+    /// Retourne false si aucune instance ne correspond, ou si VS est occupé (chargement) : l'appelant réessaie.
+    /// </summary>
+    private static bool TryGoTo(string solution, string file, int line)
+    {
+        foreach (var obj in RunningVisualStudioInstances())
+        {
+            try
+            {
+                dynamic dte = obj;
+                string openSolution = dte.Solution.FullName;   // vide tant que la solution charge
+                if (!string.Equals(openSolution, solution, StringComparison.OrdinalIgnoreCase)) continue;
+
+                dte.ItemOperations.OpenFile(file);
+                dynamic selection = dte.ActiveDocument.Selection;
+                selection.GotoLine(line, false);                // true = sélectionne la ligne
+                dte.MainWindow.Activate();
+                return true;
+            }
+            catch
+            {
+                // VS occupé (RPC_E_CALL_REJECTED) ou pas encore prêt : on laisse l'appelant réessayer.
+            }
+        }
+        return false;
+    }
+
+    [DllImport("ole32.dll")] private static extern int GetRunningObjectTable(uint reserved, out IRunningObjectTable rot);
+    [DllImport("ole32.dll")] private static extern int CreateBindCtx(uint reserved, out IBindCtx ctx);
+
+    /// <summary>Instances de VS enregistrées dans la table des objets COM en cours (ROT).</summary>
+    private static List<object> RunningVisualStudioInstances()
+    {
+        var result = new List<object>();
+
+        if (GetRunningObjectTable(0, out var rot) != 0) return result;
+        if (CreateBindCtx(0, out var ctx) != 0) return result;
+
+        rot.EnumRunning(out var enumerator);
+        var monikers = new IMoniker[1];
+
+        while (enumerator.Next(1, monikers, IntPtr.Zero) == 0)
+        {
+            monikers[0].GetDisplayName(ctx, null, out string name);
+            if (!name.StartsWith("!VisualStudio.DTE", StringComparison.OrdinalIgnoreCase)) continue;
+
+            rot.GetObject(monikers[0], out object instance);
+            result.Add(instance);
+        }
+
+        return result;
     }
 
     /// <summary>
