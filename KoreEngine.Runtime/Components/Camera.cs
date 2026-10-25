@@ -65,7 +65,7 @@ namespace KoreEngine
 
             // 2. Convertit les pixels en mètres et ajoute la position de la caméra
             float worldX = Position.X + (pixelOffsetX / Renderer.PixelsPerUnit);
-            float worldY = Position.Y - (pixelOffsetY / Renderer.PixelsPerUnit); // Inversion Y symétrique
+            float worldY = Position.Y - (pixelOffsetY / Renderer.PixelsPerUnit); // Y inversé (Écran Y-bas → Monde Y-haut)
 
             return new Vector2(worldX, worldY);
         }

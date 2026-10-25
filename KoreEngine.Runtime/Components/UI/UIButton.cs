@@ -131,5 +131,11 @@ public class UIButton : UIElement
                 Set = v => PressedColor = v
             };
         }
+
+        yield return new KoreEventField
+        {
+            Label = "On Click",
+            Get = () => OnClick
+        };
     }
 }

@@ -4,8 +4,8 @@ namespace KoreEngine;
 
 public class Collider : Component
 {
-    public int Width, Height;
-    public int OffsetX, OffsetY;
+    public int Width = 1, Height = 1;
+    public int OffsetX = 0, OffsetY = 0;
     public string Tag = ""; // "player", "enemy", "trigger"...
     public bool IsTrigger = false; // trigger = détecte sans résoudre
 

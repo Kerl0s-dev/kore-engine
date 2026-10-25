@@ -17,7 +17,7 @@ namespace KoreEngine
         public string TexturePath = "";
 
         // Taille du sprite dans le monde (en MÈTRES)
-        public Vector2 Size = new Vector2(0.8f, 1.2f);
+        public Vector2 Size = new Vector2(1.0f, 1.0f);
 
         // Taille d'une frame sur la texture (en PIXELS)
         public Vector2 FrameSize = new Vector2(16, 16);

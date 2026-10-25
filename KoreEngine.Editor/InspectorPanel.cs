@@ -506,11 +506,11 @@ public class InspectorPanel
             else if (type == typeof(Rectangle))
             {
                 var r = val is Rectangle rect ? rect : new Rectangle(0, 0, 0, 0);
-                int rx = r.X, ry = r.Y, rw = r.Width, rh = r.Height;
-                DrawField($"{field.Name} X", () => { if (ImGui.DragInt($"{id}_rx", ref rx)) field.SetValue(c, new Rectangle(rx, r.Y, r.Width, r.Height)); });
-                DrawField($"{field.Name} Y", () => { if (ImGui.DragInt($"{id}_ry", ref ry)) field.SetValue(c, new Rectangle(r.X, ry, r.Width, r.Height)); });
-                DrawField($"{field.Name} Width", () => { if (ImGui.DragInt($"{id}_rw", ref rw)) field.SetValue(c, new Rectangle(r.X, r.Y, rw, r.Height)); });
-                DrawField($"{field.Name} Height", () => { if (ImGui.DragInt($"{id}_rh", ref rh)) field.SetValue(c, new Rectangle(r.X, r.Y, r.Width, rh)); });
+                float rx = r.X, ry = r.Y, rw = r.Width, rh = r.Height;
+                DrawField($"{field.Name} X", () => { if (ImGui.DragFloat($"{id}_rx", ref rx)) field.SetValue(c, new Rectangle(rx, r.Y, r.Width, r.Height)); });
+                DrawField($"{field.Name} Y", () => { if (ImGui.DragFloat($"{id}_ry", ref ry)) field.SetValue(c, new Rectangle(r.X, ry, r.Width, r.Height)); });
+                DrawField($"{field.Name} Width", () => { if (ImGui.DragFloat($"{id}_rw", ref rw)) field.SetValue(c, new Rectangle(r.X, r.Y, rw, r.Height)); });
+                DrawField($"{field.Name} Height", () => { if (ImGui.DragFloat($"{id}_rh", ref rh)) field.SetValue(c, new Rectangle(r.X, r.Y, r.Width, rh)); });
             }
             else if (type.IsEnum)
             {
