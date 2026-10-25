@@ -122,7 +122,7 @@ namespace KoreEngine
             float x = pos.X - w * 0.5f;
             float y = pos.Y + h * 0.5f; // Ajuste selon ton orientation Y (haut/bas)
 
-            double angle = gameObject.transform.WorldRotation;
+            double angle = -gameObject.transform.WorldRotation;
 
             if (StateMachine != null)
             {

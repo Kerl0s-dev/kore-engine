@@ -479,10 +479,10 @@ public static class SceneSerializer
         {
             var parts = value.Split(',');
             if (parts.Length >= 4 &&
-                int.TryParse(parts[0].Trim(), out int rx) &&
-                int.TryParse(parts[1].Trim(), out int ry) &&
-                int.TryParse(parts[2].Trim(), out int rw) &&
-                int.TryParse(parts[3].Trim(), out int rh))
+                float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float, inv, out float rx) &&
+                float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float, inv, out float ry) &&
+                float.TryParse(parts[2].Trim(), System.Globalization.NumberStyles.Float, inv, out float rw) &&
+                float.TryParse(parts[3].Trim(), System.Globalization.NumberStyles.Float, inv, out float rh))
             {
                 return new Rectangle(rx, ry, rw, rh);
             }

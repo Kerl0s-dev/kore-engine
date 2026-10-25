@@ -2,6 +2,7 @@
 using SDL3;
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace KoreEngine;
@@ -259,8 +260,7 @@ public class ProjectPanel
         int cols = Math.Max(1, (int)(panelW / cellW));
         int col = 0;
 
-        if (ImGui.BeginPopupContextWindow("##grid_ctx",
-            ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
+        if (ImGui.BeginPopupContextWindow("##grid_ctx", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
         {
             DrawContextMenuEmpty();
             ImGui.EndPopup();
@@ -279,7 +279,8 @@ public class ProjectPanel
 
     void DrawGridItem(string label, string fullPath, bool isDir, ref int col, int cols)
     {
-        float cellW = iconSize + padding;
+        // Utilisation d'un scope ID unique pour cette cellule de la grille
+        ImGui.PushID($"##grid_item_{fullPath.GetHashCode()}");
 
         ImGui.BeginGroup();
 
@@ -300,8 +301,6 @@ public class ProjectPanel
             string ext = Path.GetExtension(fullPath).ToLowerInvariant();
             if (ext is ".png" or ".bmp")
             {
-                // Pas de SetTextureScaleMode ici : la texture vient de TextureCache, son filtrage
-                // est celui de ses réglages d'import (.kmeta) et ne doit pas être écrasé à chaque frame.
                 IntPtr tex = TextureCache.Get(fullPath);
                 if (tex != IntPtr.Zero)
                     ImGui.Image(tex, new System.Numerics.Vector2(iconSize, iconSize));
@@ -329,20 +328,67 @@ public class ProjectPanel
 
         ImGui.EndGroup();
 
-        // 3. Sélection d'un asset (affiché dans l'Inspector) + surbrillance
+        // 3. Sélection d'un asset + surbrillance
         bool isSelectedAsset = !isDir &&
             string.Equals(EditorSelection.SelectedAssetPath, fullPath, StringComparison.OrdinalIgnoreCase);
 
         if (isSelectedAsset)
-            ImGui.GetWindowDrawList().AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0xFFC5C5C5, 4f); // Draw a border around the selected item
+            ImGui.GetWindowDrawList().AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0xFFC5C5C5, 4f);
 
-        if (!isDir && ImGui.IsItemClicked(ImGuiMouseButton.Left))
-            EditorSelection.SelectedAssetPath = fullPath;
-
-        // 4. Interactions
         bool isHovered = ImGui.IsItemHovered();
         bool dblClicked = isHovered && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
 
+        if (!isDir && isHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            EditorSelection.SelectedAssetPath = fullPath;
+
+        // 4. Drag & Drop - SOURCE (Unsafe)
+        // On utilise ImGuiButtonFlags.PressedOnClick (via comportement par défaut d'ImGui sur l'ID du groupe)
+        if (!isDir && isHovered && ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceAllowNullID))
+        {
+            byte[] pathBytes = System.Text.Encoding.UTF8.GetBytes(fullPath + "\0");
+            unsafe
+            {
+                fixed (byte* p = pathBytes)
+                {
+                    ImGui.SetDragDropPayload("ASSET_PATH", (IntPtr)p, (uint)pathBytes.Length);
+                }
+            }
+            ImGui.TextUnformatted(label);
+            ImGui.EndDragDropSource();
+        }
+
+        // 5. Drag & Drop - TARGET (Unsafe)
+        // Pour une cible sans widget bouton, on teste si le payload survole le rectangle du groupe
+        if (isDir && isHovered && ImGui.BeginDragDropTarget())
+        {
+            unsafe
+            {
+                ImGuiPayload* payload = ImGui.AcceptDragDropPayload("ASSET_PATH");
+                if (payload != null)
+                {
+                    string sourcePath = Marshal.PtrToStringAnsi((IntPtr)payload->Data)!;
+                    if (!string.IsNullOrEmpty(sourcePath) && File.Exists(sourcePath))
+                    {
+                        if (!string.Equals(sourcePath, fullPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                string destPath = Path.Combine(fullPath, Path.GetFileName(sourcePath));
+                                File.Move(sourcePath, destPath);
+                                RefreshCurrentDir();
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Error($"DragDrop Unsafe: {e.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+            ImGui.EndDragDropTarget();
+        }
+
+        // 6. Interactions (Tooltip, Double Clic, Menu contextuel)
         if (isHovered) ImGui.SetTooltip(label);
 
         if (dblClicked)
@@ -357,9 +403,18 @@ public class ProjectPanel
             ImGui.EndPopup();
         }
 
+        ImGui.PopID();
+
+        // 7. Gestion de la grille
         col++;
-        if (col < cols) ImGui.SameLine(col * cellW);
-        else col = 0;
+        if (col < cols)
+        {
+            ImGui.SameLine(0f, padding);
+        }
+        else
+        {
+            col = 0;
+        }
     }
 
     void DrawIconPlaceholder(float size, uint color, string text)

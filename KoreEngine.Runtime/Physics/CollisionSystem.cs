@@ -6,6 +6,8 @@
 
         readonly List<Collider> active = new();
 
+        readonly RigidBodyBridge rigid = new();
+
         public void Register(Collider c) => colliders.Add(c);
         public void Unregister(Collider c) => colliders.Remove(c);
 
@@ -14,6 +16,8 @@
         //   pour B, la normale de repoussage est -normal.
         public void Update(float dt)
         {
+            rigid.Begin();
+
             // Colliders des objets actifs uniquement (un parent désactivé exclut tout son sous-arbre).
             active.Clear();
             foreach (var c in colliders)
@@ -38,6 +42,12 @@
                     if (aStatic && bStatic) continue;
 
                     CheckGrounded(a, b, bodyA, bodyB, aStatic, bStatic);
+
+                    var shapeA = a.GetWorldShape();
+                    var shapeB = b.GetWorldShape();
+
+                    bool needsSat = !shapeA.IsAxisAlignedBox || !shapeB.IsAxisAlignedBox || (!aStatic && !bodyA.FreezeRotation) || (!bStatic && !bodyB.FreezeRotation);
+                    if (needsSat) { ResolveShapes(a, b, bodyA, bodyB, aStatic, bStatic, shapeA, shapeB); continue; }
 
                     // Déplacement réel effectué par PhysicsBody pendant cette frame
                     Vector2 dispA = Displacement(a, bodyA);
@@ -120,6 +130,8 @@
                     b.OnCollision(a);
                 }
             }
+
+            rigid.SolveAndApply();
         }
 
         // Déplacement effectué par le corps pendant la frame (position actuelle - position avant intégration)
@@ -171,6 +183,38 @@
             }
 
             return true;
+        }
+
+        void ResolveShapes(Collider a, Collider b, PhysicsBody bodyA, PhysicsBody bodyB, bool aStatic, bool bStatic, in WorldShape sa, in WorldShape sb)
+        {
+            if (!sa.Bounds.Intersects(sb.Bounds)) return;
+            if (!ShapeCollision.Test(sa, sb, out Vector2 normal, out float pen, out ContactManifold manifold)) return;
+
+            if (a.IsTrigger || b.IsTrigger)
+            {
+                a.OnTriggerEnter(b);
+                b.OnTriggerEnter(a);
+                return;
+            }
+
+            rigid.Add(a, bodyA, b, bodyB, sa, sb, normal, manifold);   // avant de déplacer les objets
+
+            if (aStatic || bStatic)
+            {
+                Collider dyn = aStatic ? b : a;
+                Vector2 n = aStatic ? -normal : normal;
+                dyn.gameObject.transform.Position += n * pen;
+            }
+            else
+            {
+                float totalMass = bodyA.Mass + bodyB.Mass;
+                Vector2 push = normal * pen;
+                a.gameObject.transform.Position += push * (bodyB.Mass / totalMass);
+                b.gameObject.transform.Position -= push * (bodyA.Mass / totalMass);
+            }
+
+            a.OnCollision(b);
+            b.OnCollision(a);
         }
 
         // Sweep de A contre B, chacun avec son déplacement sur la frame.
@@ -261,14 +305,14 @@
 
             if (!aStatic && bStatic)
             {
-                float distBottom = rb.Top - ra.Bottom;
-                if (distBottom >= -8f && distBottom <= 2f)
+                float distBottom = ra.Bottom - rb.Top;
+                if (distBottom >= -0.08f && distBottom <= 0.02f)
                     bodyA.IsGrounded = true;
             }
             else if (aStatic && !bStatic)
             {
-                float distBottom = ra.Top - rb.Bottom;
-                if (distBottom >= -10f && distBottom <= 2f)
+                float distBottom = rb.Bottom - ra.Top;
+                if (distBottom >= -0.08f && distBottom <= 0.02f)
                     bodyB.IsGrounded = true;
             }
         }
@@ -284,7 +328,7 @@
                 body.Velocity -= normal * dot * (1f + restitution);
             }
 
-            if (normal.Y < -0.5f)
+            if (normal.Y > 0.5f)
                 body.IsGrounded = true;
         }
     }

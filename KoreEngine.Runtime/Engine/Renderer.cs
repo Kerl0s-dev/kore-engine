@@ -29,7 +29,7 @@ namespace KoreEngine
 
         public bool AutoFlush = true;
 
-        public static int PixelsPerUnit = 100;   // 1 unité = 100 pixels
+        public static float PixelsPerUnit = 100f;   // 1 unité = 100 pixels
 
         public Renderer(IntPtr window)
         {
@@ -218,8 +218,7 @@ namespace KoreEngine
                 flipX, flipY, angle);
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h)
-            => DrawTexturePart(texture, src, x, y, w, h, false, false);
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h) => DrawTexturePart(texture, src, x, y, w, h, false, false);
 
         public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY)
         {
@@ -231,8 +230,7 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Camera camera)
-            => DrawTexturePart(texture, src, x, y, w, h, false, false, camera);
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Camera camera) => DrawTexturePart(texture, src, x, y, w, h, false, false, camera);
 
         public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, Camera camera)
         {
@@ -252,6 +250,18 @@ namespace KoreEngine
 
             SDL.SetTextureColorMod(texture, 255, 255, 255);
             SDL.SetTextureAlphaMod(texture, 255);
+        }
+
+        // ---------------------------------------------------------------
+        // Lines
+        // ---------------------------------------------------------------
+
+        public void DrawLine(float x1, float y1, float x2, float y2, byte r, byte g, byte b, byte a)
+        {
+            SDL.SetRenderDrawBlendMode(Handle, SDL.BlendMode.Blend);
+            SDL.SetRenderDrawColor(Handle, r, g, b, a);
+            SDL.RenderLine(Handle, x1, y1, x2, y2);
+            AutoFlushIfEnabled();
         }
     }
 }

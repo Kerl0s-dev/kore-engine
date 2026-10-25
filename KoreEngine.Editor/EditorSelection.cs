@@ -41,6 +41,10 @@ public static class EditorSelection
     // pour les champs de type GameObject/Component assignables par drop.
     public static GameObject? DraggedObject { get; set; }
 
+    /// Asset en cours de drag depuis le Project Panel — lu par InspectorPanel
+    /// pour les champs de type Asset assignables par drop.
+    public static string? DraggedAssetPath { get; set; }
+
     public static void ClearIfDeleted(GameObject obj)
     {
         if (Selected == obj) Selected = null;

@@ -109,10 +109,26 @@ public class ViewportPanel
             scene.Camera = previous;
     }
 
-    /// <summary>
-    /// Dessine le contour wireframe du Collider de l'objet sélectionné.
-    /// Vert pour un collider normal, jaune pour un trigger.
-    /// </summary>
+    void WorldLine(Camera cam, KoreEngine.Vector2 p, KoreEngine.Vector2 q, byte r, byte g, byte b, byte a)
+    {
+        var s0 = cam.WorldToScreen(p);
+        var s1 = cam.WorldToScreen(q);
+        renderer.DrawLine(s0.X, s0.Y, s1.X, s1.Y, r, g, b, a);
+    }
+
+    void WorldArc(Camera cam, KoreEngine.Vector2 c, float radius, float start, float sweep, byte r, byte g, byte b, byte a)
+    {
+        int n = Math.Max(8, (int)(MathF.Abs(sweep) / (2f * MathF.PI) * 32f));
+        var prev = new KoreEngine.Vector2(c.X + MathF.Cos(start) * radius, c.Y + MathF.Sin(start) * radius);
+        for (int i = 1; i <= n; i++)
+        {
+            float ang = start + sweep * i / n;
+            var cur = new KoreEngine.Vector2(c.X + MathF.Cos(ang) * radius, c.Y + MathF.Sin(ang) * radius);
+            WorldLine(cam, prev, cur, r, g, b, a);
+            prev = cur;
+        }
+    }
+
     void RenderColliderOverlay(Camera camera)
     {
         var selected = EditorSelection.Selected;
@@ -121,17 +137,43 @@ public class ViewportPanel
         var collider = selected.GetComponent<Collider>();
         if (collider == null) return;
 
-        var bounds = collider.Bounds;
+        byte r = collider.IsTrigger ? (byte)255 : (byte)0, g = 255, b = 0;
+        var s = collider.GetWorldShape();
 
-        byte r = collider.IsTrigger ? (byte)255 : (byte)0;
-        byte g = 255;
-        byte b = collider.IsTrigger ? (byte)0 : (byte)0;
+        if (s.Type == ColliderShapeType.Box)
+        {
+            var ex = s.AxisX * s.HalfExtents.X;
+            var ey = s.AxisY * s.HalfExtents.Y;
+            var p0 = s.Center - ex + ey; var p1 = s.Center + ex + ey;
+            var p2 = s.Center + ex - ey; var p3 = s.Center - ex - ey;
+            WorldLine(camera, p0, p1, r, g, b, 255); WorldLine(camera, p1, p2, r, g, b, 255);
+            WorldLine(camera, p2, p3, r, g, b, 255); WorldLine(camera, p3, p0, r, g, b, 255);
+        }
+        else
+        {
+            var d = s.SegB - s.SegA;
+            if (d.LengthSquared() < 1e-8f)
+            {
+                WorldArc(camera, s.SegA, s.Radius, 0f, 2f * MathF.PI, r, g, b, 255);
+            }
+            else
+            {
+                var u = d.Normalize();
+                var v = new KoreEngine.Vector2(-u.Y, u.X);
+                float th = MathF.Atan2(u.Y, u.X);
+                WorldLine(camera, s.SegA + v * s.Radius, s.SegB + v * s.Radius, r, g, b, 255);
+                WorldLine(camera, s.SegA - v * s.Radius, s.SegB - v * s.Radius, r, g, b, 255);
+                WorldArc(camera, s.SegB, s.Radius, th + MathF.PI / 2f, -MathF.PI, r, g, b, 255);
+                WorldArc(camera, s.SegA, s.Radius, th - MathF.PI / 2f, -MathF.PI, r, g, b, 255);
+            }
+        }
 
-        renderer.DrawRectOutline(
-            bounds.X, bounds.Y + bounds.Height,
-            bounds.Width, bounds.Height,
-            r, g, b, 255,
-            camera);
+        // AABB englobant (phase large / CheckGrounded), en transparence si la forme n'y est pas confondue
+        if (!s.IsAxisAlignedBox)
+        {
+            var bb = s.Bounds;
+            renderer.DrawRectOutline(bb.X, bb.Y + bb.Height, bb.Width, bb.Height, r, g, b, 90, camera);
+        }
     }
 
     // ---------------------------------------------------------------
