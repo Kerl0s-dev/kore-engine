@@ -29,6 +29,8 @@ namespace KoreEngine
 
         public bool AutoFlush = true;
 
+        public static int PixelsPerUnit = 100;   // 1 unité = 100 pixels
+
         public Renderer(IntPtr window)
         {
             // EditorWindow ou GameLoop passe le pointeur de FENÊTRE ici (new Renderer(window)),
@@ -82,7 +84,7 @@ namespace KoreEngine
         // Rectangles
         // ---------------------------------------------------------------
 
-        public void DrawRectOutline(int x, int y, int w, int h, byte r, byte g, byte b, byte a)
+        public void DrawRectOutline(float x, float y, float w, float h, byte r, byte g, byte b, byte a)
         {
             SDL.SetRenderDrawBlendMode(Handle, SDL.BlendMode.Blend);
             SDL.SetRenderDrawColor(Handle, r, g, b, a);
@@ -91,16 +93,17 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawRectOutline(int x, int y, int w, int h, byte r, byte g, byte b, byte a, Camera camera)
+        public void DrawRectOutline(float x, float y, float w, float h, byte r, byte g, byte b, byte a, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
             DrawRectOutline(
-                (int)screen.X, (int)screen.Y,
-                (int)(w * camera.Zoom), (int)(h * camera.Zoom),
+                screen.X, screen.Y,
+                w * PixelsPerUnit * camera.Zoom,
+                h * PixelsPerUnit * camera.Zoom,
                 r, g, b, a);
         }
 
-        public void DrawRect(int x, int y, int w, int h, Color color, byte a)
+        public void DrawRect(float x, float y, float w, float h, Color color, byte a)
         {
             SDL.SetRenderDrawBlendMode(Handle, SDL.BlendMode.Blend);
             SDL.SetRenderDrawColor(Handle, (byte)color.R, (byte)color.G, (byte)color.B, a);
@@ -109,10 +112,14 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawRect(int x, int y, int w, int h, Color color, byte a, Camera camera)
+        public void DrawRect(float x, float y, float w, float h, Color color, byte a, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawRect((int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), color, a);
+            DrawRect(
+                screen.X, screen.Y,
+                w * PixelsPerUnit * camera.Zoom,
+                h * PixelsPerUnit * camera.Zoom,
+                color, a);
         }
 
         // ---------------------------------------------------------------
@@ -143,10 +150,10 @@ namespace KoreEngine
             return texture;
         }
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h)
             => DrawTexture(texture, x, y, w, h, false, false);
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h, bool flipX, bool flipY)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY)
         {
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
@@ -155,16 +162,21 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h, Camera camera)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, Camera camera)
             => DrawTexture(texture, x, y, w, h, false, false, camera);
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h, bool flipX, bool flipY, Camera camera)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexture(texture, (int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), flipX, flipY);
+            DrawTexture(
+                texture,
+                screen.X, screen.Y,
+                w * PixelsPerUnit * camera.Zoom,
+                h * PixelsPerUnit * camera.Zoom,
+                flipX, flipY);
         }
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h, bool flipX, bool flipY, double angle)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, double angle)
         {
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
@@ -173,13 +185,18 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexture(IntPtr texture, int x, int y, int w, int h, bool flipX, bool flipY, double angle, Camera camera)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, double angle, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexture(texture, (int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), flipX, flipY, angle);
+            DrawTexture(
+                texture,
+                screen.X, screen.Y,
+                w * PixelsPerUnit * camera.Zoom,
+                h * PixelsPerUnit * camera.Zoom,
+                flipX, flipY, angle);
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h, bool flipX, bool flipY, double angle)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, double angle)
         {
             var srcRect = new SDL.FRect { X = src.X, Y = src.Y, W = src.Width, H = src.Height };
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
@@ -189,16 +206,22 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h, bool flipX, bool flipY, double angle, Camera camera)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, double angle, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexturePart(texture, src, (int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), flipX, flipY, angle);
+            DrawTexturePart(
+                texture,
+                src,
+                screen.X, screen.Y,
+                w * PixelsPerUnit * camera.Zoom,
+                h * PixelsPerUnit * camera.Zoom,
+                flipX, flipY, angle);
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h)
             => DrawTexturePart(texture, src, x, y, w, h, false, false);
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h, bool flipX, bool flipY)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY)
         {
             var srcRect = new SDL.FRect { X = src.X, Y = src.Y, W = src.Width, H = src.Height };
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
@@ -208,20 +231,25 @@ namespace KoreEngine
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h, Camera camera)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Camera camera)
             => DrawTexturePart(texture, src, x, y, w, h, false, false, camera);
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, int x, int y, int w, int h, bool flipX, bool flipY, Camera camera)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, Camera camera)
         {
             var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexturePart(texture, src, (int)screen.X, (int)screen.Y, (int)(w * camera.Zoom), (int)(h * camera.Zoom), flipX, flipY);
+            DrawTexturePart(texture, src, screen.X, screen.Y, w * camera.Zoom, h * camera.Zoom, flipX, flipY);
         }
 
-        public void DrawTextureColor(IntPtr texture, int x, int y, int w, int h, Color color)
+        public void DrawTextureColor(IntPtr texture, float x, float y, float w, float h, Color color)
         {
             SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
             SDL.SetTextureAlphaMod(texture, (byte)color.A);
+
+
             DrawTexture(texture, x, y, w, h);
+
+            if (!AutoFlush) Flush();
+
             SDL.SetTextureColorMod(texture, 255, 255, 255);
             SDL.SetTextureAlphaMod(texture, 255);
         }

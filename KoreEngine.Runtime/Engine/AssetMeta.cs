@@ -1,5 +1,9 @@
 ﻿namespace KoreEngine;
 
+/// <summary>
+/// Fichiers ".kmeta" à côté des assets (player.png -> player.png.kmeta) :
+/// réglages d'import au même format "Clé: Valeur" que les scènes.
+/// </summary>
 public static class AssetMeta
 {
     public const string Extension = ".kmeta";
@@ -28,7 +32,7 @@ public static class AssetMeta
         catch (Exception e) { Logger.Error($"[AssetMeta] Écriture de {PathFor(assetPath)} : {e.Message}"); }
     }
 
-    /// À appeler quand l'asset est renommé : le .kmeta le suit.
+    /// <summary>À appeler quand l'asset est renommé : le .kmeta le suit.</summary>
     public static void Move(string oldAsset, string newAsset)
     {
         string oldMeta = PathFor(oldAsset);

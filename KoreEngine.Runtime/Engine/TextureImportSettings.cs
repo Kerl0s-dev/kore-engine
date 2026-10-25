@@ -4,7 +4,7 @@ public enum TextureFilterMode { Nearest, Linear }   // l'ordre = l'index du comb
 
 public class TextureImportSettings
 {
-    // Linear = le comportement actuel (défaut SDL) : les textures existantes ne changent pas d'aspect.
+    // Linear = le comportement historique (défaut SDL) : les textures existantes ne changent pas d'aspect.
     public const TextureFilterMode Default = TextureFilterMode.Linear;
     public TextureFilterMode FilterMode = Default;
 

@@ -207,10 +207,10 @@ public class ViewportPanel
         if (sprite != null)
         {
             var scale = obj.transform.WorldScale;
-            int w = (int)(sprite.Size.X * scale.X);
-            int h = (int)(sprite.Size.Y * scale.Y);
+            float w = sprite.Size.X * scale.X;
+            float h = sprite.Size.Y * scale.Y;
             var pos = obj.transform.WorldPosition;
-            return new Rectangle((int)(pos.X - w / 2f), (int)(pos.Y - h / 2f), w, h);
+            return new Rectangle(pos.X - w / 2f, pos.Y - h / 2f, w, h);
         }
 
         return null;

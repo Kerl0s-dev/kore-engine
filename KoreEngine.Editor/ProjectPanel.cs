@@ -82,6 +82,8 @@ public class ProjectPanel
     public static List<string> GetAllProjectFiles()
     {
         var allFiles = new List<string>();
+
+        // Images : seulement .png et .bmp (Renderer.LoadTexture ne décode rien d'autre pour l'instant).
         string[] supportedExtensions = {
             ".png", ".bmp",
             ".ttf", ".otf",
@@ -131,7 +133,14 @@ public class ProjectPanel
             {
                 try
                 {
-                    if (File.Exists(pendingDelete)) { File.Delete(pendingDelete); AssetMeta.Delete(pendingDelete); }
+                    if (File.Exists(pendingDelete))
+                    {
+                        File.Delete(pendingDelete);
+                        AssetMeta.Delete(pendingDelete);   // le .kmeta disparaît avec son asset
+
+                        if (string.Equals(EditorSelection.SelectedAssetPath, pendingDelete, StringComparison.OrdinalIgnoreCase))
+                            EditorSelection.SelectedAssetPath = null;
+                    }
                     else if (Directory.Exists(pendingDelete)) Directory.Delete(pendingDelete, true);
                 }
                 catch (Exception e) { Logger.Error($"Delete: {e.Message}"); }
@@ -291,11 +300,11 @@ public class ProjectPanel
             string ext = Path.GetExtension(fullPath).ToLowerInvariant();
             if (ext is ".png" or ".bmp")
             {
+                // Pas de SetTextureScaleMode ici : la texture vient de TextureCache, son filtrage
+                // est celui de ses réglages d'import (.kmeta) et ne doit pas être écrasé à chaque frame.
                 IntPtr tex = TextureCache.Get(fullPath);
                 if (tex != IntPtr.Zero)
-                {
                     ImGui.Image(tex, new System.Numerics.Vector2(iconSize, iconSize));
-                }
                 else
                     DrawIconPlaceholder(iconSize, 0xFF555555, "?");
             }
@@ -320,16 +329,17 @@ public class ProjectPanel
 
         ImGui.EndGroup();
 
-        bool isSelectedAsset = !isDir && string.Equals(EditorSelection.SelectedAssetPath, fullPath, StringComparison.OrdinalIgnoreCase);
+        // 3. Sélection d'un asset (affiché dans l'Inspector) + surbrillance
+        bool isSelectedAsset = !isDir &&
+            string.Equals(EditorSelection.SelectedAssetPath, fullPath, StringComparison.OrdinalIgnoreCase);
 
-        if (isSelectedAsset) {
-            ImGui.GetWindowDrawList().AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0xFFC5C5C5, 4f); // Draw a border around the selected asset
-        }
+        if (isSelectedAsset)
+            ImGui.GetWindowDrawList().AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0xFFC5C5C5, 4f); // Draw a border around the selected item
 
         if (!isDir && ImGui.IsItemClicked(ImGuiMouseButton.Left))
             EditorSelection.SelectedAssetPath = fullPath;
 
-        // 3. Interactions
+        // 4. Interactions
         bool isHovered = ImGui.IsItemHovered();
         bool dblClicked = isHovered && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
 
@@ -365,7 +375,7 @@ public class ProjectPanel
     }
 
     // ---------------------------------------------------------------
-    // Menus contextuels & Popups (inchangés)
+    // Menus contextuels & Popups
     // ---------------------------------------------------------------
 
     void DrawContextMenuEmpty()
@@ -606,6 +616,12 @@ public class {newItemName.Trim()} : Component
             else if (selectedDir.StartsWith(renameTargetPath + Path.DirectorySeparatorChar,
                          StringComparison.OrdinalIgnoreCase))
                 selectedDir = newPath + selectedDir.Substring(renameTargetPath.Length);
+
+            // L'asset sélectionné (Inspector) était peut-être dans ce dossier : on suit le renommage.
+            var sel = EditorSelection.SelectedAssetPath;
+            if (sel != null && sel.StartsWith(renameTargetPath + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+                EditorSelection.SelectedAssetPath = newPath + sel.Substring(renameTargetPath.Length);
         }
         else
         {
@@ -619,10 +635,10 @@ public class {newItemName.Trim()} : Component
             if (File.Exists(newPath)) return false;
 
             File.Move(renameTargetPath, newPath);
+            AssetMeta.Move(renameTargetPath, newPath);   // le .kmeta suit son asset
 
-            AssetMeta.Move(renameTargetPath, newPath);
             if (string.Equals(EditorSelection.SelectedAssetPath, renameTargetPath, StringComparison.OrdinalIgnoreCase))
-                EditorSelection.SelectedAssetPath = newPath;
+                EditorSelection.SelectedAssetPath = newPath;   // l'Inspector suit le renommage
 
             if (ext.Equals(".cs", StringComparison.OrdinalIgnoreCase))
             {
@@ -700,6 +716,7 @@ public class {newItemName.Trim()} : Component
             ? Directory.GetDirectories(selectedDir).OrderBy(d => d).ToList()
             : new List<string>();
 
+        // Les .kmeta (réglages d'import) ne s'affichent pas : ils suivent leur asset.
         currentFiles = Directory.Exists(selectedDir)
             ? Directory.GetFiles(selectedDir).Where(f => !AssetMeta.IsMeta(f)).OrderBy(f => f).ToList()
             : new List<string>();
@@ -795,6 +812,7 @@ public class {newItemName.Trim()} : Component
         }
     }
 
+    /// <summary>Public et statique : l'Inspector d'assets s'en sert pour griser les réglages des dossiers en lecture seule.</summary>
     public static bool IsPathReadOnly(string path)
     {
         var root = folderRoots.FirstOrDefault(r =>

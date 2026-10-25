@@ -7,6 +7,9 @@ public enum GizmoSpace { Local, World }
 /// Source de vérité unique pour la sélection courante dans l'éditeur.
 /// HierarchyPanel écrit dedans, InspectorPanel lit dedans.
 /// Statique pour éviter de faire passer une référence partout.
+///
+/// Deux sélections mutuellement exclusives : un objet de la scène (Selected) ou un asset du
+/// Project Panel (SelectedAssetPath). Sélectionner l'un vide l'autre.
 /// </summary>
 public static class EditorSelection
 {
@@ -27,7 +30,7 @@ public static class EditorSelection
         set { selected = value; if (value != null) selectedAssetPath = null; }
     }
 
-    /// Chemin complet de l'asset sélectionné dans le Project Panel (null = aucun).
+    /// <summary>Chemin complet de l'asset sélectionné dans le Project Panel (null = aucun).</summary>
     public static string? SelectedAssetPath
     {
         get => selectedAssetPath;

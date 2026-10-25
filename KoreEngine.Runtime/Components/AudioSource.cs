@@ -12,6 +12,7 @@ public class AudioSource : Component
     [NonSerialized] IntPtr audio = IntPtr.Zero;
     [NonSerialized] IntPtr track = IntPtr.Zero;
     [NonSerialized] string loadedPath = "";
+    [NonSerialized] DateTime loadedMetaStamp;
 
     public override IEnumerable<InspectorField> GetInspectorFields()
     {
@@ -26,7 +27,8 @@ public class AudioSource : Component
         {
             Label = "Volume",
             Get = () => Volume,
-            Set = v => Volume = v,
+            // Applique aussi le changement à un son déjà en cours de lecture.
+            Set = v => { Volume = v; if (track != IntPtr.Zero) AudioManager.SetTrackVolume(track, v); },
             Value = 0.01f,
             Min = 0f,
             Max = 1f
@@ -90,45 +92,65 @@ public class AudioSource : Component
 
     public override void Update(float dt)
     {
-        // Synchronise la position du track à chaque frame tant que la
-        // lecture spatiale est active. Le listener SDL_mixer est fixe à
-        // (0,0,0) — c'est donc à nous de fournir une position déjà relative
-        // à un listener/caméra, pas la position monde brute. Pour l'instant
-        // on utilise WorldPosition directement ; à revoir une fois qu'un
-        // vrai concept de listener/caméra actif existe dans le moteur.
         if (Spatial2D && track != IntPtr.Zero && gameObject != null)
         {
-            var p = gameObject.transform.WorldPosition;
-            AudioManager.SetTrackPosition(track, p.X, p.Y);
+            var worldPos = gameObject.transform.WorldPosition;
+
+            // Récupère la position de la caméra (adapte selon l'API de ton moteur)
+            var cameraPos = Camera.Main != null ? Camera.Main.transform.WorldPosition : default; // ou Vector2.Zero
+
+            // Calcule la position relative par rapport à l'écran/caméra
+            float relX = worldPos.X - cameraPos.X;
+            float relY = worldPos.Y - cameraPos.Y;
+
+            AudioManager.SetTrackPosition(track, relX, relY);
         }
     }
 
     public void Play()
     {
-        if (string.IsNullOrEmpty(ClipPath) || !File.Exists(ClipPath))
+        // Même résolution que les textures : marche dans l'éditeur ET dans le jeu buildé
+        // (le chemin sérialisé peut être absolu, ou relatif au projet comme "Assets/clip.wav").
+        string resolved = string.IsNullOrEmpty(ClipPath) ? "" : TextureCache.Resolve(ClipPath);
+
+        if (resolved.Length == 0 || !File.Exists(resolved))
         {
             Logger.Warning($"[AudioSourceComponent] Fichier audio introuvable : {ClipPath}");
             return;
         }
 
-        if (audio == IntPtr.Zero || loadedPath != ClipPath)
+        // Recharge si le chemin OU les réglages d'import (.kmeta) ont changé depuis le dernier chargement.
+        // GetLastWriteTimeUtc renvoie toujours la même date si le .kmeta n'existe pas : pas de rechargement inutile.
+        var stamp = File.GetLastWriteTimeUtc(AssetMeta.PathFor(resolved));
+
+        if (audio == IntPtr.Zero || loadedPath != ClipPath || stamp != loadedMetaStamp)
         {
             if (audio != IntPtr.Zero) AudioManager.DestroyAudio(audio);
-            audio = AudioManager.LoadAudio(ClipPath);
+            audio = AudioManager.LoadAudioAsset(ClipPath);   // applique mode de chargement + volume par défaut
             loadedPath = ClipPath;
+            loadedMetaStamp = stamp;
+        }
+
+        if (audio == IntPtr.Zero)
+        {
+            Logger.Warning($"[AudioSourceComponent] Échec du chargement : {ClipPath}");
+            return;
         }
 
         if (track == IntPtr.Zero)
             track = AudioManager.CreateTrack();
 
-        AudioManager.PlayTrack(track, audio, Loop);
         AudioManager.SetTrackVolume(track, Volume);
         AudioManager.SetTrackPitch(track, Pitch);
+        AudioManager.PlayTrack(track, audio, Loop);
 
         if (Spatial2D && gameObject != null)
         {
-            var p = gameObject.transform.WorldPosition;
-            AudioManager.SetTrackPosition(track, p.X, p.Y);
+            var worldPos = gameObject.transform.WorldPosition;
+            var cameraPos = Camera.Main != null ? Camera.Main.transform.WorldPosition : default;
+
+            // Application directe de la position relative au démarrage
+            AudioManager.SetTrackPosition(track, worldPos.X - cameraPos.X, worldPos.Y - cameraPos.Y);
         }
         else
         {

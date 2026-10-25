@@ -29,10 +29,10 @@ public class Collider : Component
         {
             var pos = gameObject.transform.WorldPosition;
             var scale = gameObject.transform.WorldScale;
-            int w = (int)(Width * scale.X);
-            int h = (int)(Height * scale.Y);
-            int x = (int)(pos.X - w / 2f) + OffsetX;
-            int y = (int)(pos.Y - h / 2f) + OffsetY;
+            float w = (Width * scale.X);
+            float h = (Height * scale.Y);
+            float x = (pos.X - w / 2f) + OffsetX;
+            float y = (pos.Y - h / 2f) + OffsetY;
             return new Rectangle(x, y, w, h);
         }
     }
