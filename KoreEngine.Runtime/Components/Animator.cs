@@ -68,8 +68,6 @@ namespace KoreEngine
                 var captured = t;
                 Func<bool> cond = captured.Condition switch
                 {
-                    AnimationCondition.IsGrounded => () => body?.IsGrounded ?? false,
-                    AnimationCondition.IsNotGrounded => () => !(body?.IsGrounded ?? true),
                     AnimationCondition.VelocityXAbsGreaterThan => () => MathF.Abs(body?.Velocity.X ?? 0) > captured.Threshold,
                     AnimationCondition.VelocityXAbsLessThan => () => MathF.Abs(body?.Velocity.X ?? 0) <= captured.Threshold,
                     AnimationCondition.VelocityYGreaterThan => () => (body?.Velocity.Y ?? 0) > captured.Threshold,

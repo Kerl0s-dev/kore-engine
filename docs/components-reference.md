@@ -3,6 +3,8 @@
 > Mis à jour à partir du code source complet le plus récent (archive du 18/10/2026). Couvre tous les composants du moteur et les APIs Runtime les plus utilisées depuis un script. Tous les types sont dans le namespace `KoreEngine`, sauf les composants UI (`KoreEngine.UI`).
 >
 > **Changements majeurs depuis la version du 09/09/2026** : `Transform` est maintenant un composant (plus de `LocalPosition`/`WorldPosition` sur `GameObject`), `Owner` est devenu `gameObject`, `RectRenderer` n'existe plus, `InputManager`/`InputAction`/`InputAxis`/`InputMap` ont été remplacés par `Input` + `KeyCode`, `UIButton.OnClick` est un `KoreEvent`, et la physique a une restitution et une gravité `-9.81`.
+>
+> **Mise à jour du 26/10/2026** : unités en **mètres**, `Collider` à formes multiples (boîte, cercle, capsule), rotation physique dans `PhysicsBody`, suppression de `PhysicsBody.IsGrounded`. Voir [`physics.md`](physics.md).
 
 ## `Component` (classe de base)
 
@@ -48,7 +50,7 @@
 | Membre | Rôle |
 | --- | --- |
 | `Vector2 Position` | **Locale** (relative au parent). |
-| `float Rotation` | Locale, en degrés. |
+| `float Rotation` | Locale, en degrés, **sens anti-horaire positif**. |
 | `Vector2 Scale` | Locale, défaut `(1, 1)`. |
 | `Vector2 WorldPosition` / `float WorldRotation` / `Vector2 WorldScale` | En lecture ; composent l'échelle et la rotation du parent. |
 | `GameObject? Parent` | Lecture seule. |
@@ -78,12 +80,12 @@ Inspector : X, Y, Rotation, Scale X, Scale Y (champs locaux).
 | Membre | Rôle |
 | --- | --- |
 | `float Zoom` | Défaut `1`. L'Inspector le borne à `[1, 10]` (`[Range(1, 10)]`) ; le code peut le dépasser. |
-| `int ViewWidth, ViewHeight` | Taille de vue en pixels. Recalées à chaque frame sur le Game view (éditeur) ou la fenêtre (jeu). |
+| `int ViewWidth, ViewHeight` | Taille de vue en **pixels**. Recalées à chaque frame sur le Game view (éditeur) ou la fenêtre (jeu). |
 | `Color Color` | Couleur de fond (défaut noir). |
-| `virtual Vector2 Position` | `gameObject.transform.WorldPosition` si attachée à un objet, sinon une position interne (`EditorCamera`). Le setter écrit `transform.Position`. |
+| `virtual Vector2 Position` | En **mètres**. `gameObject.transform.WorldPosition` si attachée à un objet, sinon une position interne (`EditorCamera`). Le setter écrit `transform.Position`. |
 | `static Camera Main` | Dernière caméra assignée via `Scene.Camera`. |
-| `WorldToScreen(Vector2)` / `ScreenToWorld(Vector2)` | Conversion Y-haut (monde) ↔ Y-bas (écran), centrée sur `Position`, échelle `Zoom`. |
-| `Rectangle Bounds` | Rectangle de vue (`ViewWidth/Zoom` × `ViewHeight/Zoom`). |
+| `WorldToScreen(Vector2)` / `ScreenToWorld(Vector2)` | Conversion Y-haut (monde, mètres) ↔ Y-bas (écran, pixels), centrée sur `Position`, échelle `Renderer.PixelsPerUnit × Zoom`. |
+| `RectangleF BoundsMeters` | Rectangle de vue en mètres (`ViewWidth / Zoom / PixelsPerUnit` × `ViewHeight / Zoom / PixelsPerUnit`). |
 
 ### `EditorCamera` (`KoreEngine.Editor`, hérite de `Camera`)
 
@@ -94,37 +96,50 @@ Jamais attachée à un `GameObject`. `Reset()` → position `(0, 0)`, zoom `1`.
 | Membre | Rôle |
 | --- | --- |
 | `IntPtr Texture`, `string TexturePath` | Via `TextureCache` (picker `TextureField`). |
-| `Vector2 Size` | Taille finale avant `WorldScale` (défaut `16×16`). |
-| `Vector2 FrameSize` | Taille d'une frame de spritesheet (défaut `16×16`). |
+| `Vector2 Size` | Taille finale en **mètres**, avant `WorldScale` (défaut `1×1`). |
+| `Vector2 FrameSize` | Taille d'une frame de spritesheet en **pixels** (défaut `16×16`). |
 | `bool FlipX, FlipY` | |
-| `FilteringMode Filtering` | `Nearest` (défaut), `PixelArt`, `Linear`. |
+| `FilteringMode Filtering` | `Nearest`, `PixelArt`, `Linear` (défaut). |
 | `AnimationStateMachine? StateMachine` | Alimentée par l'`Animator`. |
 
-`Render` : ne dessine rien si `Texture` est nulle. Centré sur `WorldPosition`, `WorldScale` et `WorldRotation` appliqués. Avec une `StateMachine`, dessine via `DrawTexturePart` ; sans, loggue un avertissement et dessine la texture entière.
+`Render` : ne dessine rien si `Texture` est nulle. Centré sur `WorldPosition`, `WorldScale` et `WorldRotation` appliqués (la rotation est envoyée à SDL avec le signe inversé, pour tourner dans le même sens que la physique). Avec une `StateMachine`, dessine via `DrawTexturePart` ; sans, loggue un avertissement et dessine la texture entière.
 
 **⚠ Animation de spritesheet** : `Render` remplace le `SourceRect` de la frame courante par `(0, 0, FrameSize.X, FrameSize.Y)` avant de dessiner. Le `SourceRect` calculé par `Animation` / `Animator` (ligne, colonne) n'est donc **pas utilisé** : le sprite affiche toujours la première frame de la feuille. À corriger pour que les animations s'affichent réellement.
 
 ## `Collider`
 
-`int Width, Height`, `int OffsetX, OffsetY`, `string Tag`, `bool IsTrigger`. `Rectangle Bounds` : AABB centrée sur `WorldPosition + Offset`, dimensions × `WorldScale` (pas de rotation).
+| Membre | Rôle |
+| --- | --- |
+| `ColliderShapeType Shape` | `Box` (défaut), `Circle`, `Capsule`. |
+| `float Width, Height` | Dimensions locales en **mètres** (défaut `1 × 1`), avant `WorldScale`. Cercle : diamètre = `min(Width, Height)`. Capsule : verticale si `Height ≥ Width`, sinon horizontale. |
+| `float OffsetX, OffsetY` | Décalage en mètres ; suit la rotation de l'objet. |
+| `string Tag`, `bool IsTrigger` | |
+| `WorldShape GetWorldShape()` | Forme réelle dans le monde. |
+| `Rectangle Bounds` | AABB **englobant** la forme (rotation et échelle comprises). |
+| `float ComputeInertia(float mass)` | Moment d'inertie autour du centre du collider. |
 
-**⚠** `OnCollision(Collider)` et `OnTriggerEnter(Collider)` sont des méthodes **vides et non virtuelles** : `CollisionSystem` les appelle, mais un script ne peut pas les surcharger — les callbacks de collision ne sont pas encore utilisables.
+`OnCollision(Collider)` et `OnTriggerEnter(Collider)` sont **virtuels** sur `Component` : un script peut les surcharger. `Collider` les renvoie vers les autres composants de son `GameObject`, à chaque frame de chevauchement ; aucune normale ni point de contact n'est transmis. Détails dans [`physics.md`](physics.md).
 
 ## `PhysicsBody`
 
 | Membre | Rôle |
 | --- | --- |
-| `Vector2 Velocity` | |
+| `Vector2 Velocity` | En m/s. |
 | `bool IsStatic` | N'intègre ni vélocité ni gravité (mur/sol fixe). |
 | `float GravityScale` | Défaut `1`. |
-| `float Friction` | Défaut `0` ; amortissement exponentiel de `Velocity.X`. |
-| `float Mass` | Défaut `20`. |
+| `float Friction` | Défaut `0` ; amortissement exponentiel de `Velocity.X`. À laisser à `0` sur un corps qui roule. |
+| `float SurfaceFriction` | Défaut `0,4` ; coefficient de Coulomb, combiné `√(μA × μB)` au contact. |
+| `float Mass` | Défaut `1`. |
 | `float Restitution` | Défaut `0` (pas de rebond) ; `1` = rebond parfait. |
-| `float MaxFallSpeed` | Défaut `1000`. |
-| `bool IsGrounded` | Remis à `false` chaque frame, rétabli par `CollisionSystem`. |
+| `float MaxFallSpeed` | Vitesse de chute maximale, en m/s. |
+| `bool FreezeRotation` | Défaut `true` : pas de rotation physique. Décocher pour un corps rigide complet. |
+| `float AngularVelocity` | En °/s, positif = anti-horaire. |
+| `float AngularDrag` | Défaut `0,05`. |
 | `ApplyForce(Vector2)` (÷ `Mass`) / `ApplyImpulse(Vector2)` | |
 
-`Update(dt)` : `Physics.CalculatePhysics` (gravité `Physics.gravity = -9.81` × `GravityScale` × `Mass`, friction), clamp de chute, puis intégration `transform.Position += Velocity * dt` (⚠ valeur **locale** — voir la limite pour les objets enfants dans `architecture.md`).
+`Update(dt)` : `Physics.CalculatePhysics` (gravité `Physics.gravity = -9.81` × `GravityScale` × `Mass`, friction), clamp de chute, intégration `transform.Position += Velocity * dt` (⚠ valeur **locale** — voir la limite pour les objets enfants dans `architecture.md`), puis, si `FreezeRotation` est faux, rotation autour du centre de masse.
+
+`IsGrounded` a été supprimé : il n'y a pour l'instant aucune API de détection du sol.
 
 **Collisions** : `CollisionSystem` (`KoreEngine.Physics` n'existe plus comme namespace, les types sont dans `KoreEngine`) ignore toute paire dont un des deux objets n'a pas de `PhysicsBody` : **un mur doit avoir un `PhysicsBody` avec `IsStatic`**.
 
@@ -139,7 +154,7 @@ Jamais attachée à un `GameObject`. `Reset()` → position `(0, 0)`, zoom `1`.
 | Type | Rôle |
 | --- | --- |
 | `AnimationDefinition` | `Name`, `SizeX/Y`, `Row`, `StartCol`, `FrameCount`, `FrameDuration`, `Looping`. |
-| `AnimationCondition` (enum) | `Always`, `IsGrounded`, `IsNotGrounded`, `VelocityXAbsGreaterThan`, `VelocityXAbsLessThan`, `VelocityYGreaterThan`, `VelocityYLessThan`. |
+| `AnimationCondition` (enum) | `Always`, `VelocityXAbsGreaterThan`, `VelocityXAbsLessThan`, `VelocityYGreaterThan`, `VelocityYLessThan`. |
 | `AnimationTransition` | `From`, `To`, `Condition`, `Threshold`. |
 
 `Definitions` / `Transitions` sont éditées via `ListField`. `Apply()` reconstruit la state machine (appelée dans `Start()` et par le bouton « Apply »). `Serialize()` / `Deserialize()` personnalisés. Cherche `PhysicsBody` et `SpriteRenderer` sur le même objet.
@@ -230,6 +245,6 @@ Round-trip de sérialisation (`SerializeObjectTree` → `DeserializeObjectTree`)
 ## Types de base
 
 - **`Vector2`** (struct, `float`) : `+ − * /`, `Zero`, `One`, `NegativeOne`, `Up (0, 1)`, `Down (0, −1)`, `Left`, `Right`, `Length()`, `LengthSquared()`, `Normalize()`, `Distance`, `DistanceSquared`, `Dot`, `Cross`, `Lerp`, `LerpUnclamped`.
-- **`Rectangle`** (struct, **`int`**) : `X, Y, Width, Height`, `Left/Right/Top/Bottom`, `Intersects(other)`.
+- **`Rectangle`** (struct, **`float`**, mètres) : `X, Y, Width, Height`, `Left/Right/Top/Bottom`, `Intersects(other)`.
 - **`Color`** (classe) : `R, G, B` (int), `Black/White/Red/Green/Blue`. Pas d'alpha (passé en `byte a` au `Renderer`).
 - **`Logger`** (statique) : `Log`, `Warning`, `Error(message, file?, line?)`, `Sucess` (sic), `Clear`, `Entries`, `OnLog`. Niveaux : `Info`, `Warning`, `Error`, `Sucess`.

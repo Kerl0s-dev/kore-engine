@@ -41,8 +41,6 @@
 
                     if (aStatic && bStatic) continue;
 
-                    CheckGrounded(a, b, bodyA, bodyB, aStatic, bStatic);
-
                     var shapeA = a.GetWorldShape();
                     var shapeB = b.GetWorldShape();
 
@@ -294,29 +292,6 @@
             return true;
         }
 
-        void CheckGrounded(Collider a, Collider b, PhysicsBody bodyA, PhysicsBody bodyB, bool aStatic, bool bStatic)
-        {
-            Rectangle ra = a.Bounds;
-            Rectangle rb = b.Bounds;
-
-            float overlapX = MathF.Min(ra.Right, rb.Right) - MathF.Max(ra.Left, rb.Left);
-
-            if (overlapX <= 0) return;
-
-            if (!aStatic && bStatic)
-            {
-                float distBottom = ra.Bottom - rb.Top;
-                if (distBottom >= -0.08f && distBottom <= 0.02f)
-                    bodyA.IsGrounded = true;
-            }
-            else if (aStatic && !bStatic)
-            {
-                float distBottom = rb.Bottom - ra.Top;
-                if (distBottom >= -0.08f && distBottom <= 0.02f)
-                    bodyB.IsGrounded = true;
-            }
-        }
-
         // normal = direction de repoussage de CE corps
         void CancelVelocity(PhysicsBody body, Vector2 normal, float restitution)
         {
@@ -327,9 +302,6 @@
                 // Le glissement le long de la surface est conservé.
                 body.Velocity -= normal * dot * (1f + restitution);
             }
-
-            if (normal.Y > 0.5f)
-                body.IsGrounded = true;
         }
     }
 }

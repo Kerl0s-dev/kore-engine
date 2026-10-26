@@ -1,6 +1,8 @@
 # KoreEngine — Architecture
 
 > Mis à jour à partir du code source complet le plus récent (archive du 18/10/2026). Remplace la version du 09/09/2026, qui décrivait encore un Hub WPF, `GameObject.LocalPosition`, `InputManager`, `RectRenderer` et une physique à gravité globale — tout cela a changé depuis.
+>
+> **Mise à jour du 26/10/2026** : passage aux mètres, formes de collider (boîte, cercle, capsule), rotation physique et collisions SAT. Détail dans [`physics.md`](physics.md).
 
 ## Vue d'ensemble
 
@@ -125,7 +127,7 @@ Un `GameObject` et sa hiérarchie peuvent être sérialisés dans un `.kprefab` 
 
 `Transform` est un **composant** (`[UnremovableComponent]`) présent sur tout `GameObject` (`gameObject.transform`). Champs locaux : `Position`, `Rotation` (degrés), `Scale` (défaut `(1,1)`). Propriétés en lecture : `WorldPosition` (tient compte de l'échelle et de la rotation du parent), `WorldRotation`, `WorldScale`, `Parent`. `SetParent(parent, scene)` **préserve** position/rotation/échelle monde ; `IsDescendantOf`, `Translate`, `Rotate`.
 
-Convention : **Y vers le haut** en espace monde ; la conversion vers l'écran (Y vers le bas) se fait uniquement dans `Camera.WorldToScreen` / `ScreenToWorld`. Les unités sont des pixels (`Zoom` = facteur d'échelle monde → écran). `Vector2.Up = (0, 1)`.
+Convention : **Y vers le haut** en espace monde ; la conversion vers l'écran (Y vers le bas) se fait uniquement dans `Camera.WorldToScreen` / `ScreenToWorld`. Les unités du monde sont des **mètres** (`Renderer.PixelsPerUnit` = 100 pixels par mètre ; `Zoom` = facteur d'échelle supplémentaire monde → écran). Les rotations sont en degrés, **sens anti-horaire positif**. `Vector2.Up = (0, 1)`. Voir `physics.md`.
 
 **Limite connue** : `PhysicsBody` et `CollisionSystem` écrivent dans `transform.Position` (valeur **locale**), alors que `Collider.Bounds` lit `WorldPosition`. Pour un objet physique **enfant** d'un autre objet, l'intégration et la résolution de collision ignorent la position du parent.
 
@@ -133,9 +135,9 @@ Convention : **Y vers le haut** en espace monde ; la conversion vers l'écran (Y
 
 ### `PhysicsBody`
 
-`Velocity`, `IsStatic`, `GravityScale` (1), `Friction` (0), `Mass` (20), `Restitution` (0 = pas de rebond), `MaxFallSpeed` (1000), `IsGrounded`, `PreviousPosition` (masqué). `ApplyForce` (÷ masse) / `ApplyImpulse`.
+`Velocity` (m/s), `IsStatic`, `GravityScale` (1), `Friction` (0, amortissement horizontal), `SurfaceFriction` (0,4, coefficient de Coulomb), `Mass` (1), `Restitution` (0 = pas de rebond), `MaxFallSpeed` (m/s), `FreezeRotation` (`true` par défaut), `AngularVelocity` (°/s), `AngularDrag` (0,05), `PreviousPosition` (masqué). `ApplyForce` (÷ masse) / `ApplyImpulse`. `IsGrounded` a été supprimé.
 
-`Update(dt)` : reset de `Velocity.Y` si au sol, `Physics.CalculatePhysics` (gravité + friction), clamp de chute, puis **seule intégration de la position** (`transform.Position += Velocity * dt`).
+`Update(dt)` : `Physics.CalculatePhysics` (gravité + friction), clamp de chute, **seule intégration de la position** (`transform.Position += Velocity * dt`), puis, si `FreezeRotation` est faux, amortissement angulaire et rotation autour du centre de masse.
 
 ### `Physics`
 
@@ -143,11 +145,11 @@ Convention : **Y vers le haut** en espace monde ; la conversion vers l'écran (Y
 
 ### `CollisionSystem`
 
-Paires O(n²), résolution par **Swept AABB**. **Les deux colliders d'une paire doivent avoir un `PhysicsBody`** (un mur statique doit donc avoir un `PhysicsBody` avec `IsStatic`), sinon la paire est ignorée — y compris pour les triggers. Deux statiques : ignorés. Statique + dynamique : le dynamique est repoussé. Deux dynamiques : répartition selon la masse. `Restitution` = max des deux corps. `CheckGrounded` positionne `IsGrounded`.
+Paires O(n²), pipeline **hybride** : **Swept AABB** pour deux boîtes alignées sur les axes sans rotation physique, **SAT** (OBB, cercle, capsule) avec points de contact et impulsions dès qu'une forme est tournée, arrondie ou qu'un corps dynamique peut tourner. **Les deux colliders d'une paire doivent avoir un `PhysicsBody`** (un mur statique doit donc avoir un `PhysicsBody` avec `IsStatic`), sinon la paire est ignorée — y compris pour les triggers. Deux statiques : ignorés. Statique + dynamique : le dynamique est repoussé. Deux dynamiques : répartition selon la masse. `Restitution` = max des deux corps. Détails (solveur d'impulsions, friction de Coulomb, inertie, limites) dans [`physics.md`](physics.md).
 
-`Collider` : `Width/Height` (int), `OffsetX/OffsetY`, `Tag`, `IsTrigger`, `Bounds` (AABB centrée sur `WorldPosition + Offset`, × `WorldScale`, pas de rotation).
+`Collider` : `Shape` (`Box`, `Circle`, `Capsule`), `Width/Height` et `OffsetX/OffsetY` en mètres (`float`), `Tag`, `IsTrigger`, `GetWorldShape()`, `Bounds` (AABB **englobant** la forme, rotation et échelle comprises).
 
-**⚠ Callbacks de collision non branchés** : `Collider.OnCollision(Collider)` et `OnTriggerEnter(Collider)` existent et sont appelés par `CollisionSystem`, mais ce sont des méthodes vides **non virtuelles** — un script ne peut pas les surcharger. `CollisionInfo` (`Other`, `Normal`, `Penetration`) n'est utilisée nulle part.
+**Callbacks de collision** : `OnCollision(Collider)` et `OnTriggerEnter(Collider)` sont virtuels sur `Component` ; `Collider` les renvoie vers les autres composants du même `GameObject` (`DispatchCollision` / `DispatchTrigger`). Ils sont appelés à chaque frame de chevauchement. `CollisionInfo` (`Other`, `Normal`, `Penetration`) n'est utilisée nulle part : aucune normale n'est transmise aux scripts.
 
 ## Animation
 
@@ -178,7 +180,7 @@ Zéro dépendance à ImGui/Editor, pas de mode édition, rendu direct à l'écra
 
 ## Rendu et ressources
 
-- **`Renderer`** : `Clear`, `Present`, `Flush`, `DrawRect` / `DrawRectOutline`, `DrawTexture`, `DrawTexturePart` (surcharges avec ou sans `Camera`, flip, rotation).
+- **`Renderer`** : `Clear`, `Present`, `Flush`, `DrawRect` / `DrawRectOutline`, `DrawTexture`, `DrawTexturePart` (surcharges avec ou sans `Camera`, flip, rotation). `Renderer.PixelsPerUnit` (100) convertit les mètres en pixels.
 - **`RenderTexture`** : `BeginRender` / `EndRender` flushent et réinitialisent le clip rect ; `Resize` est sans effet si la taille est identique.
 - **`TextureCache`** : cache chemin → texture ; **un échec de chargement est mis en cache** (`IntPtr.Zero`) ; `Get` renvoie `Zero` (sans mise en cache) tant que `Init` n'a pas été appelé. `Resolve(path)` ré-enracine les chemins contenant `/Assets/` ou `/Packages/` sur les dossiers du projet courant (`SceneManager.AssetsDirectory` et son voisin `Packages`), pour qu'un jeu buildé charge ses propres copies.
 - **`FontManager`** : SDL3_ttf, cache de polices par `(chemin, taille)` ; `DrawText` recrée une texture à chaque appel.
@@ -187,7 +189,7 @@ Zéro dépendance à ImGui/Editor, pas de mode édition, rendu direct à l'écra
 ## Types de base
 
 - **`Vector2`** (struct, `float`) : opérateurs `+ − * /` (vecteur et scalaire), `Zero/One/NegativeOne/Up(0,1)/Down(0,−1)/Left/Right`, `Length`, `LengthSquared`, `Normalize`, `Distance`, `Dot`, `Cross`, `Lerp`, `LerpUnclamped`, égalité.
-- **`Rectangle`** (struct, **`int`**) : `X, Y, Width, Height`, `Left/Right/Top/Bottom`, `Intersects`.
+- **`Rectangle`** (struct, **`float`**, mètres) : `X, Y, Width, Height`, `Left/Right/Top/Bottom`, `Intersects`. En espace monde (Y vers le haut), `Y` est le bord bas et `Bottom = Y + Height` le bord haut.
 - **`Color`** (classe) : `R, G, B` (int), `Black/White/Red/Green/Blue` ; pas d'alpha (paramètre `byte a` du `Renderer`).
 
 ## Pipeline de build joueur

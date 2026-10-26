@@ -10,7 +10,6 @@ public class PhysicsBody : Component
     public float Mass = 1f;
     public float Restitution = 0f; // 0 = pas de rebond, 1 = rebond parfait
     public float MaxFallSpeed = 50;
-    public bool IsGrounded = false; // mis à jour par CollisionSystem
     public bool FreezeRotation = true;   // true = comportement actuel, aucune rotation
     public float AngularVelocity = 0f;   // °/s, positif = anti-horaire
     public float AngularDrag = 0.05f;
@@ -20,12 +19,7 @@ public class PhysicsBody : Component
     {
         if (IsStatic) return;
 
-        // Reset de la vélocité verticale si au sol
-        if (IsGrounded && Velocity.Y > 0)
-            Velocity.Y = 0;
-
         PreviousPosition = gameObject.transform.Position;
-        IsGrounded = false; // reset chaque frame, rétabli par CollisionSystem
 
         Physics.CalculatePhysics(this, dt);
 

@@ -90,6 +90,10 @@ Chaque objet avec un composant `Camera` affiche dans le Scene view :
 
 Le cadre suit l'objet quand on le déplace. Il n'est pas cliquable : sélectionner la caméra se fait depuis la Hierarchy.
 
+### Overlay de collider
+
+L'objet sélectionné qui a un `Collider` affiche sa **forme réelle** dans le Scene view : rectangle orienté, cercle ou capsule, qui suit la rotation de l'objet. Le contour est vert, ou jaune pour un trigger. Si la forme n'est pas confondue avec son AABB (objet tourné, cercle, capsule), l'**AABB englobant** (celui de la phase large) est tracé en transparence.
+
 ## Hierarchy — actions
 
 - **Clic droit sur un objet** : renommer, sous-menu **Create** (enfant de cet objet), **Duplicate** (clone l'objet et ses enfants, rattaché au même parent), **Create Prefab**, **Delete**.

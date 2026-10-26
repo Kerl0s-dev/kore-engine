@@ -60,10 +60,6 @@ internal sealed class RigidBodyBridge
         float mu = MathF.Sqrt(MathF.Max(pa.SurfaceFriction, 0f) * MathF.Max(pb.SurfaceFriction, 0f));
 
         solver.Add(Get(ca, pa), Get(cb, pb), normal, manifold, sa.Center, sb.Center, restitution, mu);
-
-        // Sol détecté par la normale de contact (en plus des seuils de distance de CheckGrounded)
-        if (!pa.IsStatic && normal.Y > 0.5f) pa.IsGrounded = true;
-        if (!pb.IsStatic && -normal.Y > 0.5f) pb.IsGrounded = true;
     }
 
     public void SolveAndApply()

@@ -27,16 +27,17 @@ Voir `docs/` pour la documentation détaillée :
 
 - [`docs/architecture.md`](docs/architecture.md) — structure interne, boucle de l'éditeur, scènes et sérialisation, physique, UI, pipelines
 - [`docs/components-reference.md`](docs/components-reference.md) — référence de tous les composants et des APIs utilisables depuis un script
+- [`docs/physics.md`](docs/physics.md) — unités (mètres), colliders, rotation physique et pipeline de collision
 - [`docs/editor-guide.md`](docs/editor-guide.md) — utilisation de l'éditeur (panneaux, gizmos, raccourcis, Inspector)
 - [`docs/hub-and-build.md`](docs/hub-and-build.md) — le launcher Hub, la création de projet et le pipeline de build/export
 
 ## État du projet
 
-Développement actif, mono-développeur. Les systèmes suivants sont fonctionnels : rendu (sprites, UI, texte), physique 2D (Swept AABB, restitution), audio, animation (state machine par transitions), scripting avec hot-reload, sérialisation de scènes et de prefabs (hiérarchies parent/enfant, `KoreEvent`), gizmos de transform et de caméra, vues Scene et Game, et le Hub de gestion de projets.
+Développement actif, mono-développeur. Les systèmes suivants sont fonctionnels : rendu (sprites, UI, texte), physique 2D (Swept AABB et SAT, formes boîte/cercle/capsule, rotation de corps rigides, friction, restitution), audio, animation (state machine par transitions), scripting avec hot-reload, sérialisation de scènes et de prefabs (hiérarchies parent/enfant, `KoreEvent`), gizmos de transform et de caméra, vues Scene et Game, et le Hub de gestion de projets.
 
 Limitations connues, détaillées dans `docs/` :
 
 - **Animation de spritesheet** : `SpriteRenderer` affiche toujours la première frame de la feuille.
-- **Callbacks de collision** (`OnCollision`, `OnTriggerEnter`) : appelés par le moteur mais non surchargeables par un script.
+- **Détection du sol** : `PhysicsBody.IsGrounded` a été supprimé et aucune API ne le remplace pour l'instant.
 - **Input** : `Input.GetKeyDown` / `GetKeyUp` ne suivent pas la sémantique d'Unity (voir `docs/components-reference.md`).
 - **Physique sur objets enfants** : `PhysicsBody` ignore la position du parent.
