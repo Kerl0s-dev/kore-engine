@@ -150,101 +150,51 @@ namespace KoreEngine
             return texture;
         }
 
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h)
-            => DrawTexture(texture, x, y, w, h, false, false);
-
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
         {
+            if (camera != null)
+            {
+                var screen = camera.WorldToScreen(new Vector2(x, y));
+                x = screen.X;
+                y = screen.Y;
+                w = w * PixelsPerUnit * camera.Zoom;
+                h = h * PixelsPerUnit * camera.Zoom;
+            }
+
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
-                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
-            SDL.RenderTextureRotated(Handle, texture, IntPtr.Zero, dest, 0.0, IntPtr.Zero, flip);
-            AutoFlushIfEnabled();
-        }
+                     | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
 
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, Camera camera)
-            => DrawTexture(texture, x, y, w, h, false, false, camera);
-
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, Camera camera)
-        {
-            var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexture(
-                texture,
-                screen.X, screen.Y,
-                w * PixelsPerUnit * camera.Zoom,
-                h * PixelsPerUnit * camera.Zoom,
-                flipX, flipY);
-        }
-
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, double angle)
-        {
-            var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
-            var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
-                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
             SDL.RenderTextureRotated(Handle, texture, IntPtr.Zero, dest, angle, IntPtr.Zero, flip);
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX, bool flipY, double angle, Camera camera)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
         {
-            var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexture(
-                texture,
-                screen.X, screen.Y,
-                w * PixelsPerUnit * camera.Zoom,
-                h * PixelsPerUnit * camera.Zoom,
-                flipX, flipY, angle);
-        }
+            if (camera != null)
+            {
+                var screen = camera.WorldToScreen(new Vector2(x, y));
+                x = screen.X;
+                y = screen.Y;
+                w = w * PixelsPerUnit * camera.Zoom;
+                h = h * PixelsPerUnit * camera.Zoom;
+            }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, double angle)
-        {
             var srcRect = new SDL.FRect { X = src.X, Y = src.Y, W = src.Width, H = src.Height };
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
-                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
+                     | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
+
             SDL.RenderTextureRotated(Handle, texture, srcRect, dest, angle, IntPtr.Zero, flip);
             AutoFlushIfEnabled();
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, double angle, Camera camera)
-        {
-            var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexturePart(
-                texture,
-                src,
-                screen.X, screen.Y,
-                w * PixelsPerUnit * camera.Zoom,
-                h * PixelsPerUnit * camera.Zoom,
-                flipX, flipY, angle);
-        }
-
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h) => DrawTexturePart(texture, src, x, y, w, h, false, false);
-
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY)
-        {
-            var srcRect = new SDL.FRect { X = src.X, Y = src.Y, W = src.Width, H = src.Height };
-            var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
-            var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
-                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
-            SDL.RenderTextureRotated(Handle, texture, srcRect, dest, 0.0, IntPtr.Zero, flip);
-            AutoFlushIfEnabled();
-        }
-
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Camera camera) => DrawTexturePart(texture, src, x, y, w, h, false, false, camera);
-
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX, bool flipY, Camera camera)
-        {
-            var screen = camera.WorldToScreen(new Vector2(x, y));
-            DrawTexturePart(texture, src, screen.X, screen.Y, w * camera.Zoom, h * camera.Zoom, flipX, flipY);
-        }
-
-        public void DrawTextureColor(IntPtr texture, float x, float y, float w, float h, Color color)
+        public void DrawTextureColor(IntPtr texture, float x, float y, float w, float h, Color color, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
         {
             SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
             SDL.SetTextureAlphaMod(texture, (byte)color.A);
 
-
-            DrawTexture(texture, x, y, w, h);
+            DrawTexture(texture, x, y, w, h, flipX, flipY, angle, camera);
 
             if (!AutoFlush) Flush();
 

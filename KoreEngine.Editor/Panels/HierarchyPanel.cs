@@ -217,8 +217,8 @@ public class HierarchyPanel
     {
         if (!ImGui.BeginMenu("Create")) return;
 
-        if (ImGui.MenuItem("Empty"))
-            CreatePredefined("Empty", scene, parent);
+        if (ImGui.MenuItem("Empty GameObject"))
+            CreatePredefined("Empty GameObject", scene, parent);
 
         ImGui.Separator();
 
@@ -235,10 +235,18 @@ public class HierarchyPanel
 
         if (ImGui.BeginMenu("UI"))
         {
-            if (ImGui.MenuItem("Canvas")) CreatePredefined("UICanvas", scene, parent);
-            if (ImGui.MenuItem("Button")) CreatePredefined("UIButton", scene, parent);
-            if (ImGui.MenuItem("Image")) CreatePredefined("UIImage", scene, parent);
-            if (ImGui.MenuItem("Text")) CreatePredefined("UIText", scene, parent);
+            if (ImGui.MenuItem("Canvas"))
+                CreatePredefined("UICanvas", scene, parent);
+
+            if (ImGui.MenuItem("Button"))
+                CreatePredefined("UIButton", scene, parent);
+
+            if (ImGui.MenuItem("Image"))
+                CreatePredefined("UIImage", scene, parent);
+
+            if (ImGui.MenuItem("Text"))
+                CreatePredefined("UIText", scene, parent);
+
             ImGui.EndMenu();
         }
 
@@ -290,14 +298,47 @@ public class HierarchyPanel
 
         var obj = type switch
         {
-            "Camera" => CreateWithComponents("Camera", new Camera()),
-            "Sprite" => CreateWithComponents("Sprite", new SpriteRenderer() { Size = new Vector2(16, 16) }),
-            "Physics" => CreateWithComponents("Physics Object", new PhysicsBody(), new Collider()),
-            "UICanvas" => CreateWithComponents("Canvas", new UI.UICanvas()),
-            "UIButton" => CreateWithComponents("Button", new UI.UIButton()),
-            "UIImage" => CreateWithComponents("Image", new UI.UIImage()),
-            "UIText" => CreateWithComponents("Text", new UI.UIText()),
-            _ => new GameObject("GameObject")
+            "Camera" => CreateWithComponents("Camera",
+                new Camera()
+            ),
+
+            "Sprite" => CreateWithComponents("Sprite",
+                new SpriteRenderer() {
+                    TexturePath = "Packages/default-square.png"
+                }
+            ),
+
+            "Physics" => CreateWithComponents("Physics Object",
+                new SpriteRenderer() {
+                    TexturePath = "Packages/default-square.png"
+                },
+                new PhysicsBody(),
+                new Collider()
+            ),
+
+            "UICanvas" => CreateWithComponents("Canvas",
+                new UI.UICanvas()
+            ),
+
+            "UIButton" => CreateWithComponents("Button",
+                new UI.UIButton() {
+                    TextureNormalPath = "Packages/default-button.png",
+                    TextureHoverPath = "Packages/default-button-hover.png",
+                    TexturePressedPath = "Packages/default-button-pressed.png"
+                }
+            ),
+
+            "UIImage" => CreateWithComponents("Image",
+                new UI.UIImage()
+            ),
+
+            "UIText" => CreateWithComponents("Text",
+                new UI.UIText()
+            ),
+
+            "Empty GameObject" => CreateWithComponents("Empty GameObject"),
+
+            _ => throw new Exception($"Unknown predefined type '{type}'")
         };
 
         scene.Add(obj);

@@ -15,12 +15,12 @@ namespace KoreEngine
 
         public IntPtr Texture;
         public string TexturePath = "";
-
-        // Taille du sprite dans le monde (en MÈTRES)
-        public Vector2 Size = new Vector2(1.0f, 1.0f);
+        public Color Color = new Color(255, 255, 255, 255);
 
         // Taille d'une frame sur la texture (en PIXELS)
         public Vector2 FrameSize = new Vector2(16, 16);
+
+        Vector2 Size = Vector2.One; // Taille en METRES (pour le rendu)
 
         public bool FlipX = false;
         public bool FlipY = false;
@@ -44,24 +44,11 @@ namespace KoreEngine
                 Set = (tex, path) => { Texture = tex; TexturePath = path; }
             };
 
-            // Taille en mètres (FloatField au lieu d'IntField)
-            yield return new FloatField
+            yield return new ColorField
             {
-                Label = "Width (m)",
-                Get = () => Size.X,
-                Set = v => Size.X = v,
-                Value = 0.01f,
-                Min = 0.01f,
-                Max = 100f
-            };
-            yield return new FloatField
-            {
-                Label = "Height (m)",
-                Get = () => Size.Y,
-                Set = v => Size.Y = v,
-                Value = 0.01f,
-                Min = 0.01f,
-                Max = 100f
+                Label = "Color",
+                Get = () => Color,
+                Set = c => Color = c
             };
 
             // Frame size reste en pixels (pour découper la texture)
@@ -138,9 +125,9 @@ namespace KoreEngine
             {
                 Logger.Warning("State Machine not assigned.");
                 if (camera != null)
-                    renderer.DrawTexture(Texture, x, y, w, h, FlipX, FlipY, angle, camera);
+                    renderer.DrawTextureColor(Texture, x, y, w, h, Color.White, FlipX, FlipY, angle, camera);
                 else
-                    renderer.DrawTexture(Texture, x, y, w, h, FlipX, FlipY, angle);
+                    renderer.DrawTextureColor(Texture, x, y, w, h, Color.White, FlipX, FlipY, angle);
             }
         }
     }
