@@ -129,13 +129,13 @@ public class GameLoop
         }
     }
 
-    /// <summary>Delta time en secondes, clampé entre 0.0001f et 1/30f.</summary>
+    /// <summary>Delta time en millisencondes.</summary>
     float ComputeDeltaTime()
     {
         ulong now = SDL.GetTicks();
-        float dt = (now - lastTicks) / 1000f;
+        float dt = (now - lastTicks);
         lastTicks = now;
 
-        return MathF.Min(MathF.Max(dt, 0.0001f), 1f / 30f);
+        return dt;
     }
 }

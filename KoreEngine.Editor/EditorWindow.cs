@@ -445,6 +445,8 @@ public class EditorWindow
             if (!Playing)
             {
                 SceneManager.SaveCurrentScene();
+
+                scriptWatcher?.ReloadAssemblies();
             }
             else
             {

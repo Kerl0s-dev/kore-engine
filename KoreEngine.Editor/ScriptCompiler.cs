@@ -22,12 +22,18 @@ public static class ScriptCompiler
 
     static readonly CSharpParseOptions ParseOptions = new(preprocessorSymbols: new[] { "KORE_ENGINE_EDITOR" });
 
-    public static async Task CompileScripts(IEnumerable<string> csFiles)
+    public static void CompileScripts(string[] watchDirs)
     {
         IsCompiling = true;
         Status = "Compilation en cours...";
 
-        await Task.Run(() => Compile(csFiles.ToList()));
+        var csFiles = watchDirs
+            .Where(Directory.Exists)
+            .SelectMany(d => Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories))
+            .Distinct()
+            .ToList();
+
+        Compile(csFiles.ToList());
     }
 
     static void Compile(List<string> csFiles)

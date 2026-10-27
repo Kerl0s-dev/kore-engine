@@ -231,6 +231,9 @@ public class HierarchyPanel
         if (ImGui.MenuItem("Physics Object"))
             CreatePredefined("Physics", scene, parent);
 
+        if (ImGui.MenuItem("Particle System"))
+            CreatePredefined("Particle System", scene, parent);
+
         ImGui.Separator();
 
         if (ImGui.BeginMenu("UI"))
@@ -314,6 +317,12 @@ public class HierarchyPanel
                 },
                 new PhysicsBody(),
                 new Collider()
+            ),
+
+            "Particle System" => CreateWithComponents("Particle System",
+                new ParticleSystem() {
+                    TexturePath = "Packages/default-square.png",
+                }
             ),
 
             "UICanvas" => CreateWithComponents("Canvas",

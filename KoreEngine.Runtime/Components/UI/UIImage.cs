@@ -6,6 +6,7 @@ public class UIImage : UIElement
 {
     public IntPtr Texture;
     public string TexturePath = "";
+    public Color color = Color.White;
 
     public FilteringMode Filtering = FilteringMode.Linear;
 
@@ -25,6 +26,6 @@ public class UIImage : UIElement
 
         SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
 
-        renderer.DrawTexture(Texture, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
+        renderer.DrawTexture(Texture, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight, color);
     }
 }

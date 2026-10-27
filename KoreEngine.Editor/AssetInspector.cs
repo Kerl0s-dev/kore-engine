@@ -42,6 +42,8 @@ public static class AssetInspector
             DrawTexture(path, readOnly);
         else if (AudioImportSettings.SupportedExtensions.Contains(ext))
             DrawAudio(path, readOnly);
+        else if (ext == ".kanim")
+            ClipInspector.Draw(path, readOnly);
         else
             ImGui.TextDisabled("Aucun réglage d'import pour ce type de fichier.");
     }

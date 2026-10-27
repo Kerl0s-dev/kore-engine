@@ -54,7 +54,7 @@ public static class FontManager
         if (!TryGetTextTexture(fontHandle, content, r, g, b, a, out var cached)) return;
 
         SDL.FRect dest = new SDL.FRect { X = x, Y = y, W = cached.W * scale, H = cached.H * scale };
-        Renderer.DrawTexture(cached.Texture, (int)dest.X, (int)dest.Y, (int)dest.W, (int)dest.H);
+        Renderer.DrawTexture(cached.Texture, (int)dest.X, (int)dest.Y, (int)dest.W, (int)dest.H, Color.White);
     }
 
     static bool TryGetTextTexture(IntPtr fontHandle, string content, byte r, byte g, byte b, byte a, out (IntPtr Texture, int W, int H) cached)

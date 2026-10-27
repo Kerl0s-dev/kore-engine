@@ -125,3 +125,11 @@ public class ComponentRefField : InspectorField
     public required Func<Component?> Get;
     public Action<Component?>? Set;
 }
+
+/// <summary>Champ de sélection d'un asset par chemin (navigateur de projet), filtré par extensions (".kanim", ".wav"...).</summary>
+public class AssetPathField : InspectorField
+{
+    public required Func<string> Get;
+    public Action<string>? Set;
+    public required string[] Extensions;
+}

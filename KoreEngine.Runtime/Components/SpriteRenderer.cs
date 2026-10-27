@@ -11,14 +11,14 @@ namespace KoreEngine
 
     public class SpriteRenderer : Component
     {
-        public AnimationStateMachine? StateMachine = new();
-
         public IntPtr Texture;
         public string TexturePath = "";
         public Color Color = new Color(255, 255, 255, 255);
 
         // Taille d'une frame sur la texture (en PIXELS)
         public Vector2 FrameSize = new Vector2(16, 16);
+
+        public int Frames, Columns;
 
         Vector2 Size = Vector2.One; // Taille en METRES (pour le rendu)
 
@@ -86,11 +86,6 @@ namespace KoreEngine
             };
         }
 
-        public override void Update(float dt)
-        {
-            StateMachine?.Update(dt);
-        }
-
         public override void Render(Renderer renderer, Camera? camera)
         {
             if (Texture == IntPtr.Zero) return;
@@ -111,24 +106,10 @@ namespace KoreEngine
 
             double angle = -gameObject.transform.WorldRotation;
 
-            if (StateMachine != null)
-            {
-                var frame = StateMachine.CurrentFrame;
-                frame.SourceRect = new Rectangle(0, 0, (int)FrameSize.X, (int)FrameSize.Y);
-
-                if (camera != null)
-                    renderer.DrawTexturePart(Texture, frame.SourceRect, x, y, w, h, FlipX, FlipY, angle, camera);
-                else
-                    renderer.DrawTexturePart(Texture, frame.SourceRect, x, y, w, h, FlipX, FlipY, angle);
-            }
+            if (camera != null)
+                renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle, camera);
             else
-            {
-                Logger.Warning("State Machine not assigned.");
-                if (camera != null)
-                    renderer.DrawTextureColor(Texture, x, y, w, h, Color.White, FlipX, FlipY, angle, camera);
-                else
-                    renderer.DrawTextureColor(Texture, x, y, w, h, Color.White, FlipX, FlipY, angle);
-            }
+                renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle);
         }
     }
 }

@@ -294,6 +294,15 @@ public class InspectorPanel
                 break;
             }
 
+            case AssetPathField apf:
+            {
+                string path = apf.Get();
+                string newPath = DrawAssetPathField(apf.Label, path, apf.Extensions, baseId);
+                if (newPath != path)
+                    apf.Set?.Invoke(newPath);
+                break;
+            }
+
             case ComponentRefField crf:
             {
                 var current = crf.Get();

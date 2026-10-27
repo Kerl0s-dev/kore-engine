@@ -150,8 +150,11 @@ namespace KoreEngine
             return texture;
         }
 
-        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
+        public void DrawTexture(IntPtr texture, float x, float y, float w, float h, Color color, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
         {
+            SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
+            SDL.SetTextureAlphaMod(texture, (byte)color.A);
+
             if (camera != null)
             {
                 var screen = camera.WorldToScreen(new Vector2(x, y));
@@ -166,11 +169,19 @@ namespace KoreEngine
                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
 
             SDL.RenderTextureRotated(Handle, texture, IntPtr.Zero, dest, angle, IntPtr.Zero, flip);
+
+            SDL.SetTextureColorMod(texture, 255, 255, 255);
+            SDL.SetTextureAlphaMod(texture, 255);
+
             AutoFlushIfEnabled();
+            if (!AutoFlush) Flush();
         }
 
-        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
+        public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Color color, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
         {
+            SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
+            SDL.SetTextureAlphaMod(texture, (byte)color.A);
+
             if (camera != null)
             {
                 var screen = camera.WorldToScreen(new Vector2(x, y));
@@ -186,20 +197,12 @@ namespace KoreEngine
                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
 
             SDL.RenderTextureRotated(Handle, texture, srcRect, dest, angle, IntPtr.Zero, flip);
-            AutoFlushIfEnabled();
-        }
-
-        public void DrawTextureColor(IntPtr texture, float x, float y, float w, float h, Color color, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
-        {
-            SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
-            SDL.SetTextureAlphaMod(texture, (byte)color.A);
-
-            DrawTexture(texture, x, y, w, h, flipX, flipY, angle, camera);
-
-            if (!AutoFlush) Flush();
 
             SDL.SetTextureColorMod(texture, 255, 255, 255);
             SDL.SetTextureAlphaMod(texture, 255);
+
+            AutoFlushIfEnabled();
+            if (!AutoFlush) Flush();
         }
 
         // ---------------------------------------------------------------

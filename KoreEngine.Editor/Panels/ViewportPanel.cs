@@ -548,8 +548,8 @@ public class ViewportPanel
     }
 
     void DrawScaleGizmo(GameObject obj, ImDrawListPtr dl, Vector2 originWorld,
-        System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
-        ImGuiIOPtr io, bool overViewport)
+    System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
+    ImGuiIOPtr io, bool overViewport)
     {
         bool isDraggingX = activeDrag == DragMode.ScaleX;
         bool isDraggingY = activeDrag == DragMode.ScaleY;
@@ -559,35 +559,36 @@ public class ViewportPanel
         uint colorY = isDraggingY ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 1f));
         uint colorCenter = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.8f, 0.8f, 0.8f, 1f));
 
-        Vector2 xDir = GetAxisDir(obj, true);
-        Vector2 yDir = GetAxisDir(obj, false);
+        // Directions des axes converties à l'écran (même logique que MoveGizmo)
+        Vector2 xDirWorld = GetAxisDir(obj, true);
+        Vector2 yDirWorld = GetAxisDir(obj, false);
 
-        Vector2 xTipWorld = new Vector2(originWorld.X + xDir.X * ArmLength, originWorld.Y + xDir.Y * ArmLength);
-        Vector2 yTipWorld = new Vector2(originWorld.X + yDir.X * ArmLength, originWorld.Y + yDir.Y * ArmLength);
+        var xTipScreenTarget = WorldToAbsScreen(new Vector2(originWorld.X + xDirWorld.X, originWorld.Y + xDirWorld.Y), imageScreenPos);
+        var yTipScreenTarget = WorldToAbsScreen(new Vector2(originWorld.X + yDirWorld.X, originWorld.Y + yDirWorld.Y), imageScreenPos);
 
-        var xTipScreen = WorldToAbsScreen(xTipWorld, imageScreenPos);
-        var yTipScreen = WorldToAbsScreen(yTipWorld, imageScreenPos);
+        System.Numerics.Vector2 xScreenDir = System.Numerics.Vector2.Normalize(xTipScreenTarget - originScreen);
+        System.Numerics.Vector2 yScreenDir = System.Numerics.Vector2.Normalize(yTipScreenTarget - originScreen);
+
+        System.Numerics.Vector2 xTipScreen = originScreen + xScreenDir * ArmLength;
+        System.Numerics.Vector2 yTipScreen = originScreen + yScreenDir * ArmLength;
 
         // Lignes des axes
         dl.AddLine(originScreen, xTipScreen, colorX, 2f);
         dl.AddLine(originScreen, yTipScreen, colorY, 2f);
 
-        // Cube au bout des axes
+        // Cubes aux bouts des axes et au centre
         float boxSize = 8f;
-        DrawSquare(dl, xTipScreen, boxSize * 2f, colorX);
-        DrawSquare(dl, yTipScreen, boxSize * 2f, colorY);
+        DrawSquare(dl, xTipScreen, boxSize, colorX);
+        DrawSquare(dl, yTipScreen, boxSize, colorY);
+        DrawSquare(dl, originScreen, boxSize * 1.2f, colorCenter);
 
-        // Cube central pour le Scale uniforme
-        DrawSquare(dl, originScreen, boxSize * 2.2f, colorCenter);
-
-        float handlePx = HandleSize * EditorCamera.Zoom;
-        float centerPx = handlePx * 0.7f;
+        float hitRadius = boxSize + HitPadding;
 
         if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
         {
-            if (IsNear(io.MousePos, xTipScreen, handlePx + HitPadding)) StartDrag(DragMode.ScaleX, obj, io, imageScreenPos);
-            else if (IsNear(io.MousePos, yTipScreen, handlePx + HitPadding)) StartDrag(DragMode.ScaleY, obj, io, imageScreenPos);
-            else if (IsNear(io.MousePos, originScreen, centerPx + HitPadding)) StartDrag(DragMode.ScaleFree, obj, io, imageScreenPos);
+            if (IsNear(io.MousePos, xTipScreen, hitRadius)) StartDrag(DragMode.ScaleX, obj, io, imageScreenPos);
+            else if (IsNear(io.MousePos, yTipScreen, hitRadius)) StartDrag(DragMode.ScaleY, obj, io, imageScreenPos);
+            else if (IsNear(io.MousePos, originScreen, hitRadius)) StartDrag(DragMode.ScaleFree, obj, io, imageScreenPos);
         }
 
         if (activeDrag is DragMode.ScaleX or DragMode.ScaleY or DragMode.ScaleFree)
@@ -595,8 +596,8 @@ public class ViewportPanel
             Vector2 mouseWorldNow = AbsScreenToWorld(io.MousePos, imageScreenPos);
             Vector2 delta = new Vector2(mouseWorldNow.X - dragStartWorldMouse.X, mouseWorldNow.Y - dragStartWorldMouse.Y);
 
-            float dx = Dot(delta, xDir) / ArmLength;
-            float dy = Dot(delta, yDir) / ArmLength;
+            float dx = Dot(delta, xDirWorld) / (ArmLength / EditorCamera.Zoom);
+            float dy = Dot(delta, yDirWorld) / (ArmLength / EditorCamera.Zoom);
 
             Vector2 newScale = dragStartScale;
             if (activeDrag == DragMode.ScaleX)
@@ -615,8 +616,8 @@ public class ViewportPanel
     }
 
     void DrawRotateGizmo(GameObject obj, ImDrawListPtr dl, Vector2 originWorld,
-        System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
-        ImGuiIOPtr io, bool overViewport)
+    System.Numerics.Vector2 originScreen, System.Numerics.Vector2 imageScreenPos,
+    ImGuiIOPtr io, bool overViewport)
     {
         bool isDragging = activeDrag == DragMode.Rotate;
 
@@ -626,17 +627,13 @@ public class ViewportPanel
 
         uint trackColor = ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.15f));
 
-        Vector2 rimWorld = new Vector2(originWorld.X + ArmLength, originWorld.Y);
-        var rimScreen = WorldToAbsScreen(rimWorld, imageScreenPos);
-        float radiusScreen = (rimScreen - originScreen).Length();
+        // Utilisation directe de ArmLength en pixels écran pour garantir un cercle stable
+        float radiusScreen = ArmLength;
 
-        // 1. Cercle d'arrière-plan semi-transparent
-        dl.AddCircle(originScreen, radiusScreen, trackColor, 64, 1.5f);
+        // 1. Anneau principal
+        dl.AddCircle(originScreen, radiusScreen, ringColor, 64, 2f);
 
-        // 2. Anneau principal
-        dl.AddCircle(originScreen, radiusScreen, ringColor, 64, isDragging ? 3.5f : 2f);
-
-        // 3. Petit repère au centre
+        // 2. Petit repère au centre
         dl.AddCircleFilled(originScreen, 3f, ringColor);
 
         if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
@@ -651,12 +648,11 @@ public class ViewportPanel
             Vector2 mouseWorldNow = AbsScreenToWorld(io.MousePos, imageScreenPos);
             float angleNow = AngleTo(obj.transform.WorldPosition, mouseWorldNow);
             float deltaAngle = angleNow - dragStartMouseAngle;
-            obj.transform.Rotation = dragStartRotationValue - deltaAngle;
+            obj.transform.Rotation = dragStartRotationValue + deltaAngle;
 
-            // Visualisation de l'angle propre sur le cercle (snap au rayon du gizmo)
+            // Visualisation de l'angle sur le cercle
             System.Numerics.Vector2 startMouseScreen = WorldToAbsScreen(dragStartWorldMouse, imageScreenPos);
 
-            // Calcul du vecteur directionnel du centre vers la souris actuelle, normalisé et multiplié par le rayon écran
             System.Numerics.Vector2 mouseDir = io.MousePos - originScreen;
             if (mouseDir.LengthSquared() > 0.001f)
             {
@@ -664,8 +660,6 @@ public class ViewportPanel
             }
             System.Numerics.Vector2 snappedMouseScreen = originScreen + mouseDir * radiusScreen;
 
-            // Ligne de départ (blanche semi-transparente) et ligne actuelle (collée sur le cercle)
-            dl.AddLine(originScreen, startMouseScreen, ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.4f)), 1.5f);
             dl.AddLine(originScreen, snappedMouseScreen, ringColor, 2f);
         }
     }

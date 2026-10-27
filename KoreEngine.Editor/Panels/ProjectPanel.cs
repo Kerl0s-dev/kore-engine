@@ -35,6 +35,7 @@ public class ProjectPanel
     bool newItemError = false;
     bool openNewScript = false;
     bool openNewScene = false;
+    bool openNewAnimationClip = false;
     bool openNewFolder = false;
     bool openRename = false;
     string? renameTargetPath = null;
@@ -187,6 +188,7 @@ public class ProjectPanel
         // Popups
         DrawNewScriptPopup();
         DrawNewScenePopup();
+        DrawNewAnimationClipPopup();
         DrawNewFolderPopup();
         DrawRenamePopup();
 
@@ -449,6 +451,7 @@ public class ProjectPanel
                 if (ImGui.MenuItem("Folder")) { newItemName = "New Folder"; openNewFolder = true; }
                 if (ImGui.MenuItem("C# Script")) { newItemName = "NewScript"; openNewScript = true; }
                 if (ImGui.MenuItem("Scene")) { newItemName = "New Scene"; openNewScene = true; }
+                if (ImGui.MenuItem("Animation Clip")) { newItemName = "New Animation Clip"; openNewAnimationClip = true; }
                 ImGui.EndMenu();
             }
 
@@ -580,6 +583,37 @@ public class {newItemName.Trim()} : Component
                 var empty = new Scene { Name = newItemName.Trim() };
                 SceneSerializer.SaveScene(empty, path);
                 SceneManager.ScanAndRegisterScenes();
+                RefreshCurrentDir();
+                ImGui.CloseCurrentPopup();
+            }
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel", new System.Numerics.Vector2(w, 0))) ImGui.CloseCurrentPopup();
+        ImGui.EndPopup();
+    }
+
+    void DrawNewAnimationClipPopup()
+    {
+        if (openNewAnimationClip) { ImGui.OpenPopup("##new_animation_clip_popup"); openNewAnimationClip = false; newItemError = false; }
+
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 120), ImGuiCond.Always);
+        if (!ImGui.BeginPopup("##new_animation_clip_popup")) return;
+
+        ImGui.Text("Animation clip name");
+        ImGui.SetNextItemWidth(-1f);
+        if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
+        ImGui.InputText("##nacname", ref newItemName, 64);
+        if (newItemError) ImGui.TextColored(new Vector4(1, .3f, .3f, 1), "Already exists.");
+
+        ImGui.Spacing();
+        float w = (ImGui.GetContentRegionAvail().X - 4f) * .5f;
+        if (ImGui.Button("Create", new System.Numerics.Vector2(w, 0)))
+        {
+            string path = Path.Combine(selectedDir, $"{newItemName.Trim()}.kanim");
+            if (File.Exists(path)) { newItemError = true; }
+            else
+            {
+                File.WriteAllText(path, "");
                 RefreshCurrentDir();
                 ImGui.CloseCurrentPopup();
             }

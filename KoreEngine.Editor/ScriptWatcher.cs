@@ -52,13 +52,7 @@ public class ScriptWatcher : IDisposable
         ScriptCompiler.OnCompileSuccess += OnCompileSuccess;
         ScriptCompiler.OnCompileError += OnCompileError;
 
-        var csFiles = watchDirs
-            .Where(Directory.Exists)
-            .SelectMany(d => Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories))
-            .Distinct()
-            .ToList();
-
-        _ = Task.Run(() => ScriptCompiler.CompileScripts(csFiles));
+        ReloadAssemblies();
     }
     void OnChanged(object sender, FileSystemEventArgs e)
     {
@@ -117,14 +111,10 @@ public class ScriptWatcher : IDisposable
 
         buildPending = false;
 
-        var csFiles = watchDirs
-            .Where(Directory.Exists)
-            .SelectMany(d => Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories))
-            .Distinct()
-            .ToList();
-
-        _ = Task.Run(() => ScriptCompiler.CompileScripts(csFiles));
+        ReloadAssemblies();
     }
+
+    public void ReloadAssemblies() => ScriptCompiler.CompileScripts(watchDirs);
 
     public void Dispose()
     {
