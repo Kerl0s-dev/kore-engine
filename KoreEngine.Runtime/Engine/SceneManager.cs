@@ -134,8 +134,8 @@ public static class SceneManager
         next = null;
     }
 
-    public static void Update(float dt)
-        => current?.Update(dt);
+    public static void Update()
+        => current?.Update();
 
     public static void NotifyStart()
         => current?.Start();

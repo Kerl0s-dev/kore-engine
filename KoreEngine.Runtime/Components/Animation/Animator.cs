@@ -61,7 +61,7 @@ public sealed class AnimatorController
     public AnimationClip? CurrentClip => currentClip;
 
     /// <summary>Temps de lecture dans le clip courant, en secondes (bouclé si le clip boucle).</summary>
-    public float Time { get; private set; }
+    public float PlayTime { get; private set; }
 
     /// <summary>Vrai quand un clip sans boucle est arrivé à sa fin.</summary>
     public bool IsFinished { get; private set; }
@@ -112,7 +112,7 @@ public sealed class AnimatorController
         current = s;
         currentClip = ClipProvider(s);
         elapsed = 0f;
-        Time = 0f;
+        PlayTime = 0f;
         IsFinished = false;
     }
 
@@ -126,8 +126,8 @@ public sealed class AnimatorController
         if (s != null) Enter(s);
     }
 
-    /// <summary>Évalue les transitions puis avance le temps. Après l'appel, <see cref="Time"/> est à appliquer sur <see cref="CurrentClip"/>.</summary>
-    public void Update(float dt)
+    /// <summary>Évalue les transitions puis avance le temps. Après l'appel, <see cref="PlayTime"/> est à appliquer sur <see cref="CurrentClip"/>.</summary>
+    public void Update()
     {
         if (current == null) return;
 
@@ -148,16 +148,16 @@ public sealed class AnimatorController
         // 2. Avance du temps
         if (currentClip == null) return;
         float duration = currentClip.EffectiveDuration;
-        elapsed += dt * current.Speed;
+        elapsed += Time.deltaTime * current.Speed;
 
         if (currentClip.Loop)
         {
-            Time = elapsed % duration;
+            PlayTime = elapsed % duration;
             IsFinished = false;
         }
         else
         {
-            Time = MathF.Min(elapsed, duration);
+            PlayTime = MathF.Min(elapsed, duration);
             IsFinished = elapsed >= duration;
         }
     }
@@ -388,9 +388,9 @@ public class Animator : Component
         ApplyPose();
     }
 
-    public override void Update(float dt)
+    public override void Update()
     {
-        Controller.Update(dt);
+        Controller.Update();
         ApplyPose();
     }
 
@@ -399,7 +399,7 @@ public class Animator : Component
         var clip = Controller.CurrentClip;
         if (clip == null) return;
 
-        AnimationBinder.Apply(GetBindings(clip), clip, Controller.Time);
+        AnimationBinder.Apply(GetBindings(clip), clip, Controller.PlayTime);
     }
 
     // ------------------------------------------------------------------

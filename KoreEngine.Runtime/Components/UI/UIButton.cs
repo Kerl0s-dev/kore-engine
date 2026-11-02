@@ -32,7 +32,7 @@ public class UIButton : UIElement
     // Update
     // ---------------------------------------------------------------
 
-    public override void Update(float dt)
+    public override void Update()
     {
         float mx = SceneManager.ViewportMouseX;
         float my = SceneManager.ViewportMouseY;
@@ -59,7 +59,6 @@ public class UIButton : UIElement
     {
         IntPtr tex = hovered ? (pressed ? TexturePressed : TextureHover) : TextureNormal;
         if (tex == IntPtr.Zero) tex = TextureNormal;
-        //if (tex != IntPtr.Zero) renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight);
 
         if (ButtonType == ButtonType.Color)
         {

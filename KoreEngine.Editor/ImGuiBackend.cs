@@ -83,13 +83,13 @@ public class ImGuiBackend
         io.Fonts.ClearTexData();
     }
 
-    public void NewFrame(float dt, int windowWidth, int windowHeight)
+    public void NewFrame(int windowWidth, int windowHeight)
     {
         if (!initialized) return;
 
         var io = ImGui.GetIO();
         io.DisplaySize = new System.Numerics.Vector2(windowWidth, windowHeight);
-        io.DeltaTime = dt;
+        io.DeltaTime = Time.deltaTime;
 
         ImGui.NewFrame();
     }

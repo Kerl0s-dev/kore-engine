@@ -3,7 +3,7 @@ using KoreEngine.UI;
 
 namespace KoreEngine;
 
-public class ViewportPanel
+public class ScenePanel
 {
     private readonly Renderer renderer;
     private readonly RenderTexture renderTexture;
@@ -35,7 +35,7 @@ public class ViewportPanel
     const float HandleSize = 14f;   // idem, en unités monde
     const float HitPadding = 10f;   // marge de tolérance de clic, en pixels écran
 
-    public ViewportPanel(Renderer renderer, RenderTexture renderTexture)
+    public ScenePanel(Renderer renderer, RenderTexture renderTexture)
     {
         this.renderer = renderer;
         this.renderTexture = renderTexture;
@@ -357,15 +357,17 @@ public class ViewportPanel
         // l'échelle : 1 pixel déplacé = 1 unité monde / zoom.
         if (io.MouseDown[2])
         {
+            float panSensitivity = 0.75f;
+
             EditorCamera.Position = new Vector2(
-                EditorCamera.Position.X - io.MouseDelta.X / EditorCamera.Zoom,
-                EditorCamera.Position.Y + io.MouseDelta.Y / EditorCamera.Zoom  // signe inversé
+                EditorCamera.Position.X - (io.MouseDelta.X * panSensitivity) / (EditorCamera.Zoom * 0.5f),
+                EditorCamera.Position.Y + (io.MouseDelta.Y * panSensitivity) / (EditorCamera.Zoom * 0.5f)
             );
         }
 
         // --- ZOOM : Ctrl + molette ---
-        // Sans Ctrl, ImGui scrolle le panneau normalement (comportement par
-        // défaut non bloqué). Avec Ctrl on consomme l'événement pour le zoom.
+        // Sans Ctrl, ImGui scrolle le panneau normalement (comportement par défaut non bloqué).
+        // Avec Ctrl on consomme l'événement pour le zoom.
         if (io.KeyCtrl && io.MouseWheel != 0f)
         {
             float factor = 1f + ZoomStep * io.MouseWheel;

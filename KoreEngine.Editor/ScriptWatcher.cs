@@ -102,11 +102,11 @@ public class ScriptWatcher : IDisposable
         ScriptCompiler.FinalizeUnload();
     }
 
-    public void Update(float dt)
+    public void Update()
     {
         if (!buildPending || ScriptCompiler.IsCompiling) return;
 
-        timeSinceChange += dt;
+        timeSinceChange += Time.deltaTime;
         if (timeSinceChange < BuildDelay) return;
 
         buildPending = false;

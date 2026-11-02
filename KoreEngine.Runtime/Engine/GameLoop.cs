@@ -73,20 +73,17 @@ public class GameLoop
             // 2. Resize de la fenêtre réelle
             UpdateWindowSizeIfNeeded();
 
-            // 3. dt
-            float dt = ComputeDeltaTime();
-
-            // 4. Applique la scène en attente, puis logique de jeu
+            // 3. Applique la scène en attente, puis logique de jeu
             SceneManager.ApplyPendingScene();
             UpdateViewportState();
-            SceneManager.Update(dt);
+            SceneManager.Update();
 
             if (SceneManager.Current == null && SceneManager.Current?.Camera == null)
             {
                 throw new Exception("No scene or camera loaded. Please set a camera and a default scene.");
             }
 
-            // 5. Rendu direct à l'écran, avec la caméra de la scène
+            // 4. Rendu direct à l'écran, avec la caméra de la scène
             Renderer.Clear(SceneManager.Current?.Camera?.Color);
             SceneManager.Render(Renderer);
             Renderer.Present();
@@ -127,15 +124,5 @@ public class GameLoop
             cam.ViewWidth = Width;
             cam.ViewHeight = Height;
         }
-    }
-
-    /// <summary>Delta time en millisencondes.</summary>
-    float ComputeDeltaTime()
-    {
-        ulong now = SDL.GetTicks();
-        float dt = (now - lastTicks);
-        lastTicks = now;
-
-        return dt;
     }
 }

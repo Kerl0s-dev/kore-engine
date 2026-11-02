@@ -8,7 +8,7 @@ public abstract class Component
     public Transform transform => gameObject.transform;
 
     public virtual void Start() { }
-    public virtual void Update(float dt) { }
+    public virtual void Update() { }
     public virtual void OnDestroy() { }
 
     public virtual void OnCollision(Collider other) { }

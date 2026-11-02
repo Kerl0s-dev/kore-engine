@@ -90,7 +90,7 @@ public class AudioSource : Component
         if (PlayOnStart) Play();
     }
 
-    public override void Update(float dt)
+    public override void Update()
     {
         if (Spatial2D && track != IntPtr.Zero && gameObject != null)
         {

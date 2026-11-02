@@ -45,7 +45,7 @@ public class EditorWindow
 
     ImGuiBackend? imguiBackend;
 
-    public ViewportPanel? viewportPanel;
+    public ScenePanel? viewportPanel;
     public GamePanel? gamePanel;
     public UIEditorPanel? uiEditorPanel;
     public HierarchyPanel? hierarchyPanel;
@@ -191,7 +191,7 @@ public class EditorWindow
         // recalée sur la taille réelle du panneau ImGui dès la 2e frame (lag
         // d'une frame géré par ViewportPanel.ApplyPendingResize, voir Run()).
         var viewportTexture = new RenderTexture(Renderer, width, height);
-        viewportPanel = new ViewportPanel(Renderer, viewportTexture);
+        viewportPanel = new ScenePanel(Renderer, viewportTexture);
         gamePanel = new GamePanel(Renderer, width, height);
         uiEditorPanel = new UIEditorPanel(Renderer, width, height);
         hierarchyPanel = new HierarchyPanel();
@@ -246,11 +246,11 @@ public class EditorWindow
             UpdateWindowSizeIfNeeded();
 
             // 3. dt
-            float dt = ComputeDeltaTime();
-            scriptWatcher?.Update(dt);
+            Time.ComputeDeltaTime();
+            scriptWatcher?.Update();
 
             // 4. ImGui NewFrame
-            imguiBackend?.NewFrame(dt, Width, Height);
+            imguiBackend?.NewFrame(Width, Height);
 
             var io = ImGui.GetIO();
 
@@ -320,10 +320,10 @@ public class EditorWindow
                 gamePanel?.BindUiSize(); // l'UI doit voir la taille du Game view, pas celle du Scene view
 
                 if (!Paused)
-                    SceneManager.Update(dt);
+                    SceneManager.Update();
                 else if (stepRequested)
                 {
-                    SceneManager.Update(dt);
+                    SceneManager.Update();
                     stepRequested = false;
                 }
             }
@@ -371,18 +371,6 @@ public class EditorWindow
             Width = w;
             Height = h;
         }
-    }
-
-    /// <summary>Delta time en secondes, clampé entre 0.0001f et 1/30f (contrainte ImGui).</summary>
-    float ComputeDeltaTime()
-    {
-        ulong now = SDL.GetTicks();               // currentTime
-        float rawDt = (now - lastTicks) / 1000f;   // deltaTime = currentTime - lastTime (en secondes)
-        lastTicks = now;                           // Mise à jour de lastTime pour la prochaine frame
-
-        // Optionnel : clamping et calcul FPS
-        fps = rawDt > 0f ? 1f / rawDt : 0f;
-        return MathF.Min(MathF.Max(rawDt, 0.0001f), 1f / 30f);
     }
 
     /// <summary>Dockspace ImGui plein écran qui accueille tous les panneaux éditeur.</summary>

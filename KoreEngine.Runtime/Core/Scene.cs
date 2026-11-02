@@ -89,7 +89,7 @@ public class Scene
                 c.Start();
     }
 
-    public void Update(float dt)
+    public void Update()
     {
         var all = ActiveObjects.ToList();
 
@@ -101,17 +101,17 @@ public class Scene
         foreach (var obj in all)
             foreach (var c in obj.Components)
                 if (c is not PhysicsBody)
-                    c.Update(dt);
+                    c.Update();
 
         // Passe 2 : PhysicsBody — applique la vélocité calculée en passe 1
         // et intègre la gravité. IsGrounded est reset ici à false,
         // rétabli par Collisions.Update en passe 3.
         foreach (var obj in all)
-            obj.GetComponent<PhysicsBody>()?.Update(dt);
+            obj.GetComponent<PhysicsBody>()?.Update();
 
         // Passe 3 : résolution des collisions — met à jour IsGrounded,
         // corrige les positions après pénétration.
-        Collisions.Update(dt);
+        Collisions.Update();
     }
 
     public void Render(Renderer renderer)

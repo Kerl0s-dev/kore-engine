@@ -15,24 +15,24 @@ public class PhysicsBody : Component
     public float AngularDrag = 0.05f;
     public float SurfaceFriction = 0.4f; // coefficient de Coulomb
 
-    public override void Update(float dt)
+    public override void Update()
     {
         if (IsStatic) return;
 
         PreviousPosition = gameObject.transform.Position;
 
-        Physics.CalculatePhysics(this, dt);
+        Physics.CalculatePhysics(this, Time.deltaTime);
 
         if (GravityScale > 0)
             Velocity.Y = MathF.Max(Velocity.Y, -MaxFallSpeed); // clamp AVANT l'intégration
 
         // Intégration de la position — une seule fois, ici.
-        gameObject.transform.Position += Velocity * dt;
+        gameObject.transform.Position += Velocity * Time.deltaTime;
 
         if (!FreezeRotation)
         {
-            AngularVelocity /= 1f + AngularDrag * dt;
-            if (AngularVelocity != 0f) RotateAroundCenterOfMass(AngularVelocity * dt);
+            AngularVelocity /= 1f + AngularDrag * Time.deltaTime;
+            if (AngularVelocity != 0f) RotateAroundCenterOfMass(AngularVelocity * Time.deltaTime);
         }
         else AngularVelocity = 0f;
     }

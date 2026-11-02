@@ -44,7 +44,7 @@ public class ParticleSystem : Component
         }
     }
 
-    public override void Update(float deltaTime)
+    public override void Update()
     {
         // 1. Mise à jour des particules existantes
         for (int i = 0; i < _particles.Count; i++)
@@ -53,7 +53,7 @@ public class ParticleSystem : Component
             if (!p.IsActive) continue;
 
             // Réduire la durée de vie
-            p.LifeTime -= deltaTime;
+            p.LifeTime -= Time.deltaTime;
             if (p.LifeTime <= 0f)
             {
                 p.IsActive = false;
@@ -62,7 +62,7 @@ public class ParticleSystem : Component
             }
 
             // Mettre à jour la position en fonction de la vitesse
-            p.Position += p.Velocity * deltaTime;
+            p.Position += p.Velocity * Time.deltaTime;
 
             // Optionnel : faire varier la couleur ou l'opacité selon la vie restante
             // float lifeRatio = p.LifeTime / p.MaxLifeTime;
@@ -72,7 +72,7 @@ public class ParticleSystem : Component
         }
 
         // 2. Émission de nouvelles particules
-        _emissionTimer += deltaTime;
+        _emissionTimer += Time.deltaTime;
         float emissionInterval = 1f / EmissionRate;
 
         while (_emissionTimer >= emissionInterval)

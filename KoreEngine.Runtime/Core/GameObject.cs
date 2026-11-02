@@ -120,12 +120,12 @@ public partial class GameObject
     // Update / Render (récursifs)
     // ---------------------------------------------------------------
 
-    public virtual void Update(float dt)
+    public virtual void Update()
     {
         if (!Enabled) return;
 
-        foreach (var c in Components) c.Update(dt);
-        foreach (var child in children) child.Update(dt);
+        foreach (var c in Components) c.Update();
+        foreach (var child in children) child.Update();
     }
 
     internal virtual void Render(Renderer renderer, Camera? camera)

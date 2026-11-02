@@ -14,7 +14,7 @@
         // Convention utilisée partout :
         //   normal = direction dans laquelle on repousse A hors de B
         //   pour B, la normale de repoussage est -normal.
-        public void Update(float dt)
+        public void Update()
         {
             rigid.Begin();
 
