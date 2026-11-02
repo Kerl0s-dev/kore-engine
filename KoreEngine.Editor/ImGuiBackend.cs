@@ -89,7 +89,7 @@ public class ImGuiBackend
 
         var io = ImGui.GetIO();
         io.DisplaySize = new System.Numerics.Vector2(windowWidth, windowHeight);
-        io.DeltaTime = Time.deltaTime;
+        io.DeltaTime = Math.Max(0.0001f, 1 / 30); // Limite le framerate ImGUI à 30 FPS
 
         ImGui.NewFrame();
     }

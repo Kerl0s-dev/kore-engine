@@ -348,22 +348,24 @@ public class ScenePanel
     // Caméra éditeur
     // ---------------------------------------------------------------
 
+    private Vector2 cameraTargetPosition;
+
     void UpdateEditorCamera(ImGuiIOPtr io, Vector2 mouseViewport)
     {
-        // --- PAN : clic molette (bouton 2) maintenu + drag ---
-        // io.MouseDown[2] = bouton du milieu.
-        // io.MouseDelta   = déplacement souris cette frame, en pixels écran.
-        // On divise par Zoom pour que le pan soit cohérent quelle que soit
-        // l'échelle : 1 pixel déplacé = 1 unité monde / zoom.
+        float panSpeed = 0.01f;
+
         if (io.MouseDown[2])
         {
-            float panSensitivity = 0.75f;
-
-            EditorCamera.Position = new Vector2(
-                EditorCamera.Position.X - (io.MouseDelta.X * panSensitivity) / (EditorCamera.Zoom * 0.5f),
-                EditorCamera.Position.Y + (io.MouseDelta.Y * panSensitivity) / (EditorCamera.Zoom * 0.5f)
-            );
+            cameraTargetPosition.X -= (io.MouseDelta.X / EditorCamera.Zoom) * panSpeed;
+            cameraTargetPosition.Y += (io.MouseDelta.Y / EditorCamera.Zoom) * panSpeed;
         }
+        else if (!io.MouseDown[2])
+        {
+            // Optionnel : s'assurer que la cible reste synchronisée quand on ne glisse pas
+            cameraTargetPosition = EditorCamera.Position;
+        }
+
+        EditorCamera.Position = Vector2.Lerp(EditorCamera.Position, cameraTargetPosition, 10.0f * Time.deltaTime);
 
         // --- ZOOM : Ctrl + molette ---
         // Sans Ctrl, ImGui scrolle le panneau normalement (comportement par défaut non bloqué).
