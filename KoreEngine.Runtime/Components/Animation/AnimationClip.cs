@@ -343,7 +343,7 @@ public sealed class PropertyBinding
         if (leafType == typeof(float)) return v;
         if (leafType == typeof(double)) return (double)v;
         if (leafType == typeof(int)) return (int)MathF.Round(v);
-        if (leafType == typeof(byte)) return (byte)Math.Clamp((int)MathF.Round(v), 0, 255);
+        if (leafType == typeof(byte)) return (byte)System.Math.Clamp((int)MathF.Round(v), 0, 255);
         return v >= 0.5f; // bool
     }
 

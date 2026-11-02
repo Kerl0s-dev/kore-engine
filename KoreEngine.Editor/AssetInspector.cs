@@ -45,7 +45,7 @@ public static class AssetInspector
         else if (ext == AnimationClip.Extension)
             ClipInspector.Draw(path, readOnly);
         else
-            ImGui.TextDisabled("Aucun réglage d'import pour ce type de fichier.");
+            ImGui.TextDisabled("No import settings for this type of file.");
     }
 
     // ---------------------------------------------------------------
@@ -69,13 +69,13 @@ public static class AssetInspector
         ImGui.EndDisabled();
 
         if (readOnly)
-            ImGui.TextDisabled("Dossier en lecture seule : réglages non modifiables.");
+            ImGui.TextDisabled("Diretory in read-only : settings not modifiable.");
 
         ImGui.Separator();
 
         // Aperçu : agrandi pour que l'effet du filtrage (pixels nets ou lissés) soit visible.
         IntPtr tex = TextureCache.Get(path);
-        if (tex == IntPtr.Zero) { ImGui.TextDisabled("Impossible de charger la texture."); return; }
+        if (tex == IntPtr.Zero) { ImGui.TextDisabled("Impossible to load the texture."); return; }
 
         SDL.GetTextureSize(tex, out float tw, out float th);
         ImGui.TextDisabled($"{(int)tw} x {(int)th}");
@@ -105,7 +105,7 @@ public static class AssetInspector
         ImGui.EndDisabled();
 
         if (readOnly)
-            ImGui.TextDisabled("Dossier en lecture seule : réglages non modifiables.");
+            ImGui.TextDisabled("Diretory in read-only : settings not modifiable.");
 
         ImGui.Separator();
 
@@ -115,9 +115,9 @@ public static class AssetInspector
 
         ImGui.Spacing();
         ImGui.TextDisabled(settings.LoadMode == AudioLoadMode.Streaming
-            ? "Streaming : lu depuis le disque pendant la lecture (faible mémoire, adapté aux musiques)."
-            : "En mémoire : décodé entièrement au chargement (latence minimale, adapté aux effets sonores).");
-        ImGui.TextDisabled("Les réglages s'appliquent au chargement du clip (prochain Play ou prochaine scène).");
+            ? "Streaming : read from disk during playback (low memory usage, suitable for music)."
+            : "In memory : fully decoded upon loading (minimal latency, suitable for sound effects).");
+        ImGui.TextDisabled("The settings take effect when the clip is loaded (next Play or next scene).");
     }
 
     static void Preview(string path)

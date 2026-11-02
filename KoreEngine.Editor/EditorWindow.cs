@@ -45,7 +45,7 @@ public class EditorWindow
 
     ImGuiBackend? imguiBackend;
 
-    public ScenePanel? viewportPanel;
+    public ScenePanel? scenePanel;
     public GamePanel? gamePanel;
     public UIEditorPanel? uiEditorPanel;
     public HierarchyPanel? hierarchyPanel;
@@ -56,9 +56,6 @@ public class EditorWindow
     public TimelinePanel? timelinePanel;
 
     ScriptWatcher? scriptWatcher;
-
-    float fps;
-    ulong lastTicks;
 
     public EditorWindow(string title, int width, int height)
     {
@@ -191,7 +188,7 @@ public class EditorWindow
         // recalée sur la taille réelle du panneau ImGui dès la 2e frame (lag
         // d'une frame géré par ViewportPanel.ApplyPendingResize, voir Run()).
         var viewportTexture = new RenderTexture(Renderer, width, height);
-        viewportPanel = new ScenePanel(Renderer, viewportTexture);
+        scenePanel = new ScenePanel(Renderer, viewportTexture);
         gamePanel = new GamePanel(Renderer, width, height);
         uiEditorPanel = new UIEditorPanel(Renderer, width, height);
         hierarchyPanel = new HierarchyPanel();
@@ -209,8 +206,6 @@ public class EditorWindow
         // n'exécute jamais cette ligne et garde le défaut (Assets à côté
         // de l'exe).
         SceneManager.AssetsDirectory = Path.Combine(ProjectPanel.FindProjectRoot(), "Assets");
-
-        lastTicks = SDL.GetTicks();
     }
 
     public void Run()
@@ -273,7 +268,7 @@ public class EditorWindow
                             SceneManager.SaveCurrentScene();
                     }
 
-                    if (ImGui.IsKeyPressed(ImGuiKey.R)) viewportPanel?.EditorCamera.Reset(); // Reset the camera
+                    if (ImGui.IsKeyPressed(ImGuiKey.R)) scenePanel?.EditorCamera.Reset(); // Reset the camera
                 }
                 else
                 {
@@ -281,7 +276,7 @@ public class EditorWindow
                     if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
                     if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
 
-                    if (ImGui.IsKeyPressed(ImGuiKey.F)) viewportPanel?.EditorCamera.Position = (Vector2)(EditorSelection.Selected != null ? EditorSelection.Selected.transform.Position : viewportPanel?.EditorCamera.Position)!;
+                    if (ImGui.IsKeyPressed(ImGuiKey.F) && EditorSelection.Selected != null) scenePanel?.FocusOn(EditorSelection.Selected.transform.WorldPosition);
                 }
             }
 
@@ -330,8 +325,8 @@ public class EditorWindow
 
             // 6. Rendu.
             // Scene view : toujours EditorCamera (comme Unity, même en Play)
-            viewportPanel?.ApplyPendingResize(viewportPanel.EditorCamera);
-            viewportPanel?.RenderScene(SceneManager.Current, viewportPanel.EditorCamera, editorMode: true);
+            scenePanel?.ApplyPendingResize(scenePanel.EditorCamera);
+            scenePanel?.RenderScene(SceneManager.Current, scenePanel.EditorCamera, editorMode: true);
 
             // Game view : toujours la caméra de la scène
             gamePanel?.ApplyPendingResize();
@@ -347,7 +342,7 @@ public class EditorWindow
             hierarchyPanel?.Draw();
             inspectorPanel?.Draw();
             projectPanel?.Draw();
-            viewportPanel?.Draw(editorMode: true);
+            scenePanel?.Draw(editorMode: true);
             gamePanel?.Draw();
             uiEditorPanel?.Draw();
             consolePanel?.Draw();

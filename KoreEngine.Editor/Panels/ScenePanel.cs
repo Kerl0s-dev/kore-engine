@@ -43,6 +43,9 @@ public class ScenePanel
         pendingHeight = renderTexture.Height;
 
         EditorCamera = new EditorCamera(renderTexture.Width, renderTexture.Height);
+
+        cameraTargetZoom = EditorCamera.Zoom;
+        cameraTargetPosition = EditorCamera.Position;
     }
 
     // ---------------------------------------------------------------
@@ -323,8 +326,8 @@ public class ScenePanel
 
         // Contrôles caméra éditeur — uniquement en mode édition et quand
         // la souris est au-dessus du viewport.
-        if (editorMode && overViewport)
-            UpdateEditorCamera(io, localMouse);
+        if (editorMode && overViewport) HandleCameraInput(io, localMouse);
+        if (editorMode) StepEditorCamera(io.DeltaTime);
 
         if (editorMode)
         {
@@ -347,47 +350,68 @@ public class ScenePanel
     // ---------------------------------------------------------------
     // Caméra éditeur
     // ---------------------------------------------------------------
-
+    private float cameraTargetZoom;
     private Vector2 cameraTargetPosition;
+    private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
 
-    void UpdateEditorCamera(ImGuiIOPtr io, Vector2 mouseViewport)
+    const float ZoomSmoothing = 75f;
+    const float PanSmoothing = 75f;
+    static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
+
+    /// <summary>Recentre la caméra éditeur sur un point du monde (touche F, « Frame Selected »...).</summary>
+    public void FocusOn(Vector2 worldPos) => cameraTargetPosition = worldPos;
+
+    // Entrées : seulement quand la souris survole le viewport
+    const float ScrollPanPixels = 80f;   // distance à l'écran par cran de molette
+
+    void HandleCameraInput(ImGuiIOPtr io, Vector2 mouseViewport)
     {
-        float panSpeed = 0.01f;
-
         if (io.MouseDown[2])
         {
-            cameraTargetPosition.X -= (io.MouseDelta.X / EditorCamera.Zoom) * panSpeed;
-            cameraTargetPosition.Y += (io.MouseDelta.Y / EditorCamera.Zoom) * panSpeed;
+            var delta = new Vector2(-io.MouseDelta.X, io.MouseDelta.Y) / EditorCamera.Zoom / Renderer.PixelsPerUnit;
+            EditorCamera.Position += delta;
+            cameraTargetPosition += delta;
         }
-        else if (!io.MouseDown[2])
+
+        if (io.MouseWheel == 0f && io.MouseWheelH == 0f) return;
+
+        if (io.KeyCtrl)
         {
-            // Optionnel : s'assurer que la cible reste synchronisée quand on ne glisse pas
-            cameraTargetPosition = EditorCamera.Position;
+            float factor = MathF.Pow(1f + ZoomStep, io.MouseWheel);
+            cameraTargetZoom = System.Math.Clamp(cameraTargetZoom * factor, ZoomMin, ZoomMax);
+            zoomAnchor = mouseViewport;
         }
-
-        EditorCamera.Position = Vector2.Lerp(EditorCamera.Position, cameraTargetPosition, 10.0f * Time.deltaTime);
-
-        // --- ZOOM : Ctrl + molette ---
-        // Sans Ctrl, ImGui scrolle le panneau normalement (comportement par défaut non bloqué).
-        // Avec Ctrl on consomme l'événement pour le zoom.
-        if (io.KeyCtrl && io.MouseWheel != 0f)
+        else
         {
-            float factor = 1f + ZoomStep * io.MouseWheel;
-            float newZoom = Math.Clamp(EditorCamera.Zoom * factor, ZoomMin, ZoomMax);
+            // Pas constant à l'écran, converti en mètres
+            float step = ScrollPanPixels / (EditorCamera.Zoom * Renderer.PixelsPerUnit);
 
-            // Zoom centré sur la position souris dans le monde :
-            // on recalcule la position caméra pour que le point sous la souris
-            // reste fixe à l'écran (comportement standard d'un éditeur 2D).
-            Vector2 worldBefore = EditorCamera.ScreenToWorld(mouseViewport);
+            float dx = io.MouseWheelH;      // molette horizontale ou pavé tactile
+            float dy = io.MouseWheel;
+            if (io.KeyShift) { dx -= dy; dy = 0f; }   // Shift + molette : défilement horizontal
 
-            EditorCamera.Zoom = newZoom;
-
-            Vector2 worldAfter = EditorCamera.ScreenToWorld(mouseViewport);
-            EditorCamera.Position = new Vector2(
-                EditorCamera.Position.X + (worldBefore.X - worldAfter.X),
-                EditorCamera.Position.Y + (worldBefore.Y - worldAfter.Y)
-            );
+            // On déplace la cible : StepEditorCamera lisse le mouvement
+            cameraTargetPosition += new Vector2(dx * step, dy * step);
         }
+    }
+
+    // Animation : à CHAQUE frame en mode édition, même hors du viewport
+    void StepEditorCamera(float dt)
+    {
+        float diff = cameraTargetZoom - EditorCamera.Zoom;
+        if (MathF.Abs(diff) > cameraTargetZoom * 0.0005f)
+        {
+            Vector2 worldBefore = EditorCamera.ScreenToWorld(zoomAnchor);
+            EditorCamera.Zoom += diff * Damp(ZoomSmoothing, dt);
+            Vector2 worldAfter = EditorCamera.ScreenToWorld(zoomAnchor);
+
+            Vector2 correction = worldBefore - worldAfter;
+            EditorCamera.Position += correction;
+            cameraTargetPosition += correction;
+        }
+        else EditorCamera.Zoom = cameraTargetZoom;
+
+        EditorCamera.Position = Vector2.Lerp(EditorCamera.Position, cameraTargetPosition, Damp(PanSmoothing, dt));
     }
 
     // ---------------------------------------------------------------
@@ -613,8 +637,9 @@ public class ScenePanel
             Vector2 delta = new Vector2(mouseWorldNow.X - dragStartWorldMouse.X, mouseWorldNow.Y - dragStartWorldMouse.Y);
 
             // Projection du delta souris sur les axes locaux (exactement comme le MoveGizmo)
-            float dx = Dot(delta, xDirWorld) / (ArmLength / EditorCamera.Zoom);
-            float dy = Dot(delta, yDirWorld) / (ArmLength / EditorCamera.Zoom);
+            float armWorld = ArmLength / (EditorCamera.Zoom * Renderer.PixelsPerUnit);   // longueur du bras, en mètres
+            float dx = Dot(delta, xDirWorld) / armWorld;
+            float dy = Dot(delta, yDirWorld) / armWorld;
 
             Vector2 newScale = dragStartScale;
 

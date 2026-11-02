@@ -536,7 +536,7 @@ public class Animator : Component
         {
             Label = "Default State",
             Names = stateNames.Length > 0 ? stateNames : new[] { "(none)" },
-            Get = () => Math.Max(0, Array.IndexOf(stateNames, c.DefaultState)),
+            Get = () => System.Math.Max(0, Array.IndexOf(stateNames, c.DefaultState)),
             Set = i => { if (i >= 0 && i < stateNames.Length) c.DefaultState = stateNames[i]; }
         };
 
