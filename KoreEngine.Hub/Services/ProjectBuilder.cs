@@ -35,17 +35,17 @@ public static class ProjectBuilder
             string runtimeDll = Path.Combine(ProjectScaffolder.ResolveEngineOutputDir(engineDir, "KoreEngine.Runtime"), "KoreEngine.Runtime.dll");
             if (!File.Exists(runtimeDll))
             {
-                onLogLine($"KoreEngine.Runtime.dll introuvable : {runtimeDll}");
-                onLogLine("Compile d'abord le moteur (KoreEngine.Runtime.csproj).");
+                onLogLine($"KoreEngine.Runtime.dll not found : {runtimeDll}");
+                onLogLine("Compile the engine first (KoreEngine.Runtime.csproj).");
                 onFinished(false);
                 return;
             }
 
-            string scriptsDll = Path.Combine(entry.Path, "bin", "Debug", "net10.0", $"{entry.Name}.Scripts.dll");
+            string scriptsDll = Path.Combine(entry.Path, "bin", "Release", "net10.0", $"{entry.Name}.Scripts.dll");
             if (!File.Exists(scriptsDll))
             {
-                onLogLine($"{entry.Name}.Scripts.dll introuvable : {scriptsDll}");
-                onLogLine("Ouvre d'abord le projet dans l'éditeur au moins une fois pour compiler les scripts.");
+                onLogLine($"{entry.Name}.Scripts.dll not found : {scriptsDll}");
+                onLogLine("Open the project in the editor at least once to compile scripts.");
                 onFinished(false);
                 return;
             }
@@ -68,17 +68,17 @@ public static class ProjectBuilder
                         return;
                     }
 
-                    onLogLine("> Copie des Assets et des scripts compilés...");
+                    onLogLine("> Copy of Assets and compiled scripts...");
 
                     try
                     {
                         FinalizeOutput(entry, scriptsDll, outputDir, onLogLine);
-                        onLogLine("Build terminé.");
+                        onLogLine("Build finished.");
                         onFinished(true);
                     }
                     catch (Exception ex)
                     {
-                        onLogLine($"Erreur pendant la copie finale : {ex.Message}");
+                        onLogLine($"Error during the finale copy : {ex.Message}");
                         onFinished(false);
                     }
                     finally
@@ -89,7 +89,7 @@ public static class ProjectBuilder
         }
         catch (Exception ex)
         {
-            onLogLine($"Erreur : {ex.Message}");
+            onLogLine($"Error : {ex.Message}");
             onFinished(false);
         }
     }
@@ -100,14 +100,13 @@ public static class ProjectBuilder
         {
             System.Runtime.InteropServices.Architecture.X64 => "x64",
             System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+            _ => throw new PlatformNotSupportedException("Architecture not supported for the build.")
         };
 
         if (OperatingSystem.IsWindows()) return $"win-{arch}";
         if (OperatingSystem.IsLinux()) return $"linux-{arch}";
 
-        throw new PlatformNotSupportedException(
-            "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
+        throw new PlatformNotSupportedException("KoreEngine only have native binairies for Windows and Linux.");
     }
 
     static void WritePlayerCsproj(string dir, string projectName, string runtimeDll)
@@ -131,10 +130,6 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 {SdlPackages.PlatformItemGroups(includeShadercross: false)}
 
     <ItemGroup>
-    <!-- Référence binaire uniquement, comme pour le projet principal —
-        jamais le code source du moteur. Pas de référence à
-        KoreEngine.Editor : le joueur buildé n'a aucune dépendance
-        ImGui/Roslyn. -->
         <Reference Include=""KoreEngine.Runtime"">
             <HintPath>{runtimeDll}</HintPath>
             <Private>True</Private>
@@ -155,10 +150,6 @@ class Program
 {{
     static void Main()
     {{
-        // Les scripts utilisateur ne sont PAS référencés à la compilation
-        // (Player.csproj ne connaît que KoreEngine.Runtime) — on les charge
-        // nous-même au runtime pour que SceneSerializer.FindType (réflexion)
-        // puisse retrouver les types de composants en désérialisant la scène.
         Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, ""{projectName}.Scripts.dll""));
 
         SceneManager.ScanAndRegisterScenes();
@@ -186,7 +177,7 @@ class Program
             if (Directory.Exists(source))
                 CopyDirectory(source, dest);
             else if (folder == "Assets")
-                onLogLine($"Attention : aucun dossier Assets trouvé dans {entry.Path}");
+                onLogLine($"Warning : no directory name \'Assets\' found in {entry.Path}");
         }
 
         File.Copy(scriptsDll, Path.Combine(outputDir, Path.GetFileName(scriptsDll)), overwrite: true);
@@ -239,7 +230,7 @@ class Program
         }
         catch (Exception ex)
         {
-            onLogLine($"Impossible de lancer dotnet : {ex.Message}");
+            onLogLine($"Not to able launch dotnet : {ex.Message}");
             onFinished(false);
         }
     }

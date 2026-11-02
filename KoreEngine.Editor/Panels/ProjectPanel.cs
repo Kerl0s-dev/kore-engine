@@ -85,11 +85,11 @@ public class ProjectPanel
     {
         var allFiles = new List<string>();
 
-        // Images : seulement .png et .bmp (Renderer.LoadTexture ne décode rien d'autre pour l'instant).
         string[] supportedExtensions = {
             ".png", ".bmp",
             ".ttf", ".otf",
-            ".wav", ".mp3", ".ogg", ".flac"
+            ".wav", ".mp3", ".ogg", ".flac",
+            ".kanim"
         };
 
         foreach (var root in folderRoots)

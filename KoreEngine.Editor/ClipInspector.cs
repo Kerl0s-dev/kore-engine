@@ -8,17 +8,12 @@ namespace KoreEngine;
 /// </summary>
 public static class ClipInspector
 {
-    static string? loadedPath;
-    static AnimationClip? clip;
-    static string savedText = "";
-    static List<string> warnings = new();
-
     // Réglages du générateur de piste de frames
     static int genFirstFrame;
     static int genFrameCount = 4;
     static float genFrameDuration = 0.1f;
 
-    static readonly string[] TrackPresets =
+    public static readonly string[] TrackPresets =
     {
         "(custom)",
         "Transform.Position.X", "Transform.Position.Y",
@@ -27,24 +22,17 @@ public static class ClipInspector
         "SpriteRenderer.Frame",
         "SpriteRenderer.Color.R", "SpriteRenderer.Color.G", "SpriteRenderer.Color.B", "SpriteRenderer.Color.A",
         "SpriteRenderer.FlipX", "SpriteRenderer.FlipY",
-        "SpriteRenderer.Size.X", "SpriteRenderer.Size.Y",
     };
 
     static readonly string[] InterpolationNames = Enum.GetNames<Interpolation>();
 
     public static void Draw(string path, bool readOnly)
     {
-        if (loadedPath != path || clip == null)
-        {
-            warnings = new List<string>();
-            clip = AnimationClip.Load(path, warnings);
-            savedText = clip.ToText();
-            loadedPath = path;
-        }
-        var c = clip;
+        ClipEditSession.EnsureLoaded(path);
+        var c = ClipEditSession.Clip!;
 
         ImGui.TextDisabled("Animation Clip");
-        foreach (var w in warnings)
+        foreach (var w in ClipEditSession.Warnings)
             ImGui.TextColored(new System.Numerics.Vector4(1f, 0.8f, 0.3f, 1f), w);
 
         ImGui.BeginDisabled(readOnly);
@@ -54,17 +42,11 @@ public static class ClipInspector
 
         ImGui.Separator();
 
-        bool dirty = c.ToText() != savedText;
+        bool dirty = ClipEditSession.IsDirty;
         ImGui.BeginDisabled(readOnly || !dirty);
-        if (ImGui.Button("Save"))
-        {
-            foreach (var t in c.Tracks) t.SortKeys();
-            c.Save(path);
-            savedText = c.ToText();
-            AnimationClipCache.Clear();   // les Animators en cours de jeu rechargent le fichier
-        }
+        if (ImGui.Button("Save")) ClipEditSession.Save();
         ImGui.SameLine();
-        if (ImGui.Button("Revert")) loadedPath = null;   // rechargé depuis le disque à la prochaine frame
+        if (ImGui.Button("Revert")) ClipEditSession.Reload();
         ImGui.EndDisabled();
 
         if (dirty)
@@ -76,6 +58,7 @@ public static class ClipInspector
         ImGui.Spacing();
         ImGui.TextDisabled("Chemins : Composant.Membre[.Sous-membre] sur l'objet portant l'Animator (ex. Transform.Rotation).");
         ImGui.TextDisabled("Frames : « Step » pour passer d'une frame à l'autre sans interpolation.");
+        ImGui.TextDisabled("Fenêtre Timeline : scrub, déplacement de keyframes et enregistrement (Record).");
     }
 
     static IEnumerable<InspectorField> ClipFields(AnimationClip c)
@@ -164,6 +147,8 @@ public static class ClipInspector
 
     static IEnumerable<InspectorField> KeyFields(AnimationTrack t, int k)
     {
+        ImGui.PushID(k);
+
         yield return new FloatField
         {
             Label = "Time",
@@ -187,5 +172,7 @@ public static class ClipInspector
             Get = () => (int)t.Keys[k].Interpolation,
             Set = idx => { var key = t.Keys[k]; key.Interpolation = (Interpolation)idx; t.Keys[k] = key; }
         };
+
+        ImGui.PopID();
     }
 }

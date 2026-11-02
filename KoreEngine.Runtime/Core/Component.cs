@@ -12,7 +12,7 @@ public abstract class Component
     public virtual void OnDestroy() { }
 
     public virtual void OnCollision(Collider other) { }
-    public virtual void OnTriggerEnter(Collider other) { }
+    public virtual void OnTrigger(Collider other) { }
 
 
     [EditorBrowsable(EditorBrowsableState.Never)]

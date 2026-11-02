@@ -69,23 +69,29 @@ public class UIEditorPanel
 
     void FitToCanvas()
     {
-        var r = canvas!.RectTransform.Rect;
+        if (canvas == null) return;
+
+        var r = canvas.RectTransform.Rect;
+        if (r.Width <= 0.001f || r.Height <= 0.001f || View.ViewWidth <= 0 || View.ViewHeight <= 0)
+            return;
+
+        // Center position of the canvas rect
         View.Position = new Vector2((r.Min.X + r.Max.X) * 0.5f, (r.Min.Y + r.Max.Y) * 0.5f);
-        View.Zoom = MathF.Min(View.ViewWidth / (r.Width * 1.15f), View.ViewHeight / (r.Height * 1.15f));
+
+        float zoomX = View.ViewWidth / (r.Width * 1.15f);
+        float zoomY = View.ViewHeight / (r.Height * 1.15f);
+
+        // Use Min so that the canvas fits entirely inside the view area without overflowing
+        View.Zoom = MathF.Min(zoomX, zoomY);
     }
 
     public void RenderScene(Scene? scene)
     {
-        ResolveCanvas(scene);
-
         renderTexture.BeginRender();
         renderer.Clear(new Color(36, 36, 36));
 
         if (canvas != null)
         {
-            canvas.SyncSize();
-            if (needsFit) { FitToCanvas(); needsFit = false; }
-
             var r = canvas.RectTransform.Rect;
             int x = (int)r.Min.X, y = (int)r.Max.Y, w = (int)r.Width, h = (int)r.Height;
 
@@ -101,7 +107,7 @@ public class UIEditorPanel
     // ImGui (dans le bloc ImGui, après RenderScene)
     // ---------------------------------------------------------------
 
-    public void Draw()
+    public void Draw() // Pass the scene into Draw so we can resolve canvas here if needed
     {
         if (!ImGui.Begin("UI Editor")) { ImGui.End(); return; }
 
@@ -110,11 +116,27 @@ public class UIEditorPanel
         ImGui.TextDisabled("(Ctrl : désactiver)");
 
         var avail = ImGui.GetContentRegionAvail();
-
         int w = (int)avail.X, h = (int)avail.Y;
-        if (w > 0 && h > 0 && (w != pendingW || h != pendingH))
+
+        // 1. Resize immediately if the ImGui panel dimensions changed
+        if (w > 0 && h > 0 && (w != renderTexture.Width || h != renderTexture.Height))
         {
-            pendingW = w; pendingH = h; resizeRequested = true;
+            renderTexture.Resize(w, h);
+            View.ViewWidth = w;
+            View.ViewHeight = h;
+            needsFit = true; // Flag that we need to re-center/fit
+        }
+
+        // 2. Resolve canvas and fit if needed, now that ViewWidth/ViewHeight are accurate
+        ResolveCanvas(SceneManager.Current!);
+        if (canvas != null)
+        {
+            canvas.SyncSize();
+            if (needsFit)
+            {
+                FitToCanvas();
+                needsFit = false;
+            }
         }
 
         var imagePos = ImGui.GetCursorScreenPos();
@@ -122,7 +144,7 @@ public class UIEditorPanel
         bool hovered = ImGui.IsItemHovered();
         var io = ImGui.GetIO();
 
-        if (hovered)  UpdateCamera(io, new Vector2(io.MousePos.X - imagePos.X, io.MousePos.Y - imagePos.Y));
+        if (hovered) UpdateCamera(io, new Vector2(io.MousePos.X - imagePos.X, io.MousePos.Y - imagePos.Y));
 
         if (canvas == null)
             ImGui.GetWindowDrawList().AddText(imagePos + new System.Numerics.Vector2(12, 12),
@@ -142,7 +164,7 @@ public class UIEditorPanel
         if (io.MouseWheel != 0f)   // zoom centré sur la souris
         {
             var before = View.ScreenToWorld(mouseLocal);
-            View.Zoom = Math.Clamp(View.Zoom * (1f + 0.1f * io.MouseWheel), 0.05f, 20f);
+            View.Zoom = Math.Clamp(View.Zoom * (1f + 0.1f * io.MouseWheel), int.MinValue, 20f);
             var after = View.ScreenToWorld(mouseLocal);
             View.Position = new Vector2(View.Position.X + (before.X - after.X),
                                         View.Position.Y + (before.Y - after.Y));

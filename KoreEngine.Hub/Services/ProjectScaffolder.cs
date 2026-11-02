@@ -17,18 +17,18 @@ public static class ProjectScaffolder
         {
             if (!File.Exists(path))
                 throw new Exception(
-                    $"KoreEngine.{label}.dll introuvable : {path}\n" +
-                    $"Compile d'abord KoreEngine.{label}.csproj avant de créer un nouveau projet.");
+                    $"KoreEngine.{label}.dll not found : {path}\n" +
+                    $"Compile KoreEngine first.{label}.csproj before creating a new project.");
         }
 
         string projectPath = Path.Combine(targetDir, projectName);
 
         if (Directory.Exists(projectPath) && Directory.GetFileSystemEntries(projectPath).Length > 0)
-            throw new Exception($"Le dossier cible n'est pas vide : {projectPath}");
+            throw new Exception($"The target folder is not empty : {projectPath}");
 
         Directory.CreateDirectory(projectPath);
 
-        Log($"[ProjectScaffolder] Création du projet '{projectName}' dans {targetDir}");
+        Log($"[ProjectScaffolder] Creation of the project '{projectName}' in {targetDir}");
 
         File.Copy(Path.Combine(engineDir, "icon.ico"), Path.Combine(projectPath, "icon.ico"));
         CreateAssetsStructure(projectPath, Log);
@@ -40,15 +40,15 @@ public static class ProjectScaffolder
         WriteImGui(engineDir, projectPath, Log);
         WriteEditorIcons(engineDir, projectPath, Log);
         WritePackages(engineDir, projectPath, Log);
-        CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Debug", "net10.0"),
+        CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Release", "net10.0"),
             ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
 
-        Log("[ProjectScaffolder] Projet créé avec succès.");
+        Log("[ProjectScaffolder] Project created successfully.");
     }
 
     // Resolve the engine binaries from Release when available (the normal
-    // distribution/publish configuration), while keeping Debug as a fallback
-    // for development builds. Generated projects still use their own Debug
+    // distribution/publish configuration), while keeping Release as a fallback
+    // for development builds. Generated projects still use their own Release
     // output directory, so this only changes where engine binaries are read from.
     public static string ResolveEngineOutputDir(string engineDir, string projectName)
     {
@@ -56,7 +56,6 @@ public static class ProjectScaffolder
         string binDir = Path.Combine(projectDir, "bin");
 
         // dotnet can place outputs in many valid layouts, for example:
-        //   bin/Debug/net10.0/
         //   bin/Release/net10.0/
         //   bin/Release/net10.0/linux-x64/
         //   bin/Release/net10.0/linux-x64/publish/
@@ -92,9 +91,9 @@ public static class ProjectScaffolder
         if (lower.EndsWith("/publish/" + Path.GetFileName(dllPath).ToLowerInvariant())) score += 500;
         if (lower.Contains("/publish/")) score += 400;
 
-        // Prefer Release over Debug, but both are valid.
+        // Prefer Release over Release, but both are valid.
         if (lower.Contains("/release/")) score += 200;
-        if (lower.Contains("/debug/")) score += 100;
+        if (lower.Contains("/Release/")) score += 100;
 
         // Prefer the requested target framework, while still allowing any TFM
         // dotnet actually generated if the project changes in the future.
@@ -109,12 +108,12 @@ public static class ProjectScaffolder
 
     static void CreateAssetsStructure(string targetDir, Action<string> log)
     {
-        string[] dirs = { Path.Combine("bin", "Debug", "net10.0") };
+        string[] dirs = { Path.Combine("bin", "Release", "net10.0") };
 
         foreach (var dir in dirs)
         {
             Directory.CreateDirectory(Path.Combine(targetDir, dir));
-            log($"[ProjectScaffolder] Crée : {dir} dans {targetDir}");
+            log($"[ProjectScaffolder] Created : {dir} in {targetDir}");
         }
     }
 
@@ -136,7 +135,7 @@ class Program
 }}
 ";
         File.WriteAllText(Path.Combine(targetDir, "Program.cs"), content);
-        log($"[ProjectScaffolder] Fichier Program.cs écrit : {targetDir}{Path.DirectorySeparatorChar}Program.cs");
+        log($"[ProjectScaffolder] File \'Program.cs\' written : {targetDir}{Path.DirectorySeparatorChar}Program.cs");
     }
 
     // ---------------------------------------------------------------
@@ -150,7 +149,7 @@ class Program
         string editorBinDir = Path.GetDirectoryName(editorDll)!;
 
         string rid = CurrentNativeRid()
-            ?? throw new PlatformNotSupportedException("Plateforme/RID non supporté pour le projet généré.");
+            ?? throw new PlatformNotSupportedException("Plateforme/RID not supported for the generated project.");
 
         string content =
     $@"<Project Sdk=""Microsoft.NET.Sdk"">
@@ -185,26 +184,19 @@ class Program
 
     <ItemGroup>
         <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
+            <HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
             <Private>True</Private>
         </Reference>
         <Reference Include=""KoreEngine.Editor"">
-            <HintPath>bin/Debug/net10.0/KoreEngine.Editor.dll</HintPath>
+            <HintPath>bin/Release/net10.0/KoreEngine.Editor.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
 
-    <!--
-      Les références de plateforme SDL3-CS ci-dessus fournissent les .so/.dll
-      natifs correspondant à l'OS du build. On ne copie donc plus à la main
-      un dossier runtimes basé sur NETCoreSdkRuntimeIdentifier : cette propriété
-      peut être vide ou différente du RID réellement publié sous Linux.
-    -->
-
 </Project>
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.csproj"), content);
-        log($"[ProjectScaffolder] Fichier .csproj écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.csproj");
+        log($"[ProjectScaffolder] File \'.csproj\' written : {targetDir}{Path.DirectorySeparatorChar}{projectName}.csproj");
     }
 
     // ---------------------------------------------------------------
@@ -235,24 +227,19 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
 	<ItemGroup>
-	<!-- Les scripts n'ont besoin que des types managés SDL (ex: SDL.Keycode
-		utilisé par InputAction.BindKey) — pas des binaires natifs Windows,
-		qui ne servent qu'à l'exécution, jamais à l'IntelliSense. -->
 		<PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
 	</ItemGroup>
 
 	<ItemGroup>
-	<!-- Uniquement Runtime : un script gameplay n'a jamais besoin d'ImGui
-		ni de l'Editor. -->
 		<Reference Include=""KoreEngine.Runtime"">
-			<HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
+			<HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
 </Project>
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.Scripts.csproj"), content);
-        log($"[ProjectScaffolder] Fichier Scripts.csproj écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.Scripts.csproj");
+        log($"[ProjectScaffolder] File \'Scripts.csproj\' written : {targetDir}{Path.DirectorySeparatorChar}{projectName}.Scripts.csproj");
     }
 
     // ---------------------------------------------------------------
@@ -280,33 +267,26 @@ Project(""{typeGuid}"") = ""{projectName}.Player"", ""Player\{projectName}.Playe
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+        Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{gameGuid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{gameGuid}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{gameGuid}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{gameGuid}.Release|Any CPU.Build.0 = Release|Any CPU
-		{scriptsGuid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{scriptsGuid}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{scriptsGuid}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{scriptsGuid}.Release|Any CPU.Build.0 = Release|Any CPU
-		{playerGuid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{playerGuid}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{playerGuid}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{playerGuid}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
 ";
         File.WriteAllText(Path.Combine(targetDir, $"{projectName}.sln"), content);
-        log($"[ProjectScaffolder] Fichier .sln écrit : {targetDir}{Path.DirectorySeparatorChar}{projectName}.sln");
+        log($"[ProjectScaffolder] File \'.sln\' written : {targetDir}{Path.DirectorySeparatorChar}{projectName}.sln");
     }
 
     static void WriteImGui(string engineDir, string targetDir, Action<string> log)
     {
         var source = Path.Combine(engineDir, "imgui.ini");
-        var destination = Path.Combine(targetDir, "bin", "Debug", "net10.0", "imgui.ini");
+        var destination = Path.Combine(targetDir, "bin", "Release", "net10.0", "imgui.ini");
 
         if (File.Exists(destination))
             File.Delete(destination);
@@ -314,22 +294,22 @@ EndGlobal
         if (File.Exists(source))
         {
             File.Copy(source, destination, overwrite: true);
-            log($"[ProjectScaffolder] Fichier imgui.ini écrit : {destination}");
+            log($"[ProjectScaffolder] File \'imgui.ini\' written : {destination}");
         }
         else
         {
-            log($"[ProjectScaffolder] AVERTISSEMENT : imgui.ini introuvable dans {engineDir}");
+            log($"[ProjectScaffolder] WARNING : imgui.ini not found in {engineDir}");
         }
     }
 
     static void WriteEditorIcons(string engineDir, string targetDir, Action<string> log)
     {
         string source = Path.Combine(engineDir, "KoreEngine.Editor", "Icons");
-        string destination = Path.Combine(targetDir, "bin", "Debug", "net10.0", "Editor", "Icons");
+        string destination = Path.Combine(targetDir, "bin", "Release", "net10.0", "Editor", "Icons");
 
         if (!Directory.Exists(source))
         {
-            log($"[ProjectScaffolder] AVERTISSEMENT : dossier d'icônes introuvable : {source}");
+            log($"[ProjectScaffolder] WARNING : Icons folder not found : {source}");
             return;
         }
 
@@ -341,7 +321,7 @@ EndGlobal
             File.Copy(file, destFile, overwrite: true);
         }
 
-        log($"[ProjectScaffolder] Icônes éditeur copiées : {destination}");
+        log($"[ProjectScaffolder] Editor icons copied : {destination}");
     }
 
     static void WritePackages(string engineDir, string targetDir, Action<string> log)
@@ -354,18 +334,18 @@ EndGlobal
 
         if (!Directory.Exists(source))
         {
-            log($"[ProjectScaffolder] AVERTISSEMENT : dossier Packages du moteur introuvable : {source}");
+            log($"[ProjectScaffolder] WARNING : Packages folder not found : {source}");
             return;
         }
 
         // Réutilise le helper existant (copie récursive, sans fichier à ignorer)
         CopyDirectoryRecursive(source, destination, Array.Empty<string>(), log);
-        log($"[ProjectScaffolder] Packages copiés : {destination}");
+        log($"[ProjectScaffolder] Packages folder copied : {destination}");
     }
 
     /// <summary>
     /// Recopie les dépendances du moteur (bin/Release/net10.0 si disponible,
-    /// sinon bin/Debug/net10.0) du projet principal
+    /// sinon bin/Release/net10.0) du projet principal
     /// ET de Player/, s'il existe) sans rien recréer d'autre — utile quand le
     /// moteur a gagné une nouvelle dépendance (ex: Microsoft.CodeAnalysis.CSharp
     /// ajoutée à KoreEngine.Runtime) après la création du projet : la copie
@@ -379,16 +359,16 @@ EndGlobal
     {
         void Log(string msg) => onLog?.Invoke(msg);
 
-        CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Debug", "net10.0"),
+        CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Release", "net10.0"),
             new[] { "KoreEngine.Runtime", "KoreEngine.Editor" }, Log);
 
-        string playerBin = Path.Combine(projectPath, "Player", "bin", "Debug", "net10.0");
+        string playerBin = Path.Combine(projectPath, "Player", "bin", "Release", "net10.0");
         if (Directory.Exists(Path.Combine(projectPath, "Player")))
             CopyEngineDependencies(engineDir, playerBin, new[] { "KoreEngine.Runtime" }, Log);
         else
-            Log("[ProjectScaffolder] Pas de dossier Player/ (projet créé avant le build joueur) — ignoré.");
+            Log("[ProjectScaffolder] No Player folder found (project created before the player build) — ignored.");
 
-        Log("[ProjectScaffolder] Dépendances rafraîchies.");
+        Log("[ProjectScaffolder] Dependances refreshed.");
     }
 
     // ---------------------------------------------------------------
@@ -409,8 +389,8 @@ EndGlobal
         Directory.CreateDirectory(destination);
 
         // The generated project references the engine DLLs from its own
-        // bin/Debug/net10.0 directory, so those DLLs MUST be copied here.
-        // Only debug symbols are optional. Never skip the engine assemblies.
+        // bin/Release/net10.0 directory, so those DLLs MUST be copied here.
+        // Only Release symbols are optional. Never skip the engine assemblies.
         var skip = new[]
         {
             "KoreEngine.Runtime.pdb",
@@ -423,7 +403,7 @@ EndGlobal
 
             if (!Directory.Exists(source))
             {
-                log($"[ProjectScaffolder] AVERTISSEMENT : dossier de sortie introuvable : {source}");
+                log($"[ProjectScaffolder] WARNING : Output folder not found : {source}");
                 continue;
             }
 
@@ -433,7 +413,7 @@ EndGlobal
             CopyNativesToRoot(source, destination, log);
         }
 
-        log($"[ProjectScaffolder] Dépendances copiées : {destination}");
+        log($"[ProjectScaffolder] Dependances copied : {destination}");
     }
 
     /// <summary>
@@ -474,7 +454,7 @@ EndGlobal
 
         if (nativeFiles.Count == 0)
         {
-            log($"[ProjectScaffolder] AVERTISSEMENT : aucun binaire natif trouvé pour {rid} dans {engineOutputDir}");
+            log($"[ProjectScaffolder] WARNING : No native binairies found for {rid} in {engineOutputDir}");
             return;
         }
 
@@ -486,7 +466,7 @@ EndGlobal
             }
             catch (IOException ex)
             {
-                log($"[ProjectScaffolder] Natif non copié ({Path.GetFileName(file)}) : {ex.Message}");
+                log($"[ProjectScaffolder] Native not copied ({Path.GetFileName(file)}) : {ex.Message}");
             }
         }
     }
@@ -564,7 +544,7 @@ class Program
         else if (firstScene != null)
             SceneManager.LoadSceneFromFile(firstScene);
         else
-            throw new Exception(""Aucune scène trouvée dans Assets/ — impossible de démarrer."");
+            throw new Exception(""No scenes found in Assets — impossible to start."");
 
         AudioManager.Init();
         loop.Run();
@@ -574,10 +554,10 @@ class Program
 }}
 ";
         File.WriteAllText(Path.Combine(playerDir, "Program.cs"), programContent);
-        log($"[ProjectScaffolder] Fichier Program.cs (Player) écrit : {playerDir}{Path.DirectorySeparatorChar}Program.cs");
+        log($"[ProjectScaffolder] File \'Program.cs\' (Player) written : {playerDir}{Path.DirectorySeparatorChar}Program.cs");
 
         string rid = CurrentNativeRid()
-            ?? throw new PlatformNotSupportedException("Plateforme/RID non supporté pour le Player généré.");
+            ?? throw new PlatformNotSupportedException("Plateform/RID not supported for the generated Player.");
 
         string csprojContent =
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
@@ -597,12 +577,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- Pas d'ImGui.NET ici : le Player n'affiche jamais d'éditeur. -->
         <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Les scripts du jeu (Assets/ et Packages/) sont compilés directement dans l'exécutable. -->
         <Compile Include=""../Assets/**/*.cs"" LinkBase=""Assets"" />
         <Compile Include=""../Packages/**/*.cs"" LinkBase=""Packages"" />
     </ItemGroup>
@@ -610,19 +588,17 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 {SdlPackages.PlatformItemGroups(includeShadercross: true)}
 
     <ItemGroup>
-    <!-- Référence binaire uniquement, comme le jeu éditeur — jamais le code
-        source du moteur. -->
         <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>bin/Debug/net10.0/KoreEngine.Runtime.dll</HintPath>
+            <HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
 </Project>
 ";
         File.WriteAllText(Path.Combine(playerDir, $"{projectName}.Player.csproj"), csprojContent);
-        log($"[ProjectScaffolder] Fichier .csproj (Player) écrit : {playerDir}{Path.DirectorySeparatorChar}{projectName}.Player.csproj");
+        log($"[ProjectScaffolder] File \'.csproj\' (Player) written : {playerDir}{Path.DirectorySeparatorChar}{projectName}.Player.csproj");
 
-        CopyEngineDependencies(engineDir, Path.Combine(playerDir, "bin", "Debug", "net10.0"),
+        CopyEngineDependencies(engineDir, Path.Combine(playerDir, "bin", "Release", "net10.0"),
             new[] { "KoreEngine.Runtime" }, log);
     }
 }

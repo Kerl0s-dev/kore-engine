@@ -13,12 +13,26 @@ namespace KoreEngine
     {
         public IntPtr Texture;
         public string TexturePath = "";
-        public Color Color = new Color(255, 255, 255, 255);
+
+        public int Frame = -1;                    // -1 = texture entière ; >= 0 : frame de la grille FrameSize (ligne par ligne)
+        public Color Color = Color.White;         // teinte et opacité (0-255)
+
+        /// <summary>Nombre de colonnes de la grille de frames (largeur de texture / FrameSize.X).</summary>
+        public int Columns
+        {
+            get
+            {
+                if (Texture == IntPtr.Zero) return 1;
+                SDL.GetTextureSize(Texture, out float tw, out _);
+                return Math.Max(1, (int)(tw / Math.Max(1f, FrameSize.X)));
+            }
+        }
+
+        static byte ClampByte(int v) => (byte)Math.Clamp(v, 0, 255);
+
 
         // Taille d'une frame sur la texture (en PIXELS)
         public Vector2 FrameSize = new Vector2(16, 16);
-
-        public int Frames, Columns;
 
         Vector2 Size = Vector2.One; // Taille en METRES (pour le rendu)
 
@@ -51,24 +65,6 @@ namespace KoreEngine
                 Set = c => Color = c
             };
 
-            // Frame size reste en pixels (pour découper la texture)
-            yield return new IntField
-            {
-                Label = "Frame Width (px)",
-                Get = () => (int)FrameSize.X,
-                Set = v => FrameSize.X = v,
-                Min = 1,
-                Max = 4096
-            };
-            yield return new IntField
-            {
-                Label = "Frame Height (px)",
-                Get = () => (int)FrameSize.Y,
-                Set = v => FrameSize.Y = v,
-                Min = 1,
-                Max = 4096
-            };
-
             yield return new BoolField { Label = "Flip X", Get = () => FlipX, Set = v => FlipX = v };
             yield return new BoolField { Label = "Flip Y", Get = () => FlipY, Set = v => FlipY = v };
 
@@ -84,6 +80,26 @@ namespace KoreEngine
                         SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
                 }
             };
+
+            // Frame size reste en pixels (pour découper la texture)
+            yield return new IntField
+            {
+                Label = "Frame Width (px)",
+                Get = () => (int)FrameSize.X,
+                Set = v => FrameSize.X = v,
+                Min = 1,
+                Max = int.MaxValue
+            };
+            yield return new IntField
+            {
+                Label = "Frame Height (px)",
+                Get = () => (int)FrameSize.Y,
+                Set = v => FrameSize.Y = v,
+                Min = 1,
+                Max = int.MaxValue
+            };
+
+            yield return new IntField { Label = "Frame", Get = () => Frame, Set = v => Frame = v, Min = -1, Max = int.MaxValue };
         }
 
         public override void Render(Renderer renderer, Camera? camera)
@@ -106,10 +122,21 @@ namespace KoreEngine
 
             double angle = -gameObject.transform.WorldRotation;
 
-            if (camera != null)
-                renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle, camera);
-            else
-                renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle);
+            if (Frame >= 0)
+            {
+                int fw = Math.Max(1, (int)FrameSize.X), fh = Math.Max(1, (int)FrameSize.Y);
+                int cols = Columns;
+                var src = new Rectangle((Frame % cols) * fw, (Frame / cols) * fh, fw, fh);
+
+                if (camera != null) renderer.DrawTexturePart(Texture, src, x, y, w, h, Color, FlipX, FlipY, angle, camera);
+                else renderer.DrawTexturePart(Texture, src, x, y, w, h, Color, FlipX, FlipY, angle);
+            }
+            else {
+                if (camera != null)
+                    renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle, camera);
+                else
+                    renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle);
+            }
         }
     }
 }

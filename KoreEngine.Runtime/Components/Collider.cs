@@ -27,7 +27,7 @@ public class Collider : Component
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void OnTriggerEnter(Collider other)
+    public override void OnTrigger(Collider other)
     {
         gameObject.DispatchTrigger(other);
     }

@@ -40,14 +40,14 @@ public static class ProjectInfoService
 
     /// <summary>
     /// Version du moteur réellement utilisé par CE projet : lue depuis le
-    /// KoreEngine.Runtime.dll copié dans son propre bin/Debug/net10.0 après
+    /// KoreEngine.Runtime.dll copié dans son propre bin/Release/net10.0 après
     /// build (copie automatique via <Reference Private="True">), pas depuis
     /// le moteur source — un vieux projet non reconstruit affichera donc la
     /// version qu'il utilise réellement, pas la version courante du moteur.
     /// </summary>
     public static string GetEngineVersion(string projectPath)
     {
-        string dllPath = Path.Combine(projectPath, "bin", "Debug", "net10.0", "KoreEngine.Runtime.dll");
+        string dllPath = Path.Combine(projectPath, "bin", "Release", "net10.0", "KoreEngine.Runtime.dll");
 
         if (!File.Exists(dllPath))
             return "—";

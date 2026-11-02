@@ -52,6 +52,8 @@ public class EditorWindow
     public InspectorPanel? inspectorPanel;
     public ProjectPanel? projectPanel;
     public ConsolePanel? consolePanel;
+    public AnimationPreview? animationPreview;
+    public TimelinePanel? timelinePanel;
 
     ScriptWatcher? scriptWatcher;
 
@@ -196,6 +198,8 @@ public class EditorWindow
         inspectorPanel = new InspectorPanel(Renderer);
         projectPanel = new ProjectPanel();
         consolePanel = new ConsolePanel();
+        animationPreview = new AnimationPreview(Renderer, width, height);
+        timelinePanel = new TimelinePanel(animationPreview);
 
         SceneManager.OnSceneChanging += () => EditorSelection.Selected = null;
 
@@ -347,6 +351,8 @@ public class EditorWindow
             gamePanel?.Draw();
             uiEditorPanel?.Draw();
             consolePanel?.Draw();
+            timelinePanel?.Draw();
+            animationPreview?.Draw();
 
             // 8. ImGui render
             imguiBackend?.Render();

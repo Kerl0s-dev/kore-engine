@@ -58,8 +58,8 @@
 
                     if (a.IsTrigger || b.IsTrigger)
                     {
-                        a.OnTriggerEnter(b);
-                        b.OnTriggerEnter(a);
+                        a.OnTrigger(b);
+                        b.OnTrigger(a);
                         continue;
                     }
 
@@ -190,8 +190,8 @@
 
             if (a.IsTrigger || b.IsTrigger)
             {
-                a.OnTriggerEnter(b);
-                b.OnTriggerEnter(a);
+                a.OnTrigger(b);
+                b.OnTrigger(a);
                 return;
             }
 

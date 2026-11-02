@@ -59,17 +59,17 @@ public sealed class HubWindow : IDisposable
         Height = height;
 
         if (!SDL.Init(SDL.InitFlags.Video))
-            throw new Exception($"SDL.Init a échoué : {SDL.GetError()}");
+            throw new Exception($"SDL.Init failed : {SDL.GetError()}");
 
         window = SDL.CreateWindow(Title, Width, Height, SDL.WindowFlags.Resizable);
         if (window == IntPtr.Zero)
-            throw new Exception($"SDL.CreateWindow a échoué : {SDL.GetError()}");
+            throw new Exception($"SDL.CreateWindow failed : {SDL.GetError()}");
 
         SDL.SetWindowMinimumSize(window, MinWidth, MinHeight);
 
         Renderer = SDL.CreateRenderer(window, null);
         if (Renderer == IntPtr.Zero)
-            throw new Exception($"SDL.CreateRenderer a échoué : {SDL.GetError()}");
+            throw new Exception($"SDL.CreateRenderer failed : {SDL.GetError()}");
 
         Images = new ImageCache(Renderer);
         Text = new TextCache(Renderer, Path.Combine(AppContext.BaseDirectory, "Fonts", FontFile));
@@ -94,12 +94,12 @@ public sealed class HubWindow : IDisposable
     {
         titleLabel = new Label("Kore Engine Hub", 28);
         statusLabel = new Label("", 14) { Color = Rgba.TextDim };
-        emptyLabel = new Label("Aucun projet récent", 18) { Color = Rgba.TextDim };
+        emptyLabel = new Label("No recents projects", 18) { Color = Rgba.TextDim };
 
-        newProjectButton = new Button("Nouveau projet", 200, 40, Button.Style.Primary);
+        newProjectButton = new Button("New projet", 200, 40, Button.Style.Primary);
         newProjectButton.Click += ShowNewProjectDialog;
 
-        openButton = new Button("Ouvrir", 120, 40, Button.Style.Secondary) { Enabled = false };
+        openButton = new Button("Open", 120, 40, Button.Style.Secondary) { Enabled = false };
         openButton.Click += () => { if (projectList?.Selected is { } p) OpenProject(p); };
 
         projectList = new ProjectList();
@@ -152,7 +152,7 @@ public sealed class HubWindow : IDisposable
 
         if (!project.Exists)
         {
-            SetStatus($"Projet introuvable : {project.Path}");
+            SetStatus($"Project not found : {project.Path}");
             return;
         }
 
@@ -183,25 +183,25 @@ public sealed class HubWindow : IDisposable
                         if (success)
                         {
                             loadingDialog.Succeed();
-                            SetStatus($"« {project.Name} » lancé.");
+                            SetStatus($"« {project.Name} » launched.");
                         }
                         else
                         {
                             loadingDialog.Fail();
-                            SetStatus($"Échec de l'ouverture de « {project.Name} ».");
+                            SetStatus($"Failed to open « {project.Name} ».");
                         }
                     }),
                     stage => RunOnMain(() => loadingDialog.SetStage(stage)));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Hub] Ouverture du projet échouée : {ex}");
+                Console.WriteLine($"[Hub] Could not open project : {ex}");
                 RunOnMain(() =>
                 {
                     opening = false;
                     loadingDialog.AddLog($"error: {ex.Message}");
                     loadingDialog.Fail();
-                    SetStatus($"Échec de l'ouverture de « {project.Name} ».");
+                    SetStatus($"Failed to open « {project.Name} ».");
                 });
             }
         });
@@ -226,7 +226,7 @@ public sealed class HubWindow : IDisposable
         string? engineDir = GetEngineDir();
         if (engineDir == null)
         {
-            newProjectDialog!.SetError("Dossier du moteur introuvable (KoreEngine.Runtime / Editor non compilés ?).");
+            newProjectDialog!.SetError("Engine folder not found (KoreEngine.Runtime / Editor not compiled ?).");
             return;
         }
 
@@ -250,12 +250,12 @@ public sealed class HubWindow : IDisposable
                 {
                     newProjectDialog.Close();
                     LoadProjects();
-                    SetStatus($"Projet « {name} » créé.");
+                    SetStatus($"Project « {name} » created.");
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Hub] Création du projet échouée : {ex}");
+                Console.WriteLine($"[Hub] Creation of project failed : {ex}");
                 RunOnMain(() =>
                 {
                     newProjectDialog.SetBusy(false);

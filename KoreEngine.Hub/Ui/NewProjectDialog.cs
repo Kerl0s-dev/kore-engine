@@ -15,14 +15,14 @@ public sealed class NewProjectDialog : Widget
     // Le nom sert de namespace / nom d'assembly C# dans les projets générés.
     static readonly Regex ValidName = new(@"^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled);
 
-    readonly Label titleLabel = new("Nouveau projet", 22);
-    readonly Label nameCaption = new("Nom du projet", 14) { Color = Rgba.TextDim };
-    readonly Label folderCaption = new("Dossier parent", 14) { Color = Rgba.TextDim };
-    readonly TextInput nameInput = new(0) { Placeholder = "MonJeu" };
-    readonly TextInput folderInput = new(0) { Placeholder = "Dossier où créer le projet", FontSize = 14 };
-    readonly Button browseButton = new("Parcourir...", 130, 36, Button.Style.Secondary, 14);
-    readonly Button createButton = new("Créer", 130, 40, Button.Style.Primary);
-    readonly Button cancelButton = new("Annuler", 130, 40, Button.Style.Secondary);
+    readonly Label titleLabel = new("New project", 22);
+    readonly Label nameCaption = new("Project name", 14) { Color = Rgba.TextDim };
+    readonly Label folderCaption = new("Parent Folder", 14) { Color = Rgba.TextDim };
+    readonly TextInput nameInput = new(0) { Placeholder = "My Game" };
+    readonly TextInput folderInput = new(0) { Placeholder = "Folder where the project is created", FontSize = 14 };
+    readonly Button browseButton = new("Browse...", 130, 36, Button.Style.Secondary, 14);
+    readonly Button createButton = new("Create", 130, 40, Button.Style.Primary);
+    readonly Button cancelButton = new("Cancel", 130, 40, Button.Style.Secondary);
 
     string? error;
     bool busy;
@@ -71,10 +71,10 @@ public sealed class NewProjectDialog : Widget
         string name = nameInput.Text.Trim();
         string folder = folderInput.Text.Trim();
 
-        if (name.Length == 0) { error = "Donne un nom au projet."; return; }
+        if (name.Length == 0) { error = "Give a name to the project."; return; }
         if (!ValidName.IsMatch(name))
         {
-            error = "Nom invalide : lettres, chiffres et _ uniquement, sans commencer par un chiffre.";
+            error = "Invalide name : lettres, numbers and _ only, without starting by a number.";
             return;
         }
         if (folder.Length == 0) { error = "Choisis un dossier."; return; }
@@ -166,12 +166,12 @@ public sealed class NewProjectDialog : Widget
             ? Path.Combine(folderInput.Text.Trim(), name)
             : folderInput.Text.Trim();
         float textWidth = Width - Margin * 2;
-        ui.Text.Draw(UiText.Fit(ui, "Chemin : " + preview, 12, textWidth, keepTail: true), 12,
+        ui.Text.Draw(UiText.Fit(ui, "Path : " + preview, 12, textWidth, keepTail: true), 12,
             X + Margin, Y + 214, Rgba.TextDim.R, Rgba.TextDim.G, Rgba.TextDim.B);
 
         // Erreur ou état « création en cours »
         if (busy)
-            ui.Text.Draw("Création du projet en cours...", 14, X + Margin, Y + 244, Rgba.Text.R, Rgba.Text.G, Rgba.Text.B);
+            ui.Text.Draw("Project creation in process...", 14, X + Margin, Y + 244, Rgba.Text.R, Rgba.Text.G, Rgba.Text.B);
         else if (error != null)
             ui.Text.Draw(UiText.Fit(ui, error, 14, textWidth, keepTail: false), 14,
                 X + Margin, Y + 244, 230, 90, 90);

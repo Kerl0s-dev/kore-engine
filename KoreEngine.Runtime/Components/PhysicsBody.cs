@@ -10,7 +10,7 @@ public class PhysicsBody : Component
     public float Mass = 1f;
     public float Restitution = 0f; // 0 = pas de rebond, 1 = rebond parfait
     public float MaxFallSpeed = 50;
-    public bool FreezeRotation = true;   // true = comportement actuel, aucune rotation
+    public bool FreezeRotation = false;   // true = aucune rotation
     public float AngularVelocity = 0f;   // °/s, positif = anti-horaire
     public float AngularDrag = 0.05f;
     public float SurfaceFriction = 0.4f; // coefficient de Coulomb

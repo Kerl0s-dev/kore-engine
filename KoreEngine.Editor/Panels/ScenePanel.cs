@@ -557,9 +557,9 @@ public class ViewportPanel
 
         uint colorX = isDraggingX ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.95f, 0.25f, 0.25f, 1f));
         uint colorY = isDraggingY ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.35f, 0.85f, 0.35f, 1f));
-        uint colorCenter = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(0.8f, 0.8f, 0.8f, 1f));
+        uint colorCenter = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 1f)) : ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.9f));
 
-        // Directions des axes converties à l'écran (même logique que MoveGizmo)
+        // Directions des axes converties à l'écran
         Vector2 xDirWorld = GetAxisDir(obj, true);
         Vector2 yDirWorld = GetAxisDir(obj, false);
 
@@ -572,23 +572,35 @@ public class ViewportPanel
         System.Numerics.Vector2 xTipScreen = originScreen + xScreenDir * ArmLength;
         System.Numerics.Vector2 yTipScreen = originScreen + yScreenDir * ArmLength;
 
-        // Lignes des axes
-        dl.AddLine(originScreen, xTipScreen, colorX, 2f);
-        dl.AddLine(originScreen, yTipScreen, colorY, 2f);
+        System.Numerics.Vector2 xPerp = new System.Numerics.Vector2(-xScreenDir.Y, xScreenDir.X);
+        System.Numerics.Vector2 yPerp = new System.Numerics.Vector2(-yScreenDir.Y, yScreenDir.X);
 
-        // Cubes aux bouts des axes et au centre
         float boxSize = 8f;
+
+        // Lignes des axes
+        dl.AddLine(originScreen, xTipScreen + xScreenDir * boxSize, colorX, 2.5f);
+        dl.AddLine(originScreen, yTipScreen + yScreenDir * boxSize, colorY, 2.5f);
+
+        // Formes au bout des axes (Carrés pour le Scale, ou Triangles si vous préférez)
         DrawSquare(dl, xTipScreen, boxSize, colorX);
         DrawSquare(dl, yTipScreen, boxSize, colorY);
-        DrawSquare(dl, originScreen, boxSize * 1.2f, colorCenter);
 
-        float hitRadius = boxSize + HitPadding;
+        // Carré central
+        float quadSize = 10f;
+        System.Numerics.Vector2 q1 = originScreen + xScreenDir * quadSize;
+        System.Numerics.Vector2 q2 = originScreen + xScreenDir * quadSize + yScreenDir * quadSize;
+        System.Numerics.Vector2 q3 = originScreen + yScreenDir * quadSize;
 
+        uint quadFill = isDraggingFree ? ImGui.GetColorU32(new System.Numerics.Vector4(1f, 0.9f, 0.2f, 0.5f)) : ImGui.GetColorU32(new System.Numerics.Vector4(1f, 1f, 1f, 0.2f));
+        dl.AddQuadFilled(originScreen, q1, q2, q3, quadFill);
+        dl.AddQuad(originScreen, q1, q2, q3, colorCenter, 1.5f);
+
+        // Interactions et Drag
         if (overViewport && activeDrag == DragMode.None && io.MouseClicked[0])
         {
-            if (IsNear(io.MousePos, xTipScreen, hitRadius)) StartDrag(DragMode.ScaleX, obj, io, imageScreenPos);
-            else if (IsNear(io.MousePos, yTipScreen, hitRadius)) StartDrag(DragMode.ScaleY, obj, io, imageScreenPos);
-            else if (IsNear(io.MousePos, originScreen, hitRadius)) StartDrag(DragMode.ScaleFree, obj, io, imageScreenPos);
+            if (IsNear(io.MousePos, xTipScreen, HandleSize + HitPadding)) StartDrag(DragMode.ScaleX, obj, io, imageScreenPos);
+            else if (IsNear(io.MousePos, yTipScreen, HandleSize + HitPadding)) StartDrag(DragMode.ScaleY, obj, io, imageScreenPos);
+            else if (IsNear(io.MousePos, originScreen + (q2 - originScreen) * 0.5f, quadSize + HitPadding)) StartDrag(DragMode.ScaleFree, obj, io, imageScreenPos);
         }
 
         if (activeDrag is DragMode.ScaleX or DragMode.ScaleY or DragMode.ScaleFree)
@@ -596,16 +608,25 @@ public class ViewportPanel
             Vector2 mouseWorldNow = AbsScreenToWorld(io.MousePos, imageScreenPos);
             Vector2 delta = new Vector2(mouseWorldNow.X - dragStartWorldMouse.X, mouseWorldNow.Y - dragStartWorldMouse.Y);
 
+            // Projection du delta souris sur les axes locaux (exactement comme le MoveGizmo)
             float dx = Dot(delta, xDirWorld) / (ArmLength / EditorCamera.Zoom);
             float dy = Dot(delta, yDirWorld) / (ArmLength / EditorCamera.Zoom);
 
             Vector2 newScale = dragStartScale;
+
             if (activeDrag == DragMode.ScaleX)
-                newScale = new Vector2(MathF.Max(0.01f, dragStartScale.X + dx), dragStartScale.Y);
-            else if (activeDrag == DragMode.ScaleY)
-                newScale = new Vector2(dragStartScale.X, MathF.Max(0.01f, dragStartScale.Y + dy));
-            else
             {
+                // Modifie uniquement X
+                newScale = new Vector2(MathF.Max(0.01f, dragStartScale.X + dx), dragStartScale.Y);
+            }
+            else if (activeDrag == DragMode.ScaleY)
+            {
+                // Modifie uniquement Y
+                newScale = new Vector2(dragStartScale.X, MathF.Max(0.01f, dragStartScale.Y + dy));
+            }
+            else if (activeDrag == DragMode.ScaleFree)
+            {
+                // Échelle proportionnelle globale (uniforme)
                 float uniform = MathF.Max(0.01f, dragStartScale.X + dx);
                 float ratio = dragStartScale.X > 0.0001f ? dragStartScale.Y / dragStartScale.X : 1f;
                 newScale = new Vector2(uniform, uniform * ratio);

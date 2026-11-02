@@ -153,7 +153,7 @@ public partial class GameObject
         {
             if (Components[i] is Collider) continue;
 
-            Components[i].OnTriggerEnter(other);
+            Components[i].OnTrigger(other);
         }
     }
 

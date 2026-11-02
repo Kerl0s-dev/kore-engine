@@ -17,7 +17,7 @@ public static class EditorIcons
     {
         "default", "folder",            // Base
         "cs", "kscene", "kprefab",      // Scripts, scènes, prefabs
-        "audio", "font",                // Catégories d'assets
+        "audio", "font", "animation",   // Catégories d'assets
         "play", "stop", "pause", "step",// Boutons de l'éditeur
         "camera"                        // Gizmos
     };
@@ -31,6 +31,7 @@ public static class EditorIcons
         ["flac"] = "audio",
         ["ttf"] = "font",
         ["otf"] = "font",
+        ["kanim"] = "animation"
     };
 
     /// <summary>Retourne l'icône exacte, ou IntPtr.Zero — sans repli vers "default".</summary>

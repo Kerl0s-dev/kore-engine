@@ -22,7 +22,7 @@ public sealed class LoadingDialog : Widget
     static readonly Rgba Green = new(80, 200, 120);
     static readonly Rgba Red = new(230, 90, 90);
 
-    readonly Button closeButton = new("Fermer", 130, 36, Button.Style.Secondary, 14);
+    readonly Button closeButton = new("Close", 130, 36, Button.Style.Secondary, 14);
     readonly List<string> lines = new();
 
     State state;
@@ -40,7 +40,7 @@ public sealed class LoadingDialog : Widget
     public void Show(string name)
     {
         projectName = name;
-        stage = "Préparation...";
+        stage = "Initialization...";
         lines.Clear();
         state = State.Running;
         startTicks = Environment.TickCount64;
@@ -65,14 +65,14 @@ public sealed class LoadingDialog : Widget
     public void Succeed()
     {
         state = State.Succeeded;
-        stage = "Éditeur lancé.";
+        stage = "Lauching editor.";
         closeAtTicks = Environment.TickCount64 + AutoCloseDelayMs;
     }
 
     public void Fail()
     {
         state = State.Failed;
-        stage = "L'ouverture a échoué. Derniers messages :";
+        stage = "Failed to open the project. Last messages :";
     }
 
     void Layout(UiContext ui)
@@ -122,15 +122,17 @@ public sealed class LoadingDialog : Widget
         float inner = PanelWidth - Margin * 2;
         float left = X + Margin;
 
-        string title = state == State.Failed ? "Échec de l'ouverture" : "Ouverture du projet";
+        string title = state == State.Failed ? "Falied to open" : "Opening project";
         ui.Text.Draw(title, 20, left, Y + 22);
 
         ui.Text.Draw(UiText.Fit(ui, projectName, 16, inner, keepTail: false), 16, left, Y + 54,
             Rgba.Accent.R, Rgba.Accent.G, Rgba.Accent.B);
 
         // Étape en cours + temps écoulé
-        long elapsedSec = (Environment.TickCount64 - startTicks) / 1000;
-        string elapsed = $"{elapsedSec} s";
+        long elapsedMs = Environment.TickCount64 - startTicks;
+        TimeSpan elapsedSpan = TimeSpan.FromMilliseconds(elapsedMs);
+        string elapsed = elapsedSpan.ToString(@"mm\:ss");
+
         var (ew, _) = ui.Text.Measure(elapsed, 14);
         ui.Text.Draw(elapsed, 14, left + inner - ew, Y + 94, Rgba.TextDim.R, Rgba.TextDim.G, Rgba.TextDim.B);
         ui.Text.Draw(UiText.Fit(ui, stage, 14, inner - ew - 16, keepTail: false), 14, left, Y + 94);

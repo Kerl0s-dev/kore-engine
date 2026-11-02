@@ -50,7 +50,7 @@ public static class ScriptCompiler
 
             var options = new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                optimizationLevel: OptimizationLevel.Debug,
+                optimizationLevel: OptimizationLevel.Release,
                 allowUnsafe: true,
                 nullableContextOptions: NullableContextOptions.Enable);
 

@@ -366,7 +366,7 @@ public class HierarchyPanel
                 _ => new Vector2(100, 100)
             };
         }
-
+        
         EditorSelection.Selected = obj;
     }
 

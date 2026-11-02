@@ -24,23 +24,23 @@ public static class EditorLauncher
 
         if (!File.Exists(slnPath))
         {
-            onLogLine($"Solution introuvable : {slnPath}");
+            onLogLine($"Solution not found : {slnPath}");
             onBuildFinished(false);
             return;
         }
 
-        onStage?.Invoke("Synchronisation des dépendances du moteur...");
+        onStage?.Invoke("Synchronization of dependances for the engine...");
         SyncEngineDependencies(entry, engineDir, onLogLine);
 
-        onStage?.Invoke("Nettoyage de la solution...");
+        onStage?.Invoke("Cleaning solution...");
         RunDotnet("clean", slnPath, entry.Path, onLogLine, cleanSuccess =>
         {
             // On tente le build même si le clean a échoué (ex: rien à nettoyer,
             // ou fichier verrouillé) — seul un échec du BUILD annule le lancement.
             if (!cleanSuccess)
-                onLogLine("[EditorLauncher] Le nettoyage a échoué, on tente quand même le build...");
+                onLogLine("[EditorLauncher] Clean as failed, we try to build anyway...");
 
-            onStage?.Invoke("Compilation des scripts...");
+            onStage?.Invoke("Compiling scripts...");
             string scriptsCsproj = Path.Combine(entry.Path, $"{entry.Name}.Scripts.csproj");
             RunDotnet("build", scriptsCsproj, entry.Path, onLogLine, scriptsSuccess =>
             {
@@ -55,10 +55,11 @@ public static class EditorLauncher
                 // Et un simple `dotnet build` peut laisser l'apphost framework-dependent.
                 // On publie donc le projet éditeur lui-même avec son RID et le runtime .NET
                 // embarqué, directement dans le dossier que LaunchExe utilise.
-                onStage?.Invoke("Publication de l'éditeur Linux self-contained...");
+                
+                onStage?.Invoke($"Publishing the editor...");
                 string gameCsproj = Path.Combine(entry.Path, $"{entry.Name}.csproj");
-                string outputDir = Path.Combine(entry.Path, "bin", "Debug", "net10.0");
-                string publishArgs = $"-c Debug -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
+                string outputDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
+                string publishArgs = $"-c Release -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
 
                 RunDotnet("publish", gameCsproj, entry.Path, onLogLine, publishSuccess =>
                 {
@@ -68,7 +69,7 @@ public static class EditorLauncher
                         return;
                     }
 
-                    onStage?.Invoke("Lancement de l'éditeur...");
+                    onStage?.Invoke("Launching editor...");
                     try
                     {
                         LaunchExe(entry, onLogLine);
@@ -76,11 +77,11 @@ public static class EditorLauncher
                     }
                     catch (Exception ex)
                     {
-                        onLogLine($"[EditorLauncher] Lancement impossible : {ex.Message}");
+                        onLogLine($"[EditorLauncher] Not possible to launch : {ex.Message}");
                         onBuildFinished(false);
                     }
                 }, publishArgs);
-            }, "-c Debug");
+            }, "-c Release");
         });
     }
 
@@ -90,14 +91,13 @@ public static class EditorLauncher
         {
             System.Runtime.InteropServices.Architecture.X64 => "x64",
             System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException("Architecture non supportée pour le build.")
+            _ => throw new PlatformNotSupportedException("Architecture not supported for this build.")
         };
 
         if (OperatingSystem.IsWindows()) return $"win-{arch}";
         if (OperatingSystem.IsLinux()) return $"linux-{arch}";
 
-        throw new PlatformNotSupportedException(
-            "KoreEngine ne fournit actuellement des binaires natifs que pour Windows et Linux.");
+        throw new PlatformNotSupportedException("KoreEngine only have native binairies for Windows and Linux.");
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public static class EditorLauncher
     {
         if (engineDir == null)
         {
-            onLogLine("[EditorLauncher] Dossier moteur inconnu — resynchronisation des dépendances ignorée.");
+            onLogLine("[EditorLauncher] Engine folder not found — resynchronization of dependances ignored.");
             return;
         }
 
@@ -125,12 +125,12 @@ public static class EditorLauncher
 
     static void LaunchExe(RecentProjectEntry entry, Action<string> onLogLine)
     {
-        string exeDir = Path.Combine(entry.Path, "bin", "Debug", "net10.0");
+        string exeDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
         string exeName = OperatingSystem.IsWindows() ? $"{entry.Name}.exe" : entry.Name;
         string exePath = Path.Combine(exeDir, exeName);
 
         if (!File.Exists(exePath))
-            throw new FileNotFoundException($"Build réussi mais exe introuvable : {exePath}");
+            throw new FileNotFoundException($"Build complete but executable not found : {exePath}");
 
         // On redirige la sortie pour VOIR pourquoi l'éditeur plante au démarrage (DLL ou
         // référence manquante, ex. SDL3...). Les flux doivent rester lus pendant toute la vie
@@ -147,7 +147,7 @@ public static class EditorLauncher
         };
 
         var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Impossible de démarrer le processus de l'éditeur.");
+            ?? throw new InvalidOperationException("Not able to start the editor.");
 
         int reporting = 1; // 1 = on affiche la sortie, 0 = on la jette
         void OnData(string? line)
@@ -168,8 +168,7 @@ public static class EditorLauncher
         Volatile.Write(ref reporting, 0);
 
         if (exited && process.ExitCode != 0)
-            throw new InvalidOperationException(
-                $"L'éditeur s'est fermé au démarrage (code {process.ExitCode}). Détails ci-dessus.");
+            throw new InvalidOperationException($"The editor closed itself while starting (code {process.ExitCode}).");
 
         RecentProjectsStore.AddOrUpdate(entry with { LastOpened = DateTime.Now });
     }
