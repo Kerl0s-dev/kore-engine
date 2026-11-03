@@ -545,7 +545,7 @@ public class {newItemName.Trim()} : Component
         
     }}
 
-    public override void Update(float dt)
+    public override void Update()
     {{
         
     }}

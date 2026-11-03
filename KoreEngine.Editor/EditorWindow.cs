@@ -285,14 +285,20 @@ public class EditorWindow
             {
                 var viewport = ImGui.GetMainViewport().GetCenter();
                 ImGui.SetNextWindowPos(viewport, ImGuiCond.Appearing, new System.Numerics.Vector2(0.5f, 0.5f));
-                ImGui.Begin("quit_popup", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse |
-                    ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoNavFocus);
-                ImGui.Text("Are you sure you want to quit Kore Engine?");
-                ImGui.Separator();
+                ImGui.OpenPopup("Are you sure you want to quit?");
+                showQuitPopup = false;
+            }
 
+            if (ImGui.BeginPopupModal("Are you sure you want to quit?",
+                ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoNavInputs |
+                ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
+            {
+                ImGui.Text("Are you sure you want to quit Kore Engine?");
+                ImGui.Spacing();
+                ImGui.Spacing();
                 if (ImGui.Button("No", new System.Numerics.Vector2(150, 20)))
                 {
-                    showQuitPopup = false; // Annuler
+                    ImGui.CloseCurrentPopup();
                 }
 
                 ImGui.SameLine();
@@ -302,7 +308,7 @@ public class EditorWindow
                     Running = false; // Quitter la boucle
                 }
 
-                ImGui.End();
+                ImGui.EndPopup();
             }
 
             // 5. Applique la scène en attente — toujours, même en mode édition.

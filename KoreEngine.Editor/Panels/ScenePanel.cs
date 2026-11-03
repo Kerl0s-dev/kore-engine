@@ -354,8 +354,8 @@ public class ScenePanel
     private Vector2 cameraTargetPosition;
     private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
 
-    const float ZoomSmoothing = 75f;
-    const float PanSmoothing = 75f;
+    const float ZoomSmoothing = 2f;
+    const float PanSmoothing = 2f;
     static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
 
     /// <summary>Recentre la caméra éditeur sur un point du monde (touche F, « Frame Selected »...).</summary>
@@ -402,7 +402,7 @@ public class ScenePanel
         if (MathF.Abs(diff) > cameraTargetZoom * 0.0005f)
         {
             Vector2 worldBefore = EditorCamera.ScreenToWorld(zoomAnchor);
-            EditorCamera.Zoom += diff * Damp(ZoomSmoothing, dt);
+            EditorCamera.Zoom += diff * Damp(ZoomSmoothing * 1000, dt);
             Vector2 worldAfter = EditorCamera.ScreenToWorld(zoomAnchor);
 
             Vector2 correction = worldBefore - worldAfter;
@@ -411,7 +411,7 @@ public class ScenePanel
         }
         else EditorCamera.Zoom = cameraTargetZoom;
 
-        EditorCamera.Position = Vector2.Lerp(EditorCamera.Position, cameraTargetPosition, Damp(PanSmoothing, dt));
+        EditorCamera.Position = Vector2.Lerp(EditorCamera.Position, cameraTargetPosition, Damp(PanSmoothing * 1000, dt));
     }
 
     // ---------------------------------------------------------------
