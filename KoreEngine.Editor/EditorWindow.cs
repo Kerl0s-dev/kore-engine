@@ -521,7 +521,7 @@ public class EditorWindow
         colors[(int)ImGuiCol.TableRowBgAlt] = new(0.00f, 0.00f, 0.00f, 0.00f);
         colors[(int)ImGuiCol.TextLink] = new(1.00f, 1.00f, 1.00f, 1.00f);
         colors[(int)ImGuiCol.TextSelectedBg] = new(0.97f, 0.97f, 0.97f, 0.35f);
-        colors[(int)ImGuiCol.DragDropTarget] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.DragDropTarget] = new(0.00f, 0.00f, 0.00f, 0.25f);
         colors[(int)ImGuiCol.NavCursor] = new(1.00f, 1.00f, 1.00f, 1.00f);
         colors[(int)ImGuiCol.NavWindowingHighlight] = new(0.00f, 0.00f, 0.00f, 0.00f);
         colors[(int)ImGuiCol.NavWindowingDimBg] = new(0.00f, 0.00f, 0.00f, 0.00f);

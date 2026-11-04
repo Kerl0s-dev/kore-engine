@@ -5,13 +5,16 @@ namespace KoreEngine
     public class Time
     {
         public static float deltaTime;
-        static float lastTicks = 0;
+        static ulong lastTicks = 0; // Utiliser ulong pour correspondre à SDL.GetTicks()
 
-        /// <summary>Delta time en millisencondes.</summary>
+        /// <summary>Delta time en secondes.</summary>
         public static void ComputeDeltaTime()
         {
             ulong now = SDL.GetTicks();
-            float dt = (now - lastTicks);
+            
+            // Conversion des millisecondes en secondes (/ 1000f) et correction de la soustraction
+            float dt = (now - lastTicks) / 1000f; 
+            
             lastTicks = now;
 
             deltaTime = MathF.Max(dt, 0.0001f);

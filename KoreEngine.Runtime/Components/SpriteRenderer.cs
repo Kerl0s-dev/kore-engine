@@ -29,10 +29,10 @@ namespace KoreEngine
         }
 
 
-        // Taille d'une frame sur la texture (en PIXELS)
+        // Taille d'une frame sur la texture (en pixels)
         public Vector2 FrameSize = new Vector2(16, 16);
 
-        Vector2 Size = Vector2.One; // Taille en METRES (pour le rendu)
+        Vector2 Size = Vector2.One; // Taille en mètres (pour le rendu)
 
         public bool FlipX = false;
         public bool FlipY = false;
@@ -114,9 +114,9 @@ namespace KoreEngine
             float w = Size.X * scale.X;
             float h = Size.Y * scale.Y;
 
-            // Calcul du coin supérieur/gauche en mètres (si l'origine du sprite est au centre)
-            float x = pos.X - w * 0.5f;
-            float y = pos.Y + h * 0.5f; // Ajuste selon ton orientation Y (haut/bas)
+            // Calcul du centre en mètres
+            float x = pos.X;
+            float y = pos.Y;
 
             double angle = -gameObject.transform.WorldRotation;
 

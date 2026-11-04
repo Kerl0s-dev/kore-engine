@@ -214,23 +214,30 @@
         {
             hit = default;
             Vector2 dirNormalized = direction.Normalize();
-            Vector2 endPoint = origin + dirNormalized * maxDistance;
 
             float closestDistance = maxDistance;
             bool hasHit = false;
 
-            PhysicsBody[] bodies = Array.Empty<PhysicsBody>();
+            // CORRECTION : Utilisation d'une liste pour collecter dynamiquement les PhysicsBody
+            var bodies = new List<PhysicsBody>();
 
-            foreach (GameObject go in SceneManager.Current?.ActiveObjects!) {
-                var body = go.GetComponent<PhysicsBody>();
-
-                if (body != null)
-                    bodies.Append(body);
+            var activeObjects = SceneManager.Current?.ActiveObjects;
+            if (activeObjects != null)
+            {
+                foreach (GameObject go in activeObjects)
+                {
+                    var body = go.GetComponent<PhysicsBody>();
+                    if (body != null)
+                        bodies.Add(body);
+                }
             }
 
             foreach (PhysicsBody body in bodies)
             {
-                WorldShape shape = (WorldShape)body.gameObject.GetComponent<Collider>()?.GetWorldShape()!; // Méthode qui retourne le WorldShape actuel du corps
+                var collider = body.gameObject.GetComponent<Collider>();
+                if (collider == null) continue;
+
+                WorldShape shape = collider.GetWorldShape();
 
                 if (ShapeRaycast.Test(in shape, origin, dirNormalized, closestDistance, out float dist, out Vector2 normal))
                 {
@@ -249,55 +256,24 @@
             return hasHit;
         }
 
+        // Surcharge simplifiée qui réutilise l'autre méthode pour éviter la duplication
         public static bool Raycast(Vector2 origin, Vector2 direction, float maxDistance)
         {
-            Vector2 dirNormalized = direction.Normalize();
-            Vector2 endPoint = origin + dirNormalized * maxDistance;
-
-            float closestDistance = maxDistance;
-            bool hasHit = false;
-
-            PhysicsBody[] bodies = Array.Empty<PhysicsBody>();
-
-            foreach (GameObject go in SceneManager.Current?.ActiveObjects!)
-            {
-                var body = go.GetComponent<PhysicsBody>();
-
-                if (body != null)
-                    bodies.Append(body);
-            }
-
-            foreach (PhysicsBody body in bodies)
-            {
-                WorldShape shape = (WorldShape)body.gameObject.GetComponent<Collider>()?.GetWorldShape()!; // Méthode qui retourne le WorldShape actuel du corps
-
-                if (ShapeRaycast.Test(in shape, origin, dirNormalized, closestDistance, out float dist, out Vector2 normal))
-                {
-                    if (dist < closestDistance)
-                    {
-                        closestDistance = dist;
-                        hasHit = true;
-                    }
-                }
-            }
-
-            return hasHit;
+            return Raycast(origin, direction, maxDistance, out _);
         }
 
-        /// <summary>
-        /// Applique les forces (gravité, friction) à la vélocité du corps.
-        /// N'intègre PAS la position — ça reste la responsabilité unique de
-        /// PhysicsBody.Update, pour éviter toute double-intégration.
-        /// </summary>
         internal static void CalculatePhysics(PhysicsBody body, float deltaTime)
         {
             if (body.IsStatic) return;
 
-            float force = gravity * body.GravityScale * body.Mass;
-            body.Velocity.Y += force * deltaTime;
+            float dtSec = deltaTime / 1000f;
+
+            // Gravité appliquée correctement par unité de temps
+            float force = gravity * body.GravityScale;
+            body.Velocity.Y += force * dtSec;
 
             if (body.Friction > 0)
-                body.Velocity.X *= MathF.Pow(1f - body.Friction, deltaTime);
+                body.Velocity.X *= MathF.Pow(1f - body.Friction, dtSec);
         }
     }
 }

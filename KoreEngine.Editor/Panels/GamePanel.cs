@@ -34,8 +34,7 @@ public class GamePanel
     public void ApplyPendingResize() => renderTexture.Resize(pendingW, pendingH);
 
     /// <summary>
-    /// L'UI du jeu (UICanvas.ScaleX/Y) lit SceneManager.ViewportWidth/Height :
-    /// à appeler avant SceneManager.Update ET avant le rendu de ce panneau.
+    /// L'UI du jeu (UICanvas.ScaleX/Y) lit SceneManager.ViewportWidth/Height : à appeler avant SceneManager.Update ET avant le rendu de ce panneau.
     /// </summary>
     const float LogicalH = 1080f;
 
