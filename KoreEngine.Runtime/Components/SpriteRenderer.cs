@@ -28,8 +28,6 @@ namespace KoreEngine
             }
         }
 
-        static byte ClampByte(int v) => (byte)Math.Clamp(v, 0, 255);
-
 
         // Taille d'une frame sur la texture (en PIXELS)
         public Vector2 FrameSize = new Vector2(16, 16);

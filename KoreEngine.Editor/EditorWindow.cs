@@ -15,10 +15,6 @@ public class EditorWindow
 
     public Renderer Renderer;
 
-    // Running = boucle principale active (jusqu'à fermeture de la fenêtre).
-    // Playing  = façon Unity : simulation (SceneManager.Update) en pause ou non.
-    //            Ne change RIEN à l'affichage de l'éditeur — la scène reste
-    //            visible et figée dans le viewport quand Playing == false.
     public bool Running { get; set; } = true;
     bool showQuitPopup = false;
     bool showShortcutsWindow = false;
@@ -45,6 +41,7 @@ public class EditorWindow
 
     ImGuiBackend? imguiBackend;
 
+    #region Panels
     public ScenePanel? scenePanel;
     public GamePanel? gamePanel;
     public UIEditorPanel? uiEditorPanel;
@@ -54,6 +51,7 @@ public class EditorWindow
     public ConsolePanel? consolePanel;
     public AnimationPreview? animationPreview;
     public TimelinePanel? timelinePanel;
+    #endregion
 
     ScriptWatcher? scriptWatcher;
 
@@ -78,115 +76,9 @@ public class EditorWindow
         imguiBackend = new ImGuiBackend(Renderer);
         imguiBackend.Init(width, height);
 
-        #region Style Editeur
-        ImGuiStylePtr style = ImGui.GetStyle();
-        var c = style.Colors;
+        InitializeImGUIStyle();
 
-        static Vector4 Gray(float v, float a = 1f) => new(v, v, v, a);
-        var accent = new Vector4(0.26f, 0.59f, 0.98f, 1.00f);
-        var accentSoft = new Vector4(0.26f, 0.59f, 0.98f, 0.35f);
-
-        // --- Fond (niveaux bien distincts) ---
-        c[(int)ImGuiCol.WindowBg] = Gray(0.13f);
-        c[(int)ImGuiCol.ChildBg] = Gray(0.10f);
-        c[(int)ImGuiCol.PopupBg] = Gray(0.16f);
-
-        // --- Bordures (visibles) ---
-        c[(int)ImGuiCol.Border] = Gray(0.32f);
-        c[(int)ImGuiCol.BorderShadow] = Gray(0f, 0f);
-
-        // --- Texte ---
-        c[(int)ImGuiCol.Text] = Gray(0.92f);
-        c[(int)ImGuiCol.TextDisabled] = Gray(0.58f);
-
-        // --- Frames : le survol reste sombre, texte toujours lisible ---
-        c[(int)ImGuiCol.FrameBg] = Gray(0.19f);
-        c[(int)ImGuiCol.FrameBgHovered] = Gray(0.26f);
-        c[(int)ImGuiCol.FrameBgActive] = Gray(0.31f);
-
-        // --- Title bar / menu ---
-        c[(int)ImGuiCol.TitleBg] = Gray(0.09f);
-        c[(int)ImGuiCol.TitleBgActive] = Gray(0.16f);
-        c[(int)ImGuiCol.TitleBgCollapsed] = Gray(0.09f);
-        c[(int)ImGuiCol.MenuBarBg] = Gray(0.10f);
-
-        // --- Scrollbar ---
-        c[(int)ImGuiCol.ScrollbarBg] = Gray(0.10f);
-        c[(int)ImGuiCol.ScrollbarGrab] = Gray(0.30f);
-        c[(int)ImGuiCol.ScrollbarGrabHovered] = Gray(0.40f);
-        c[(int)ImGuiCol.ScrollbarGrabActive] = Gray(0.50f);
-
-        // --- Accent unique (bleu) ---
-        c[(int)ImGuiCol.CheckMark] = accent;
-        c[(int)ImGuiCol.SliderGrab] = new Vector4(0.26f, 0.59f, 0.98f, 0.80f);
-        c[(int)ImGuiCol.SliderGrabActive] = accent;
-
-        // --- Boutons ---
-        c[(int)ImGuiCol.Button] = Gray(0.22f);
-        c[(int)ImGuiCol.ButtonHovered] = Gray(0.31f);
-        c[(int)ImGuiCol.ButtonActive] = new Vector4(0.20f, 0.45f, 0.80f, 1.00f);
-
-        // --- Headers (CollapsingHeader, TreeNode, Selectable) ---
-        c[(int)ImGuiCol.Header] = Gray(0.22f);
-        c[(int)ImGuiCol.HeaderHovered] = Gray(0.30f);
-        c[(int)ImGuiCol.HeaderActive] = new Vector4(0.20f, 0.45f, 0.80f, 0.70f);
-
-        // --- Séparateurs ---
-        c[(int)ImGuiCol.Separator] = Gray(0.30f);
-        c[(int)ImGuiCol.SeparatorHovered] = new Vector4(0.26f, 0.59f, 0.98f, 0.60f);
-        c[(int)ImGuiCol.SeparatorActive] = accent;
-
-        // --- Resize grip ---
-        c[(int)ImGuiCol.ResizeGrip] = new Vector4(0.26f, 0.59f, 0.98f, 0.20f);
-        c[(int)ImGuiCol.ResizeGripHovered] = new Vector4(0.26f, 0.59f, 0.98f, 0.60f);
-        c[(int)ImGuiCol.ResizeGripActive] = accent;
-
-        // --- Tabs : l'onglet actif ressort grâce à l'overline ---
-        c[(int)ImGuiCol.Tab] = Gray(0.14f);
-        c[(int)ImGuiCol.TabHovered] = Gray(0.30f);
-        c[(int)ImGuiCol.TabSelected] = Gray(0.22f);
-        c[(int)ImGuiCol.TabSelectedOverline] = accent;
-        c[(int)ImGuiCol.TabDimmed] = Gray(0.11f);
-        c[(int)ImGuiCol.TabDimmedSelected] = Gray(0.17f);
-
-        // --- Docking ---
-        c[(int)ImGuiCol.DockingPreview] = new Vector4(0.26f, 0.59f, 0.98f, 0.40f);
-        c[(int)ImGuiCol.DockingEmptyBg] = Gray(0.09f);
-
-        // --- Divers ---
-        c[(int)ImGuiCol.TextSelectedBg] = accentSoft;
-        c[(int)ImGuiCol.DragDropTarget] = accent;
-        c[(int)ImGuiCol.NavCursor] = accent;
-        c[(int)ImGuiCol.ModalWindowDimBg] = Gray(0f, 0.50f);
-
-        // --- Arrondis ---
-        style.WindowRounding = 0f;
-        style.FrameRounding = 2f;
-        style.PopupRounding = 2f;
-        style.ScrollbarRounding = 2f;
-        style.GrabRounding = 2f;
-        style.TabRounding = 0f;
-
-        // --- Bordures ---
-        style.WindowBorderSize = 1f;
-        style.FrameBorderSize = 1f;   // délimite les inputs
-        style.PopupBorderSize = 1f;
-
-        // --- Espacements (plus aérés) ---
-        style.WindowPadding = new System.Numerics.Vector2(10f, 10f);
-        style.FramePadding = new System.Numerics.Vector2(6f, 4f);
-        style.ItemSpacing = new System.Numerics.Vector2(8f, 6f);
-        style.ItemInnerSpacing = new System.Numerics.Vector2(6f, 4f);
-        style.IndentSpacing = 16f;
-        style.ScrollbarSize = 14f;
-        style.GrabMinSize = 10f;
-        style.DisabledAlpha = 0.55f;
-        #endregion
-
-        // L'éditeur est toujours actif : la RenderTexture du viewport est créée
-        // ici avec la taille de la fenêtre comme point de départ. Elle sera
-        // recalée sur la taille réelle du panneau ImGui dès la 2e frame (lag
-        // d'une frame géré par ViewportPanel.ApplyPendingResize, voir Run()).
+        #region Panels Initialization
         var viewportTexture = new RenderTexture(Renderer, width, height);
         scenePanel = new ScenePanel(Renderer, viewportTexture);
         gamePanel = new GamePanel(Renderer, width, height);
@@ -197,14 +89,10 @@ public class EditorWindow
         consolePanel = new ConsolePanel();
         animationPreview = new AnimationPreview(Renderer, width, height);
         timelinePanel = new TimelinePanel(animationPreview);
+        #endregion
 
         SceneManager.OnSceneChanging += () => EditorSelection.Selected = null;
 
-        // SceneManager ne connaît pas ProjectPanel (Runtime pur) — c'est
-        // l'Editor qui lui indique où se trouve le vrai dossier Assets du
-        // projet, ici, avant tout scan/chargement de scène. Un jeu buildé
-        // n'exécute jamais cette ligne et garde le défaut (Assets à côté
-        // de l'exe).
         SceneManager.AssetsDirectory = Path.Combine(ProjectPanel.FindProjectRoot(), "Assets");
     }
 
@@ -247,69 +135,7 @@ public class EditorWindow
             // 4. ImGui NewFrame
             imguiBackend?.NewFrame(Width, Height);
 
-            var io = ImGui.GetIO();
-
-            if (!io.WantCaptureKeyboard)
-            {
-                if (ImGui.IsKeyPressed(ImGuiKey.Delete))
-                {
-                    if (EditorSelection.Selected != null)
-                    {
-                        EditorSelection.Selected.Destroy();
-                        EditorSelection.Selected = null;
-                    }
-                }
-                if (io.KeyCtrl)
-                {
-                    if (ImGui.IsKeyPressed(ImGuiKey.S))
-                    {
-                        string? name = SceneManager.CurrentSceneName;
-                        if (name != null)
-                            SceneManager.SaveCurrentScene();
-                    }
-
-                    if (ImGui.IsKeyPressed(ImGuiKey.R)) scenePanel?.EditorCamera.Reset(); // Reset the camera
-                }
-                else
-                {
-                    if (ImGui.IsKeyPressed(ImGuiKey.W)) EditorSelection.ActiveGizmoMode = GizmoMode.Move; // Change the selection gizmo to 'Move'
-                    if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
-                    if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
-
-                    if (ImGui.IsKeyPressed(ImGuiKey.F) && EditorSelection.Selected != null) scenePanel?.FocusOn(EditorSelection.Selected.transform.WorldPosition);
-                }
-            }
-
-            // Popup de confirmation de fermeture de l'éditeur
-            if (showQuitPopup)
-            {
-                var viewport = ImGui.GetMainViewport().GetCenter();
-                ImGui.SetNextWindowPos(viewport, ImGuiCond.Appearing, new System.Numerics.Vector2(0.5f, 0.5f));
-                ImGui.OpenPopup("Are you sure you want to quit?");
-                showQuitPopup = false;
-            }
-
-            if (ImGui.BeginPopupModal("Are you sure you want to quit?",
-                ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoNavInputs |
-                ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove))
-            {
-                ImGui.Text("Are you sure you want to quit Kore Engine?");
-                ImGui.Spacing();
-                ImGui.Spacing();
-                if (ImGui.Button("No", new System.Numerics.Vector2(150, 20)))
-                {
-                    ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.SameLine();
-
-                if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
-                {
-                    Running = false; // Quitter la boucle
-                }
-
-                ImGui.EndPopup();
-            }
+            HandleQuitPopup();
 
             // 5. Applique la scène en attente — toujours, même en mode édition.
             SceneManager.ApplyPendingScene();
@@ -341,9 +167,10 @@ public class EditorWindow
             uiEditorPanel?.ApplyPendingResize();
             uiEditorPanel?.RenderScene(SceneManager.Current);
 
-            //    d) Écran réel : clear + panneaux ImGui.
+            // Écran réel : clear + panneaux ImGui.
             Renderer.Clear(SceneManager.Current?.Camera?.Color);
 
+            #region Panel Drawing
             DrawDockspace();
             hierarchyPanel?.Draw();
             inspectorPanel?.Draw();
@@ -354,12 +181,65 @@ public class EditorWindow
             consolePanel?.Draw();
             timelinePanel?.Draw();
             animationPreview?.Draw();
+            #endregion
 
             // 8. ImGui render
             imguiBackend?.Render();
 
             // 9. Present
             Renderer.Present();
+        }
+    }
+
+    private void HandleQuitPopup()
+    {
+        var io = ImGui.GetIO();
+
+        if (!io.WantCaptureKeyboard)
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.Delete))
+            {
+                if (EditorSelection.Selected != null)
+                {
+                    EditorSelection.Selected.Destroy();
+                    EditorSelection.Selected = null;
+                }
+            }
+
+            HandleShortcuts(io);
+
+        }
+
+        // Popup de confirmation de fermeture de l'éditeur
+        if (showQuitPopup)
+        {
+            var viewport = ImGui.GetMainViewport().GetCenter();
+            ImGui.SetNextWindowPos(viewport, ImGuiCond.Appearing, new System.Numerics.Vector2(0.5f, 0.5f));
+            ImGui.OpenPopup("##quit_popup");
+            showQuitPopup = false;
+        }
+
+        if (ImGui.BeginPopupModal("##quit_popup",
+            ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoNavInputs |
+            ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoTitleBar))
+        {
+            ImGui.Text("Are you sure you want to quit Kore Engine?");
+            ImGui.Spacing();
+            ImGui.Spacing();
+            if (ImGui.Button("No", new System.Numerics.Vector2(150, 20)))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
+            {
+                Running = false; // Quitter la boucle
+            }
+
+            ImGui.EndPopup();
         }
     }
 
@@ -523,12 +403,7 @@ public class EditorWindow
         return clicked;
     }
 
-    /// <summary>
-    /// Liste centralisée des raccourcis clavier de l'éditeur — ajoute une
-    /// entrée ici à chaque nouveau raccourci pour qu'il apparaisse
-    /// automatiquement dans cette fenêtre, sans dupliquer la maintenance
-    /// ailleurs.
-    /// </summary>
+    #region Shortcuts
     static readonly (string Key, string Action)[] Shortcuts =
     {
         ("Ctrl+R", "Reset Camera"),
@@ -537,6 +412,27 @@ public class EditorWindow
         ("E", "Rotate Gizmo"),
         ("R", "Scale Gizmo"),
     };
+
+    private void HandleShortcuts(ImGuiIOPtr io)
+    {
+        if (io.KeyCtrl)
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.S))
+            {
+                string? name = SceneManager.CurrentSceneName;
+                if (name != null)
+                    SceneManager.SaveCurrentScene();
+            }
+        }
+        else
+        {
+            if (ImGui.IsKeyPressed(ImGuiKey.W)) EditorSelection.ActiveGizmoMode = GizmoMode.Move; // Change the selection gizmo to 'Move'
+            if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
+            if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
+
+            if (ImGui.IsKeyPressed(ImGuiKey.F) && EditorSelection.Selected != null) scenePanel?.FocusOn(EditorSelection.Selected.transform.WorldPosition);
+        }
+    }
 
     void DrawShortcutsWindow()
     {
@@ -563,5 +459,72 @@ public class EditorWindow
             ImGui.Columns(1);
         }
         ImGui.End();
+    }
+    #endregion
+
+    // Style de ImGUI pour l'éditeur
+    private void InitializeImGUIStyle()
+    {
+        ImGuiStylePtr style = ImGui.GetStyle();
+        var colors = style.Colors;
+
+        colors[(int)ImGuiCol.Text] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.TextDisabled] = new(0.50f, 0.50f, 0.50f, 1.00f);
+        colors[(int)ImGuiCol.WindowBg] = new(0.12f, 0.12f, 0.12f, 0.94f);
+        colors[(int)ImGuiCol.ChildBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.PopupBg] = new(0.08f, 0.08f, 0.08f, 0.94f);
+        colors[(int)ImGuiCol.Border] = new(0.00f, 0.00f, 0.00f, 0.50f);
+        colors[(int)ImGuiCol.BorderShadow] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.FrameBg] = new(0.18f, 0.18f, 0.18f, 0.54f);
+        colors[(int)ImGuiCol.FrameBgHovered] = new(0.35f, 0.35f, 0.35f, 0.40f);
+        colors[(int)ImGuiCol.FrameBgActive] = new(0.09f, 0.09f, 0.09f, 0.67f);
+        colors[(int)ImGuiCol.TitleBg] = new(0.04f, 0.04f, 0.04f, 1.00f);
+        colors[(int)ImGuiCol.TitleBgActive] = new(0.11f, 0.11f, 0.11f, 1.00f);
+        colors[(int)ImGuiCol.TitleBgCollapsed] = new(0.00f, 0.00f, 0.00f, 0.51f);
+        colors[(int)ImGuiCol.MenuBarBg] = new(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[(int)ImGuiCol.ScrollbarBg] = new(0.02f, 0.02f, 0.02f, 0.53f);
+        colors[(int)ImGuiCol.ScrollbarGrab] = new(0.31f, 0.31f, 0.31f, 1.00f);
+        colors[(int)ImGuiCol.ScrollbarGrabHovered] = new(0.41f, 0.41f, 0.41f, 1.00f);
+        colors[(int)ImGuiCol.ScrollbarGrabActive] = new(0.51f, 0.51f, 0.51f, 1.00f);
+        colors[(int)ImGuiCol.CheckMark] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.SliderGrab] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.SliderGrabActive] = new(0.69f, 0.69f, 0.69f, 1.00f);
+        colors[(int)ImGuiCol.Button] = new(0.27f, 0.27f, 0.27f, 0.40f);
+        colors[(int)ImGuiCol.ButtonHovered] = new(0.39f, 0.39f, 0.39f, 1.00f);
+        colors[(int)ImGuiCol.ButtonActive] = new(0.14f, 0.14f, 0.14f, 1.00f);
+        colors[(int)ImGuiCol.Header] = new(0.33f, 0.33f, 0.33f, 0.31f);
+        colors[(int)ImGuiCol.HeaderHovered] = new(0.45f, 0.45f, 0.45f, 0.80f);
+        colors[(int)ImGuiCol.HeaderActive] = new(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[(int)ImGuiCol.Separator] = new(0.49f, 0.49f, 0.49f, 0.50f);
+        colors[(int)ImGuiCol.SeparatorHovered] = new(0.54f, 0.54f, 0.54f, 0.78f);
+        colors[(int)ImGuiCol.SeparatorActive] = new(0.29f, 0.29f, 0.29f, 1.00f);
+        colors[(int)ImGuiCol.ResizeGrip] = new(0.27f, 0.27f, 0.27f, 0.20f);
+        colors[(int)ImGuiCol.ResizeGripHovered] = new(0.43f, 0.43f, 0.43f, 0.67f);
+        colors[(int)ImGuiCol.ResizeGripActive] = new(0.16f, 0.16f, 0.16f, 0.95f);
+        colors[(int)ImGuiCol.TabHovered] = new(0.49f, 0.49f, 0.49f, 0.80f);
+        colors[(int)ImGuiCol.Tab] = new(0.15f, 0.15f, 0.15f, 0.86f);
+        colors[(int)ImGuiCol.TabSelected] = new(0.31f, 0.31f, 0.31f, 1.00f);
+        colors[(int)ImGuiCol.TabSelectedOverline] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.TabDimmed] = new(0.10f, 0.10f, 0.10f, 0.97f);
+        colors[(int)ImGuiCol.TabDimmedSelected] = new(0.32f, 0.32f, 0.32f, 1.00f);
+        colors[(int)ImGuiCol.TabDimmedSelectedOverline] = new(0.50f, 0.50f, 0.50f, 0.00f);
+        colors[(int)ImGuiCol.DockingPreview] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.DockingEmptyBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.PlotLines] = new(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[(int)ImGuiCol.PlotLinesHovered] = new(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[(int)ImGuiCol.PlotHistogram] = new(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[(int)ImGuiCol.PlotHistogramHovered] = new(0.00f, 0.00f, 0.00f, 1.00f);
+        colors[(int)ImGuiCol.TableHeaderBg] = new(0.19f, 0.19f, 0.20f, 1.00f);
+        colors[(int)ImGuiCol.TableBorderStrong] = new(0.31f, 0.31f, 0.35f, 1.00f);
+        colors[(int)ImGuiCol.TableBorderLight] = new(0.23f, 0.23f, 0.25f, 1.00f);
+        colors[(int)ImGuiCol.TableRowBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.TableRowBgAlt] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.TextLink] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.TextSelectedBg] = new(0.97f, 0.97f, 0.97f, 0.35f);
+        colors[(int)ImGuiCol.DragDropTarget] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.NavCursor] = new(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[(int)ImGuiCol.NavWindowingHighlight] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.NavWindowingDimBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.ModalWindowDimBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
     }
 }

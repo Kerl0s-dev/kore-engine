@@ -203,12 +203,16 @@ public class ScenePanel
             uint color = selected ? Col(1f, 1f, 1f, 1f) : Col(0.75f, 0.75f, 0.75f, 0.6f);
             float thickness = selected ? 2f : 1.5f;
 
-            // Coins de l'écran de la caméra, convertis en monde puis vers l'écran de l'éditeur
-            var topLeft = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(0, 0)), imageScreenPos);
-            var botRight = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(cam.ViewWidth, cam.ViewHeight)), imageScreenPos);
+            // 1. Récupère les 4 coins de la caméra dans l'espace monde, puis vers l'écran de l'éditeur
+            var pTL = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(0, 0)), imageScreenPos);                         // Top-Left
+            var pTR = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(cam.ViewWidth, 0)), imageScreenPos);             // Top-Right
+            var pBR = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(cam.ViewWidth, cam.ViewHeight)), imageScreenPos); // Bottom-Right
+            var pBL = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(0, cam.ViewHeight)), imageScreenPos);             // Bottom-Left
 
-            dl.AddRect(topLeft, botRight, color, 0f, ImDrawFlags.None, thickness);
+            // 2. Dessine le rectangle orienté de la caméra
+            dl.AddQuad(pTL, pTR, pBR, pBL, color, thickness);
 
+            // 3. Position de l'icône / croix au centre de la caméra
             var c = WorldToAbsScreen(cam.Position, imageScreenPos);
             IntPtr icon = EditorIcons.GetExact("camera");
 
@@ -229,8 +233,6 @@ public class ScenePanel
                 dl.AddLine(new(c.X - 6, c.Y), new(c.X + 6, c.Y), color, 1.5f);
                 dl.AddLine(new(c.X, c.Y - 6), new(c.X, c.Y + 6), color, 1.5f);
             }
-
-            dl.AddText(new(topLeft.X + 6, topLeft.Y + 4), color, obj.Name);
         }
 
         dl.PopClipRect();
@@ -336,8 +338,6 @@ public class ScenePanel
             var dragBefore = activeDrag;
             DrawGizmo(imageScreenPos, io, overViewport);
 
-            // Si le gizmo vient de démarrer un drag ce frame (clic sur une poignée),
-            // ce même clic ne doit pas aussi être interprété comme une sélection.
             bool gizmoConsumedClick = dragBefore == DragMode.None && activeDrag != DragMode.None;
 
             if (!gizmoConsumedClick && overViewport && io.MouseClicked[0])

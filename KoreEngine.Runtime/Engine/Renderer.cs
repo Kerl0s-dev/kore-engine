@@ -155,6 +155,8 @@ namespace KoreEngine
             SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
             SDL.SetTextureAlphaMod(texture, (byte)color.A);
 
+            double finalAngle = angle;
+
             if (camera != null)
             {
                 var screen = camera.WorldToScreen(new Vector2(x, y));
@@ -162,13 +164,14 @@ namespace KoreEngine
                 y = screen.Y;
                 w = w * PixelsPerUnit * camera.Zoom;
                 h = h * PixelsPerUnit * camera.Zoom;
+                finalAngle += camera.Rotation; // Ajoute la rotation de la caméra à l'angle du sprite
             }
 
             var dest = new SDL.FRect { X = x, Y = y, W = w, H = h };
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
 
-            SDL.RenderTextureRotated(Handle, texture, IntPtr.Zero, dest, angle, IntPtr.Zero, flip);
+            SDL.RenderTextureRotated(Handle, texture, IntPtr.Zero, dest, finalAngle, IntPtr.Zero, flip);
 
             SDL.SetTextureColorMod(texture, 255, 255, 255);
             SDL.SetTextureAlphaMod(texture, 255);
@@ -182,6 +185,8 @@ namespace KoreEngine
             SDL.SetTextureColorMod(texture, (byte)color.R, (byte)color.G, (byte)color.B);
             SDL.SetTextureAlphaMod(texture, (byte)color.A);
 
+            double finalAngle = angle;
+
             if (camera != null)
             {
                 var screen = camera.WorldToScreen(new Vector2(x, y));
@@ -189,6 +194,7 @@ namespace KoreEngine
                 y = screen.Y;
                 w = w * PixelsPerUnit * camera.Zoom;
                 h = h * PixelsPerUnit * camera.Zoom;
+                finalAngle += camera.Rotation; // Ajoute la rotation de la caméra à l'angle du sprite
             }
 
             var srcRect = new SDL.FRect { X = src.X, Y = src.Y, W = src.Width, H = src.Height };
@@ -196,7 +202,7 @@ namespace KoreEngine
             var flip = (flipX ? SDL.FlipMode.Horizontal : SDL.FlipMode.None)
                      | (flipY ? SDL.FlipMode.Vertical : SDL.FlipMode.None);
 
-            SDL.RenderTextureRotated(Handle, texture, srcRect, dest, angle, IntPtr.Zero, flip);
+            SDL.RenderTextureRotated(Handle, texture, srcRect, dest, finalAngle, IntPtr.Zero, flip);
 
             SDL.SetTextureColorMod(texture, 255, 255, 255);
             SDL.SetTextureAlphaMod(texture, 255);

@@ -18,7 +18,7 @@ public class GamePanel
         ("1024x768 (4:3)", 1024, 768)
     };
     static readonly string[] PresetNames = Presets.Select(p => p.Name).ToArray();
-    int presetIndex = 0;
+    int presetIndex = 2;
 
     int pendingW, pendingH;
 
