@@ -8,8 +8,7 @@
 /// </summary>
 public class EditorCamera : Camera
 {
-    public EditorCamera(int viewWidth, int viewHeight)
-        : base(viewWidth, viewHeight) { }
+    public EditorCamera(int viewWidth, int viewHeight) : base(viewWidth, viewHeight) { }
 
     public void Reset()
     {

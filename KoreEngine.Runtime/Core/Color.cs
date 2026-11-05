@@ -4,7 +4,7 @@ public class Color
 {
     public int R, G, B, A;
 
-    public Color(int red, int green, int blue, int alpha)
+    public Color(int red = 255, int green = 255, int blue = 255, int alpha = 255)
     {
         R = red;
         G = green;
@@ -12,7 +12,7 @@ public class Color
         A = alpha;
     }
 
-    public Color(int red, int green, int blue)
+    public Color(int red = 255, int green = 255, int blue = 255)
     {
         R = red;
         G = green;

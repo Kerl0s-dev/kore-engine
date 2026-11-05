@@ -157,26 +157,17 @@ public partial class GameObject
         }
     }
 
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public void DispatchGizmo() {
+        for (int i = 0; i < Components.Count; i++)
+        {
+            Components[i]?.OnGizmo();
+        }
+    }
+
     // ---------------------------------------------------------------
     // Clonage / instanciation runtime
     // ---------------------------------------------------------------
-
-    /// <summary>
-    /// Duplique cet objet et toute sa hiérarchie d'enfants (composants
-    /// compris) dans targetScene, en tant que nouvel objet racine — via un
-    /// aller-retour à travers le même format texte que la sérialisation de
-    /// scène (SceneSerializer.SerializeObjectTree/DeserializeObjectTree),
-    /// pour ne pas dupliquer la logique de clonage des composants.
-    ///
-    /// Équivalent d'un Object.Instantiate(prefab) à la Unity : sert à faire
-    /// apparaître dynamiquement des balles, ennemis, objets ramassables, etc.
-    /// depuis un script — chose impossible jusqu'ici sans reconstruire
-    /// l'objet à la main composant par composant.
-    ///
-    /// Les champs qui référencent un objet HORS de cette hiérarchie (ex: un
-    /// script qui garde une référence vers la Camera de la scène) ne sont
-    /// PAS copiés sur le clone — à réassigner toi-même après coup si besoin.
-    /// </summary>
     public GameObject Instantiate(Scene targetScene, Vector2? position = null)
     {
         string data = SceneSerializer.SerializeObjectTree(this);

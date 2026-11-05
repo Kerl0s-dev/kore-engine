@@ -14,6 +14,8 @@ public abstract class Component
     public virtual void OnCollision(Collider other) { }
     public virtual void OnTrigger(Collider other) { }
 
+    public virtual void OnGizmo() { }
+
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public virtual void Render(Renderer renderer, Camera? camera) { }

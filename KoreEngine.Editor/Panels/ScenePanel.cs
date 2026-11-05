@@ -81,13 +81,6 @@ public class ScenePanel
     // ---------------------------------------------------------------
     // Rendu
     // ---------------------------------------------------------------
-
-    /// <summary>
-    /// Rend la scène DANS la RenderTexture avec la caméra indiquée.
-    /// Appelé hors du bloc ImGui, avant Draw().
-    ///   - mode édition : passer EditorCamera
-    ///   - mode jeu     : passer scene.Camera
-    /// </summary>
     public void RenderScene(Scene? scene, Camera? camera, bool editorMode = false)
     {
         Camera? previous = null;
@@ -104,6 +97,11 @@ public class ScenePanel
             scene?.Render(renderer);
             if (editorMode && camera != null)
                 RenderColliderOverlay(camera);
+
+            RenderGizmos();
+
+            Gizmo.CurrentRenderer = renderer;
+            Gizmo.CurrentCamera = camera;
         }
         finally { UIContext.HideUI = false; }   // le Game panel et l'UI Editor rendent juste après
         renderTexture.EndRender();
@@ -133,7 +131,7 @@ public class ScenePanel
         var collider = selected.GetComponent<Collider>();
         if (collider == null) return;
 
-        byte r = collider.IsTrigger ? (byte)255 : (byte)0, g = 255, b = 0;
+        byte r = 0, g = 255, b = 0;
         var s = collider.GetWorldShape();
 
         if (s.Type == ColliderShapeType.Box)
@@ -169,6 +167,23 @@ public class ScenePanel
         {
             var bb = s.Bounds;
             renderer.DrawRectOutline(bb.X, bb.Y + bb.Height, bb.Width, bb.Height, r, g, b, 90, camera);
+        }
+    }
+
+    void RenderGizmos()
+    {
+        // Sécurité si la scène ou la liste est null
+        var activeObjects = SceneManager.Current?.ActiveObjects;
+        if (activeObjects == null) return;
+
+        GameObject[] gameObjects = activeObjects.ToArray();
+        if (gameObjects.Length == 0) return;
+
+        foreach (var gameObject in gameObjects)
+        {
+            if (gameObject == null) continue;
+
+            gameObject.DispatchGizmo();
         }
     }
 
@@ -347,8 +362,8 @@ public class ScenePanel
     private Vector2 cameraTargetPosition;
     private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
 
-    const float ZoomSmoothing = 2f;
-    const float PanSmoothing = 2f;
+    const float ZoomSmoothing = 0.25f;
+    const float PanSmoothing = 0.25f;
     static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
 
     /// <summary>Recentre la caméra éditeur sur un point du monde (touche F, « Frame Selected »...).</summary>

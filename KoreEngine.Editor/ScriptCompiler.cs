@@ -52,7 +52,7 @@ public static class ScriptCompiler
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
                 allowUnsafe: true,
-                nullableContextOptions: NullableContextOptions.Enable);
+                nullableContextOptions: NullableContextOptions.Disable);
 
             var compilation = CSharpCompilation.Create(
                 "KoreEngineScripts",

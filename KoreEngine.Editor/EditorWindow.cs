@@ -168,7 +168,7 @@ public class EditorWindow
             uiEditorPanel?.RenderScene(SceneManager.Current);
 
             // Écran réel : clear + panneaux ImGui.
-            Renderer.Clear(SceneManager.Current?.Camera?.Color);
+            Renderer.Clear(new Color(115, 115, 115));
 
             #region Panel Drawing
             DrawDockspace();
@@ -314,7 +314,7 @@ public class EditorWindow
 
         float centerX = (ImGui.GetWindowWidth() - centerWidth) * 0.5f;
         ImGui.SameLine(centerX);
-
+        ImGui.PushID("play");
         if (IconButton(Playing ? "stop" : "play", btnSize, highlighted: Playing))
         {
             if (!Playing)
@@ -337,14 +337,15 @@ public class EditorWindow
             Playing = !Playing;
             Paused = false;
         }
+        ImGui.PopID();
 
         ImGui.SameLine(0, spacing);
-
+        ImGui.PushID("pause");
         if (IconButton("pause", btnSize, highlighted: Paused))
             Paused = !Paused;
 
         ImGui.SameLine(0, spacing);
-
+        ImGui.PopID();
         ImGui.BeginDisabled(!Paused);
         if (IconButton("step", btnSize))
             stepRequested = true;
