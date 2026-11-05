@@ -181,6 +181,7 @@ public class EditorWindow
             consolePanel?.Draw();
             timelinePanel?.Draw();
             animationPreview?.Draw();
+            CompilationProgressWindow.Draw();
             #endregion
 
             // 8. ImGui render
@@ -300,10 +301,10 @@ public class EditorWindow
             EditorSelection.ActiveGizmoSpace = EditorSelection.ActiveGizmoSpace == GizmoSpace.World
                 ? GizmoSpace.Local : GizmoSpace.World;
 
-        if (scriptWatcher?.IsBuilding == true)
+        if (ScriptCompiler.IsCompiling)
         {
             ImGui.SameLine();
-            ImGui.TextColored(new Vector4(1, 0.8f, 0, 1), scriptWatcher.BuildStatus);
+            ImGui.TextColored(new Vector4(1, 0.8f, 0, 1), ScriptCompiler.Status);
         }
 
         // --- Centre : Play/Pause/Stop/Step ---
@@ -320,7 +321,6 @@ public class EditorWindow
             if (!Playing)
             {
                 SceneManager.SaveCurrentScene();
-
                 scriptWatcher?.ReloadAssemblies();
             }
             else

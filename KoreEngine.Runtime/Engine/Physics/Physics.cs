@@ -266,14 +266,12 @@
         {
             if (body.IsStatic) return;
 
-            float dtSec = deltaTime / 1000f;
-
             // Gravité appliquée correctement par unité de temps
             float force = gravity * body.GravityScale;
-            body.Velocity.Y += force * dtSec;
+            body.Velocity.Y += force * deltaTime;
 
             if (body.Friction > 0)
-                body.Velocity.X *= MathF.Pow(1f - body.Friction, dtSec);
+                body.Velocity.X *= MathF.Pow(1f - body.Friction, deltaTime);
         }
     }
 }

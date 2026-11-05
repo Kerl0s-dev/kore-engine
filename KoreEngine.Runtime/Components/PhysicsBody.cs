@@ -33,16 +33,15 @@ namespace KoreEngine
             }
 
             // 3. Intégration de la position
-            float dtSec = Time.deltaTime / 1000f;
-            gameObject.transform.Position += Velocity * dtSec;
+            gameObject.transform.Position += Velocity * Time.deltaTime;
 
             // 4. Gestion de la rotation
             if (!FreezeRotation)
             {
-                AngularVelocity /= 1f + AngularDrag * dtSec;
+                AngularVelocity /= 1f + AngularDrag * Time.deltaTime;
                 if (MathF.Abs(AngularVelocity) > 0.0001f)
                 {
-                    RotateAroundCenterOfMass(AngularVelocity * dtSec);
+                    RotateAroundCenterOfMass(AngularVelocity * Time.deltaTime);
                 }
             }
             else

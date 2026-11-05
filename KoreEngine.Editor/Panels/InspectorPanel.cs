@@ -14,7 +14,7 @@ public class InspectorPanel
     public InspectorPanel(Renderer renderer)
     {
         this.renderer = renderer;
-        ScriptCompiler.OnCompileSuccess += () => componentTypes = null; // force rescan
+        ScriptCompiler.OnCompileSuccess += () => componentTypes = null;
     }
 
     public void Draw()
@@ -41,9 +41,6 @@ public class InspectorPanel
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.Checkbox("##enabled", ref enabled))
             obj.Enabled = enabled;
-
-        if (obj.Enabled && !obj.ActiveInHierarchy)
-            ImGui.TextDisabled("Désactivé par un parent.");
 
         ImGui.SameLine();
 
@@ -123,6 +120,13 @@ public class InspectorPanel
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(280, 320), ImGuiCond.Always);
         if (!ImGui.BeginPopup("##add_component_popup")) return;
 
+        EnsureComponentTypes();
+        if (componentTypes == null)
+        {
+            ImGui.EndPopup();
+            return;
+        }
+
         ImGui.SetNextItemWidth(-1f);
         if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
         ImGui.InputText("##search", ref componentSearch, 128);
@@ -130,18 +134,28 @@ public class InspectorPanel
         ImGui.BeginChild("##component_list", new System.Numerics.Vector2(0, 0));
 
         string filter = componentSearch.Trim().ToLowerInvariant();
-        for (int i = 0; i < componentTypes!.Length; i++)
+
+        for (int i = 0; i < componentTypes.Length; i++)
         {
-            if (componentTypes[i] == typeof(Transform))
+            var type = componentTypes[i];
+            if (type == typeof(Transform))
                 continue;
 
-            if (filter.Length > 0 &&
-                !componentNames[i].ToLowerInvariant().Contains(filter)) continue;
+            string typeName = type.Name;
 
-            if (ImGui.Selectable(componentNames[i]))
+            // Application propre du filtre
+            if (filter.Length > 0 && !typeName.ToLowerInvariant().Contains(filter))
+                continue;
+
+            // Affichage direct basé sur le type réel
+            string selectableLabel = $"{typeName}##comp_{type.FullName}";
+
+            if (ImGui.Selectable(selectableLabel))
             {
-                var instance = (Component?)Activator.CreateInstance(componentTypes[i]);
-                if (instance != null) obj.AddComponent(instance);
+                var instance = (Component?)Activator.CreateInstance(type);
+                if (instance != null)
+                    obj.AddComponent(instance);
+
                 ImGui.CloseCurrentPopup();
             }
         }
@@ -150,24 +164,90 @@ public class InspectorPanel
         ImGui.EndPopup();
     }
 
+    static Assembly? lastKnownAssembly = null;
     void EnsureComponentTypes()
     {
+        if (ScriptCompiler.LoadedAssembly != lastKnownAssembly)
+        {
+            componentTypes = null;
+            lastKnownAssembly = ScriptCompiler.LoadedAssembly;
+            Console.WriteLine("[EnsureComponentTypes] Changement d'assembly détecté : Cache invalidé !");
+        }
+
         if (componentTypes != null) return;
-        componentTypes = AppDomain.CurrentDomain.GetAssemblies()
+
+        var assemblyList = new List<Assembly>();
+
+        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            try
+            {
+                if (a.IsDynamic) continue;
+                string? asmName = a.GetName().Name;
+
+                if (asmName == "Scripts")
+                {
+                    Console.WriteLine($"[EnsureComponentTypes] Assembly 'Scripts' trouvée (Loc: {a.Location})");
+                }
+
+                if (asmName == "Scripts" && a != ScriptCompiler.LoadedAssembly)
+                    continue;
+
+                assemblyList.Add(a);
+            }
+            catch { }
+        }
+
+        foreach (var a in assemblyList)
+        {
+            if (a.GetName().Name == "Scripts")
+            {
+                Console.WriteLine("--- ANALYSE DE L'ASSEMBLY SCRIPTS ---");
+                foreach (var t in a.GetTypes())
+                {
+                    bool isSub = t.IsSubclassOf(typeof(Component));
+                    bool isAssig = typeof(Component).IsAssignableFrom(t);
+                    Console.WriteLine($"Type: {t.FullName} | IsSubclassOf Component: {isSub} | IsAssignableFrom: {isAssig}");
+                }
+            }
+        }
+
+        if (ScriptCompiler.LoadedAssembly != null && !assemblyList.Contains(ScriptCompiler.LoadedAssembly))
+        {
+            assemblyList.Add(ScriptCompiler.LoadedAssembly);
+            Console.WriteLine("[EnsureComponentTypes] LoadedAssembly ajoutée manuellement à la liste.");
+        }
+
+        componentTypes = assemblyList
             .SelectMany(a =>
             {
                 try { return a.GetTypes(); }
                 catch (ReflectionTypeLoadException e)
-                { return e.Types.Where(t => t != null).Cast<Type>(); }
+                {
+                    return e.Types.Where(t => t != null).Cast<Type>();
+                }
             })
-            .Where(t => t != null && !t.IsAbstract
-                && t.IsSubclassOf(typeof(Component))
-                && t.GetConstructor(Type.EmptyTypes) != null)
+            .Where(t =>
+            {
+                if (t == null) return false;
+                bool isComp = t.IsSubclassOf(typeof(Component));
+                bool notAbs = !t.IsAbstract;
+
+                if (t.Namespace == "Scripts" || t.Assembly.GetName().Name == "Scripts")
+                {
+                    Console.WriteLine($"[ScriptCheck] Type: {t.Name} | IsComponent: {isComp} | NotAbstract: {notAbs}");
+                }
+
+                return !t.IsAbstract && t.IsSubclassOf(typeof(Component)) && t.GetConstructor(Type.EmptyTypes) != null;
+            })
             .GroupBy(t => t.Name)
-            .Select(g => g.Last())
+            .Select(g => g.First())
             .OrderBy(t => t.Name)
             .ToArray();
+
         componentNames = componentTypes.Select(t => t.Name).ToArray();
+        Console.WriteLine($"[EnsureComponentTypes] Total composants valides trouvés : {componentTypes.Length}");
+        Console.WriteLine($"[EnsureComponentTypes] Noms : {string.Join(",", componentNames.ToArray())}");
     }
 
     // ---------------------------------------------------------------
@@ -869,10 +949,18 @@ public class InspectorPanel
 
     /// <summary>Picker de Component d'un type donné (type connu seulement à l'exécution).</summary>
     static Component? DrawComponentPicker(string label, string id, Type type, Component? current) =>
-        DrawPicker(label, id, current,
-            c => c.gameObject?.Name ?? "?",
-            filter => SceneObjects(filter).Select(o => o.GetComponent(type)).OfType<Component>(),
-            noneLabel: $"None ({type.Name})");
+    DrawPicker(label, id, current,
+        c => $"{c.GetType().Name} ({c.gameObject.Name})",
+        filter => SceneObjects(filter)
+            .SelectMany(o => o.Components)
+            .Where(c =>
+            {
+                var cType = c.GetType();
+                // On compare par FullName pour survivre aux changements d'AssemblyLoadContext
+                return cType.FullName == type.FullName || type.IsAssignableFrom(cType);
+            })
+            .Where(c => filter.Length == 0 || c.GetType().Name.ToLowerInvariant().Contains(filter) || c.gameObject.Name.ToLowerInvariant().Contains(filter)),
+        noneLabel: $"None ({type.Name})");
 
     public static T? DrawComponentField<T>(string label, T? current, string? id = null) where T : Component =>
         (T?)DrawComponentPicker(label, id ?? $"comp_{label}_{typeof(T).Name}", typeof(T), current);
