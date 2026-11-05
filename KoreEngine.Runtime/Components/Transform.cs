@@ -149,11 +149,9 @@
 
         public override IEnumerable<InspectorField> GetInspectorFields()
         {
-            yield return new FloatField { Label = "X", Get = () => Position.X, Set = (v) => Position = new Vector2(v, Position.Y) };
-            yield return new FloatField { Label = "Y", Get = () => Position.Y, Set = (v) => Position = new Vector2(Position.X, v) };
+            yield return new Vector2Field { Label = "Position", Get = () => Position, Set = (v) => Position = v };
             yield return new FloatField { Label = "Rotation", Get = () => Rotation, Set = (v) => Rotation = v };
-            yield return new FloatField { Label = "Scale X", Get = () => Scale.X, Set = (v) => Scale = new Vector2(v, Scale.Y) };
-            yield return new FloatField { Label = "Scale Y", Get = () => Scale.Y, Set = (v) => Scale = new Vector2(Scale.X, v) };
+            yield return new Vector2Field { Label = "Scale", Get = () => Scale, Set = (v) => Scale = v };
         }
     }
 }

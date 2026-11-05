@@ -46,6 +46,12 @@ public class BoolField : InspectorField
     public Action<bool>? Set;
 }
 
+public class Bool2Field : InspectorField
+{
+    public required Func<bool> GetFirst, GetSecond;
+    public Action<bool, bool>? Set;
+}
+
 /// <summary>Combo box avec des noms d'énum affichés.</summary>
 public class EnumField : InspectorField
 {
@@ -80,6 +86,15 @@ public class StringField : InspectorField
     public required Func<string> Get;
     public Action<string>? Set;
     public int MaxLength = 64;
+}
+
+public class Vector2Field : InspectorField
+{
+    public required Func<Vector2> Get;
+    public Action<Vector2>? Set;
+    public float Min = 0;
+    public float Max = 0;
+    public Vector2 Value = Vector2.Zero;
 }
 
 /// <summary>Bouton d'action simple (pas de valeur à éditer, juste déclencher du code).</summary>

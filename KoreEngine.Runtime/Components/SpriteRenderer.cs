@@ -49,22 +49,11 @@ namespace KoreEngine
 
         public override IEnumerable<InspectorField> GetInspectorFields()
         {
-            yield return new TextureField
-            {
-                Label = "Texture",
-                Get = () => (Texture, TexturePath),
-                Set = (tex, path) => { Texture = tex; TexturePath = path; }
-            };
+            yield return new TextureField { Label = "Texture", Get = () => (Texture, TexturePath), Set = (tex, path) => { Texture = tex; TexturePath = path; } };
 
-            yield return new ColorField
-            {
-                Label = "Color",
-                Get = () => Color,
-                Set = c => Color = c
-            };
+            yield return new ColorField { Label = "Color", Get = () => Color, Set = c => Color = c };
 
-            yield return new BoolField { Label = "Flip X", Get = () => FlipX, Set = v => FlipX = v };
-            yield return new BoolField { Label = "Flip Y", Get = () => FlipY, Set = v => FlipY = v };
+            yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set =  (x, y) =>  { FlipX = x; FlipY = y; } };
 
             yield return new EnumField
             {
@@ -79,23 +68,7 @@ namespace KoreEngine
                 }
             };
 
-            // Frame size reste en pixels (pour découper la texture)
-            yield return new IntField
-            {
-                Label = "Frame Width (px)",
-                Get = () => (int)FrameSize.X,
-                Set = v => FrameSize.X = v,
-                Min = 1,
-                Max = int.MaxValue
-            };
-            yield return new IntField
-            {
-                Label = "Frame Height (px)",
-                Get = () => (int)FrameSize.Y,
-                Set = v => FrameSize.Y = v,
-                Min = 1,
-                Max = int.MaxValue
-            };
+            yield return new Vector2Field { Label = "Frame Size (px)", Get = () => FrameSize, Set = v => FrameSize = v, Min = 1, Max = float.MaxValue };
 
             yield return new IntField { Label = "Frame", Get = () => Frame, Set = v => Frame = v, Min = -1, Max = int.MaxValue };
         }

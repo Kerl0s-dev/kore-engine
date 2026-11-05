@@ -232,6 +232,19 @@ public class InspectorPanel
                 break;
             }
 
+            case Bool2Field bf2:
+                {
+                    bool v = bf2.GetFirst();
+                    bool v2 = bf2.GetSecond();
+                    DrawField(bf2.Label, () =>
+                    {
+                        if (ImGui.Checkbox($"##{baseId}_fst", ref v)) bf2.Set?.Invoke(v, v2);
+                        ImGui.SameLine();
+                        if (ImGui.Checkbox($"##{baseId}_sec", ref v2)) bf2.Set?.Invoke(v, v2);
+                    });
+                    break;
+                }
+
             case StringField sf:
             {
                 string v = sf.Get();
@@ -250,6 +263,28 @@ public class InspectorPanel
                 {
                     if (ImGui.Combo($"##{baseId}", ref idx, ef.Names, ef.Names.Length))
                         ef.Set?.Invoke(idx);
+                });
+                break;
+            }
+
+            case Vector2Field v2f:
+            {
+                Vector2 v = v2f.Get();
+
+                System.Numerics.Vector2 vector = new System.Numerics.Vector2(v.X, v.Y);
+                DrawField($"{v2f.Label}", () =>
+                {
+                    bool changed;
+                    if (v2f.Min != v2f.Max)
+                    {
+                        changed = ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f, v2f.Min, v2f.Max);
+                    }
+                    else
+                    {
+                        ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f);
+                    }
+                    
+                    v2f.Set?.Invoke(new Vector2(vector.X, vector.Y));
                 });
                 break;
             }
