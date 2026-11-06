@@ -45,7 +45,7 @@ public partial class GameObject
 
     public GameObject(string? name = null)
     {
-        Name = name ?? $"GameObject ({++nameCounter})";
+        Name = name + (nameCounter == 0 ? "" : $"({++nameCounter})") ?? $"GameObject ({++nameCounter})";
         // On ajoute le Transform par défaut SEULEMENT s'il n'existe pas déjà
         if (!Components.OfType<Transform>().Any())
         {
