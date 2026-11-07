@@ -176,6 +176,11 @@ public static class ScriptCompiler
         }
     }
 
+    public static void RemoveScriptsAssembly()
+    {
+        File.Delete(OutputDll);
+    }
+
     public static void RaiseCompileSuccess()
     {
         OnCompileSuccess?.Invoke();

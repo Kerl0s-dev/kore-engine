@@ -237,6 +237,9 @@ public class EditorWindow
 
             if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
             {
+                // Supprime le .dll de scripts compilé pour éviter les conflits à la prochaine compilation
+                ScriptCompiler.RemoveScriptsAssembly();
+
                 Running = false; // Quitter la boucle
             }
 

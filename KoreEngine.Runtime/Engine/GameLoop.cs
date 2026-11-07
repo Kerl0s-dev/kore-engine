@@ -43,14 +43,17 @@ public class GameLoop
 
     public void Run()
     {
-        // Applique la scène de démarrage (chargée via SceneManager.LoadScene
-        // AVANT Run(), donc encore en attente dans "next") avant d'appeler
-        // Start() — sinon SceneManager.Current serait encore null ici et
-        // Start() ne ferait rien du tout sur aucun composant.
+        // Applique la scène en attente (la scène par défaut, si elle a été définie)
+        // et crée la caméra de la scène si elle n'existe pas encore.
+        // Cela permet de s'assurer que la scène et sa caméra sont prêtes avant
+        // d'appeler Start() sur les composants de la scène.
         SceneManager.ApplyPendingScene();
 
-        // Équivalent du premier "Play" en éditeur — ici la simulation
-        // démarre immédiatement, il n'y a pas de mode édition à quitter.
+        // Appelle Start() sur tous les composants de la scène, puis Start() sur
+        // tous les composants de la caméra de la scène.
+        // C'est le moment où les composants peuvent accéder à SceneManager.Current
+        // et à sa caméra, et donc récupérer la taille de la fenêtre pour
+        // initialiser correctement leur ViewWidth/ViewHeight.
         SceneManager.NotifyStart();
 
         while (Running)
