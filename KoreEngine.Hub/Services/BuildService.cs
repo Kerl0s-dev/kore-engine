@@ -60,14 +60,6 @@ public static class BuildService
         string playerCsproj = Path.Combine(playerDir, $"{entry.Name}.Player.csproj");
         string outputDir = Path.Combine(entry.Path, "Build");
 
-        if (!File.Exists(playerCsproj))
-        {
-            onLogLine($"Projet Player introuvable : {playerCsproj}");
-            onLogLine("(Ce projet a été créé avant l'ajout du build joueur — recrée-le pour en bénéficier.)");
-            onFinished(false);
-            return;
-        }
-
         string publishArgs = string.Join(" ", new[]
         {
             "-c Release",

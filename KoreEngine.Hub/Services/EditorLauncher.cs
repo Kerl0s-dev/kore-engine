@@ -40,48 +40,31 @@ public static class EditorLauncher
             if (!cleanSuccess)
                 onLogLine("[EditorLauncher] Clean as failed, we try to build anyway...");
 
-            onStage?.Invoke("Compiling scripts...");
-            string scriptsCsproj = Path.Combine(entry.Path, $"{entry.Name}.Scripts.csproj");
-            RunDotnet("build", scriptsCsproj, entry.Path, onLogLine, scriptsSuccess =>
+            onStage?.Invoke($"Publishing the editor...");
+            string gameCsproj = Path.Combine(entry.Path, $"{entry.Name}.csproj");
+            string outputDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
+            string publishArgs = $"-c Release -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
+
+            RunDotnet("publish", gameCsproj, entry.Path, onLogLine, publishSuccess =>
             {
-                if (!scriptsSuccess)
+                if (!publishSuccess)
                 {
                     onBuildFinished(false);
                     return;
                 }
 
-                // IMPORTANT : ne pas faire `dotnet build solution -r ...`.
-                // MSBuild interdit un RID au niveau d'une .sln (NETSDK1134).
-                // Et un simple `dotnet build` peut laisser l'apphost framework-dependent.
-                // On publie donc le projet éditeur lui-même avec son RID et le runtime .NET
-                // embarqué, directement dans le dossier que LaunchExe utilise.
-                
-                onStage?.Invoke($"Publishing the editor...");
-                string gameCsproj = Path.Combine(entry.Path, $"{entry.Name}.csproj");
-                string outputDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
-                string publishArgs = $"-c Release -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
-
-                RunDotnet("publish", gameCsproj, entry.Path, onLogLine, publishSuccess =>
+                onStage?.Invoke("Launching editor...");
+                try
                 {
-                    if (!publishSuccess)
-                    {
-                        onBuildFinished(false);
-                        return;
-                    }
-
-                    onStage?.Invoke("Launching editor...");
-                    try
-                    {
-                        LaunchExe(entry, onLogLine);
-                        onBuildFinished(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        onLogLine($"[EditorLauncher] Not possible to launch : {ex.Message}");
-                        onBuildFinished(false);
-                    }
-                }, publishArgs);
-            }, "-c Release");
+                    LaunchExe(entry, onLogLine);
+                    onBuildFinished(true);
+                }
+                catch (Exception ex)
+                {
+                    onLogLine($"[EditorLauncher] Not possible to launch : {ex.Message}");
+                    onBuildFinished(false);
+                }
+            }, publishArgs);
         });
     }
 

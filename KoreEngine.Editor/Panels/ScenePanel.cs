@@ -377,8 +377,8 @@ public class ScenePanel
         if (io.MouseDown[2])
         {
             var delta = new Vector2(-io.MouseDelta.X, io.MouseDelta.Y) / EditorCamera.Zoom / Renderer.PixelsPerUnit;
-            EditorCamera.Position += delta;
-            cameraTargetPosition += delta;
+            EditorCamera.Position += delta * io.DeltaTime;
+            cameraTargetPosition += delta * io.DeltaTime;
         }
 
         if (io.MouseWheel == 0f && io.MouseWheelH == 0f) return;

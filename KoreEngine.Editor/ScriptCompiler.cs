@@ -107,6 +107,7 @@ public static class ScriptCompiler
                         string errors = string.Join("\n", failures.Select(f => f.ToString()));
                         Status = $"Erreur de compilation :\n{errors}";
 
+                        Logger.Error(errors);
                         Console.WriteLine($"[ScriptCompiler] {Status}");
 
                         IsCompiling = false;
@@ -176,8 +177,22 @@ public static class ScriptCompiler
         }
     }
 
-    public static void RemoveScriptsAssembly()
+    /// <summary>
+    /// Décharge l'assembly Scripts.dll chargé par l'éditeur pour libérer la mémoire et éviter les conflits avec le moteur.
+    /// Cette méthode est appelée à la fermeture de l'éditeur pour pouvoir lancer un projet même si des erreurs de compilation sont présentes dans les scripts.
+    /// </summary>
+    public static void RemoveLoadedAssembly()
     {
+        // Décharge l'assembly Scripts.dll chargé par l'éditeur pour libérer la mémoire et éviter les conflits avec le moteur
+        LoadedAssembly = null;
+        if (currentAlc != null)
+        {
+            currentAlc.Unload();
+            previousAlcWeakRef = new WeakReference(currentAlc);
+            currentAlc = null;
+        }
+
+        // Supprime le .dll de scripts compilé pour éviter les conflits à la prochaine compilation
         File.Delete(OutputDll);
     }
 

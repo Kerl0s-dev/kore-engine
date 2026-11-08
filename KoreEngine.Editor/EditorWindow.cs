@@ -194,23 +194,6 @@ public class EditorWindow
 
     private void HandleQuitPopup()
     {
-        var io = ImGui.GetIO();
-
-        if (!io.WantCaptureKeyboard)
-        {
-            if (ImGui.IsKeyPressed(ImGuiKey.Delete))
-            {
-                if (EditorSelection.Selected != null)
-                {
-                    EditorSelection.Selected.Destroy();
-                    EditorSelection.Selected = null;
-                }
-            }
-
-            HandleShortcuts(io);
-
-        }
-
         // Popup de confirmation de fermeture de l'éditeur
         if (showQuitPopup)
         {
@@ -237,8 +220,7 @@ public class EditorWindow
 
             if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
             {
-                // Supprime le .dll de scripts compilé pour éviter les conflits à la prochaine compilation
-                ScriptCompiler.RemoveScriptsAssembly();
+                ScriptCompiler.RemoveLoadedAssembly();
 
                 Running = false; // Quitter la boucle
             }
