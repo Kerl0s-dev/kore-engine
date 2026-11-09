@@ -139,8 +139,18 @@ public sealed class AnimationPreview
         renderTexture.Resize(pendingW, pendingH);
         RenderToTexture();
 
-        var pos = ImGui.GetCursorScreenPos();
+        var imagePos = ImGui.GetCursorScreenPos();
         ImGui.Image(renderTexture.Texture, new NVec2(pendingW, pendingH));
+
+        bool hovered = ImGui.IsItemHovered();
+        var io = ImGui.GetIO();
+
+        var mouseScreen = io.MousePos;
+        var localMouse = new Vector2(mouseScreen.X - imagePos.X, mouseScreen.Y - imagePos.Y);
+
+        // Gestion unifiée de la caméra (Pan + Zoom lissé)
+        if (hovered) HandleCameraInput(io, localMouse);
+        StepEditorCamera(io.DeltaTime);
 
         if (ImGui.IsItemHovered())
         {
@@ -151,11 +161,83 @@ public sealed class AnimationPreview
         var dl = ImGui.GetWindowDrawList();
         uint white = ImGui.GetColorU32(new NVec4(1f, 1f, 1f, 0.8f));
         if (Root == null)
-            dl.AddText(pos + new NVec2(8, 8), white, "No target selected : Select an object in the hierarchy.");
+            dl.AddText(imagePos + new NVec2(8, 8), white, "No target selected : Select an object in the hierarchy.");
         if (Overlay.Length > 0)
-            dl.AddText(pos + new NVec2(8, pendingH - 20), white, Overlay);
+            dl.AddText(imagePos + new NVec2(8, pendingH - 20), white, Overlay);
 
         ImGui.End();
+    }
+
+    // ---------------------------------------------------------------
+    // Caméra éditeur
+    // ---------------------------------------------------------------
+    private float cameraTargetZoom;
+    private Vector2 cameraTargetPosition;
+    private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
+
+    // Vitesse de zoom (facteur multiplicatif par cran de molette).
+    const float ZoomStep = 0.1f;
+    const float ZoomMin = 0.001f;
+    const float ZoomMax = 20f;
+
+    const float ZoomSmoothing = 0.25f;
+    const float PanSmoothing = 0.25f;
+    static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
+
+    /// <summary>Recentre la caméra éditeur sur un point du monde (touche F, « Frame Selected »...).</summary>
+    public void FocusOn(Vector2 worldPos) => cameraTargetPosition = worldPos;
+
+    // Entrées : seulement quand la souris survole le viewport
+    const float ScrollPanPixels = 80f;   // distance à l'écran par cran de molette
+
+    void HandleCameraInput(ImGuiIOPtr io, Vector2 mouseViewport)
+    {
+        if (io.MouseDown[2])
+        {
+            var delta = new Vector2(-io.MouseDelta.X, io.MouseDelta.Y) / camera.Zoom / Renderer.PixelsPerUnit;
+            camera.Position += delta;
+            cameraTargetPosition += delta;
+        }
+
+        if (io.MouseWheel == 0f && io.MouseWheelH == 0f) return;
+
+        if (io.KeyCtrl)
+        {
+            float factor = MathF.Pow(1f + ZoomStep, io.MouseWheel);
+            cameraTargetZoom = System.Math.Clamp(cameraTargetZoom * factor, ZoomMin, ZoomMax);
+            zoomAnchor = mouseViewport;
+        }
+        else
+        {
+            // Pas constant à l'écran, converti en mètres
+            float step = ScrollPanPixels / (camera.Zoom * Renderer.PixelsPerUnit);
+
+            float dx = io.MouseWheelH;      // molette horizontale ou pavé tactile
+            float dy = io.MouseWheel;
+            if (io.KeyShift) { dx -= dy; dy = 0f; }   // Shift + molette : défilement horizontal
+
+            // On déplace la cible : StepEditorCamera lisse le mouvement
+            cameraTargetPosition += new Vector2(dx * step, dy * step);
+        }
+    }
+
+    // Animation : à CHAQUE frame en mode édition, même hors du viewport
+    void StepEditorCamera(float dt)
+    {
+        float diff = cameraTargetZoom - camera.Zoom;
+        if (MathF.Abs(diff) > cameraTargetZoom * 0.0005f)
+        {
+            Vector2 worldBefore = camera.ScreenToWorld(zoomAnchor);
+            camera.Zoom += diff * Damp(ZoomSmoothing * 1000, dt);
+            Vector2 worldAfter = camera.ScreenToWorld(zoomAnchor);
+
+            Vector2 correction = worldBefore - worldAfter;
+            camera.Position += correction;
+            cameraTargetPosition += correction;
+        }
+        else camera.Zoom = cameraTargetZoom;
+
+        camera.Position = Vector2.Lerp(camera.Position, cameraTargetPosition, Damp(PanSmoothing * 1000, dt));
     }
 
     public void Destroy() => renderTexture.Destroy();

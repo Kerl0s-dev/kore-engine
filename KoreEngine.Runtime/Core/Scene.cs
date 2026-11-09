@@ -58,23 +58,23 @@ public class Scene
     /// </summary>
     public void Remove(GameObject obj)
     {
-        // Appelle OnDestroy() sur l'objet et tous ses descendants AVANT de les
-        // détacher — pour que Owner et la hiérarchie restent valides pendant
+        // Appelle OnDestroy() sur l'objet et tous ses descendants avant de les
+        // détacher pour que Owner et la hiérarchie restent valides pendant
         // que les composants nettoient leurs ressources.
         DestroyRecursive(obj);
 
-        // 1. Si l'objet a un parent, on le détache pour qu'il ne figure plus 
+        // Si l'objet a un parent, on le détache pour qu'il ne figure plus 
         // dans les enfants de ce parent.
         if (obj.transform.Parent != null)
         {
             obj.transform.SetParent(null, this);
         }
 
-        // 2. On le retire définitivement de la liste des objets racines de la scène
+        // On le retire définitivement de la liste des objets racines de la scène
         // (SetParent(null) vient de l'y ajouter, ou il y était déjà).
         RootObjects.Remove(obj);
 
-        // 3. Désenregistrer la physique
+        // Désenregistrer la physique
         UnregisterColliders(obj);
     }
 
@@ -195,7 +195,7 @@ public class Scene
     }
 
     /// <summary>
-    /// Appelle OnDestroy() sur TOUS les composants de la scène. À appeler avant
+    /// Appelle OnDestroy() sur tous les composants de la scène. À appeler avant
     /// qu'une scène ne soit remplacée ou déchargée (voir SceneManager), pour
     /// que les composants libèrent leurs ressources natives (handles audio,
     /// textures allouées manuellement, etc.) avant de disparaître.

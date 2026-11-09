@@ -63,7 +63,6 @@ public class EditorWindow
 
         SDL.Init(SDL.InitFlags.Video);
         window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable);
-        SDL.MaximizeWindow(window);
 
         SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
 
@@ -135,6 +134,22 @@ public class EditorWindow
             // 4. ImGui NewFrame
             imguiBackend?.NewFrame(Width, Height);
 
+            var io = ImGui.GetIO();
+
+            if (!io.WantCaptureKeyboard)
+            {
+                if (ImGui.IsKeyPressed(ImGuiKey.Delete))
+                {
+                    if (EditorSelection.Selected != null)
+                    {
+                        EditorSelection.Selected.Destroy();
+                        EditorSelection.Selected = null;
+                    }
+                }
+
+                HandleShortcuts(io);
+            }
+
             HandleQuitPopup();
 
             // 5. Applique la scène en attente — toujours, même en mode édition.
@@ -176,8 +191,8 @@ public class EditorWindow
             inspectorPanel?.Draw();
             projectPanel?.Draw();
             scenePanel?.Draw(editorMode: true);
-            gamePanel?.Draw();
             uiEditorPanel?.Draw();
+            gamePanel?.Draw();
             consolePanel?.Draw();
             timelinePanel?.Draw();
             animationPreview?.Draw();
@@ -509,7 +524,7 @@ public class EditorWindow
         colors[(int)ImGuiCol.TextSelectedBg] = new(0.97f, 0.97f, 0.97f, 0.35f);
         colors[(int)ImGuiCol.DragDropTarget] = new(0.00f, 0.00f, 0.00f, 0.25f);
         colors[(int)ImGuiCol.NavCursor] = new(1.00f, 1.00f, 1.00f, 1.00f);
-        colors[(int)ImGuiCol.NavWindowingHighlight] = new(0.00f, 0.00f, 0.00f, 0.00f);
+        colors[(int)ImGuiCol.NavWindowingHighlight] = new(1.00f, 1.00f, 1.00f, 0.25f);
         colors[(int)ImGuiCol.NavWindowingDimBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
         colors[(int)ImGuiCol.ModalWindowDimBg] = new(0.00f, 0.00f, 0.00f, 0.00f);
     }

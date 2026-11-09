@@ -36,16 +36,6 @@ namespace KoreEngine
 
         public bool FlipX = false;
         public bool FlipY = false;
-        public FilteringMode Filtering = FilteringMode.Linear;
-
-        static readonly string[] FilteringNames = Enum.GetNames<FilteringMode>();
-
-        static SDL.ScaleMode ToSdlScaleMode(FilteringMode mode) => mode switch
-        {
-            FilteringMode.Nearest => SDL.ScaleMode.Nearest,
-            FilteringMode.PixelArt => SDL.ScaleMode.PixelArt,
-            _ => SDL.ScaleMode.Linear
-        };
 
         public override IEnumerable<InspectorField> GetInspectorFields()
         {
@@ -55,19 +45,6 @@ namespace KoreEngine
 
             yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set =  (x, y) =>  { FlipX = x; FlipY = y; } };
 
-            yield return new EnumField
-            {
-                Label = "Filtering",
-                Names = FilteringNames,
-                Get = () => (int)Filtering,
-                Set = idx =>
-                {
-                    Filtering = (FilteringMode)idx;
-                    if (Texture != IntPtr.Zero)
-                        SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
-                }
-            };
-
             yield return new Vector2Field { Label = "Frame Size (px)", Get = () => FrameSize, Set = v => FrameSize = v, Min = 1, Max = float.MaxValue };
 
             yield return new IntField { Label = "Frame", Get = () => Frame, Set = v => Frame = v, Min = -1, Max = int.MaxValue };
@@ -76,8 +53,6 @@ namespace KoreEngine
         public override void Render(Renderer renderer, Camera? camera)
         {
             if (Texture == IntPtr.Zero) return;
-
-            SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
 
             // Position et échelle monde (en MÈTRES)
             var pos = gameObject.transform.WorldPosition;

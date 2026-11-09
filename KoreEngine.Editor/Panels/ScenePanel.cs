@@ -17,11 +17,6 @@ public class ScenePanel
     // et scene.Camera quand Playing == true.
     public EditorCamera EditorCamera { get; private set; }
 
-    // Vitesse de zoom (facteur multiplicatif par cran de molette).
-    const float ZoomStep = 0.1f;
-    const float ZoomMin = 0.05f;
-    const float ZoomMax = 20f;
-
     enum DragMode { None, MoveX, MoveY, MoveFree, ScaleX, ScaleY, ScaleFree, Rotate }
 
     DragMode activeDrag = DragMode.None;
@@ -362,6 +357,11 @@ public class ScenePanel
     private Vector2 cameraTargetPosition;
     private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
 
+    // Vitesse de zoom (facteur multiplicatif par cran de molette).
+    const float ZoomStep = 0.1f;
+    const float ZoomMin = 0.05f;
+    const float ZoomMax = 20f;
+
     const float ZoomSmoothing = 0.25f;
     const float PanSmoothing = 0.25f;
     static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
@@ -377,8 +377,8 @@ public class ScenePanel
         if (io.MouseDown[2])
         {
             var delta = new Vector2(-io.MouseDelta.X, io.MouseDelta.Y) / EditorCamera.Zoom / Renderer.PixelsPerUnit;
-            EditorCamera.Position += delta * io.DeltaTime;
-            cameraTargetPosition += delta * io.DeltaTime;
+            EditorCamera.Position += delta;
+            cameraTargetPosition += delta;
         }
 
         if (io.MouseWheel == 0f && io.MouseWheelH == 0f) return;
