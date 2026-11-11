@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace KoreEngine
+﻿namespace KoreEngine
 {
     public class PhysicsBody : Component
     {

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace KoreEngine
+﻿namespace KoreEngine
 {
     public struct Vector2 : IEquatable<Vector2>
     {

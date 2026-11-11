@@ -11,6 +11,8 @@ public class ImGuiBackend
     IntPtr fontTexture;
     bool initialized = false;
 
+    const string FontFile = "RobotoMono-VariableFont_wght.ttf";
+
     public ImGuiBackend(Renderer renderer)
     {
         rendererHandle = renderer.Handle;
@@ -40,7 +42,7 @@ public class ImGuiBackend
 
         // Police principale — couvre le Latin étendu (accents français inclus)
         // que la police par défaut d'ImGui ne gère pas correctement.
-        string mainFontPath = @"C:\Windows\Fonts\segoeui.ttf";
+        string mainFontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", FontFile);
         if (File.Exists(mainFontPath))
             io.Fonts.AddFontFromFileTTF(mainFontPath, 16f, IntPtr.Zero, io.Fonts.GetGlyphRangesDefault());
         else

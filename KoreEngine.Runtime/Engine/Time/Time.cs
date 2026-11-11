@@ -11,10 +11,10 @@ namespace KoreEngine
         public static void ComputeDeltaTime()
         {
             ulong now = SDL.GetTicks();
-            
+
             // Conversion des millisecondes en secondes (/ 1000f) et correction de la soustraction
-            float dt = (now - lastTicks) / 1000f; 
-            
+            float dt = (now - lastTicks) / 1000f;
+
             lastTicks = now;
 
             deltaTime = MathF.Max(dt, 0.0001f);

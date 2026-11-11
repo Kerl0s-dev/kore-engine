@@ -43,7 +43,7 @@ namespace KoreEngine
 
             yield return new ColorField { Label = "Color", Get = () => Color, Set = c => Color = c };
 
-            yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set =  (x, y) =>  { FlipX = x; FlipY = y; } };
+            yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set = (x, y) => { FlipX = x; FlipY = y; } };
 
             yield return new Vector2Field { Label = "Frame Size (px)", Get = () => FrameSize, Set = v => FrameSize = v, Min = 1, Max = float.MaxValue };
 
@@ -77,7 +77,8 @@ namespace KoreEngine
                 if (camera != null) renderer.DrawTexturePart(Texture, src, x, y, w, h, Color, FlipX, FlipY, angle, camera);
                 else renderer.DrawTexturePart(Texture, src, x, y, w, h, Color, FlipX, FlipY, angle);
             }
-            else {
+            else
+            {
                 if (camera != null)
                     renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle, camera);
                 else

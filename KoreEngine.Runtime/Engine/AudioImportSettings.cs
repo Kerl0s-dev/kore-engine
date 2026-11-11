@@ -41,11 +41,11 @@ public class AudioImportSettings
         bool isDefault = Volume == DefaultVolume && LoadMode == DefaultLoadMode;
         if (isDefault && !File.Exists(AssetMeta.PathFor(resolved))) return;
 
-        AssetMeta.Write(resolved, new[]
-        {
+        AssetMeta.Write(resolved,
+        [
             new KeyValuePair<string, string>("Volume", Volume.ToString(CultureInfo.InvariantCulture)),
             new KeyValuePair<string, string>("LoadMode", LoadMode.ToString()),
-        });
+        ]);
     }
 
     public IEnumerable<InspectorField> GetInspectorFields(string assetPath)

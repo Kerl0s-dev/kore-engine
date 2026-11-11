@@ -9,7 +9,8 @@ public class UIEditorPanel
     readonly RenderTexture renderTexture;
     public EditorCamera View { get; }
 
-    int pendingW, pendingH;
+    private int pendingWidth;
+    private int pendingHeight;
     bool resizeRequested;
     bool needsFit = true;
     UICanvas? canvas;
@@ -32,8 +33,8 @@ public class UIEditorPanel
     {
         this.renderer = renderer;
         renderTexture = new RenderTexture(renderer, width, height);
-        pendingW = renderTexture.Width;
-        pendingH = renderTexture.Height;
+        pendingWidth = renderTexture.Width;
+        pendingHeight = renderTexture.Height;
         View = new EditorCamera(renderTexture.Width, renderTexture.Height);
     }
 
@@ -41,14 +42,25 @@ public class UIEditorPanel
     // Frame : resize puis rendu (hors bloc ImGui)
     // ---------------------------------------------------------------
 
-    public void ApplyPendingResize()
+    public void ApplyPendingResize(Camera? camera)
     {
-        if (!resizeRequested) return;
-        renderTexture.Resize(pendingW, pendingH);
-        View.ViewWidth = renderTexture.Width;
-        View.ViewHeight = renderTexture.Height;
-        resizeRequested = false;
-        needsFit = true;   // recadre le canvas quand le panel change de taille
+        if (resizeRequested)
+        {
+            renderTexture.Resize(pendingWidth, pendingHeight);
+            View.ViewWidth = renderTexture.Width;
+            View.ViewHeight = renderTexture.Height;
+            resizeRequested = false;
+        }
+
+        // Synchronise toujours la caméra active.
+        if (camera != null)
+        {
+            camera.ViewWidth = renderTexture.Width;
+            camera.ViewHeight = renderTexture.Height;
+        }
+
+        SceneManager.ViewportWidth = renderTexture.Width;
+        SceneManager.ViewportHeight = renderTexture.Height;
     }
 
     void ResolveCanvas(Scene? scene)
@@ -115,60 +127,115 @@ public class UIEditorPanel
         ImGui.SameLine();
         ImGui.TextDisabled("(Ctrl : désactiver)");
 
-        var avail = ImGui.GetContentRegionAvail();
-        int w = (int)avail.X, h = (int)avail.Y;
+        System.Numerics.Vector2 avail = ImGui.GetContentRegionAvail();
+        int availW = (int)avail.X;
+        int availH = (int)avail.Y;
 
-        // 1. Resize immediately if the ImGui panel dimensions changed
-        if (w > 0 && h > 0 && (w != renderTexture.Width || h != renderTexture.Height))
+        if (availW > 0 && availH > 0 && (availW != pendingWidth || availH != pendingHeight))
         {
-            renderTexture.Resize(w, h);
-            View.ViewWidth = w;
-            View.ViewHeight = h;
-            needsFit = true; // Flag that we need to re-center/fit
+            pendingWidth = availW;
+            pendingHeight = availH;
+            resizeRequested = true;
         }
-
-        // 2. Resolve canvas and fit if needed, now that ViewWidth/ViewHeight are accurate
+        
         ResolveCanvas(SceneManager.Current!);
-        if (canvas != null)
-        {
-            canvas.SyncSize();
-            if (needsFit)
-            {
-                FitToCanvas();
-                needsFit = false;
-            }
-        }
 
-        var imagePos = ImGui.GetCursorScreenPos();
+        // Position écran du coin haut-gauche de l'image (avant ImGui.Image).
+        System.Numerics.Vector2 imageScreenPos = ImGui.GetCursorScreenPos();
+
         ImGui.Image(renderTexture.Texture, avail);
-        bool hovered = ImGui.IsItemHovered();
-        var io = ImGui.GetIO();
 
-        if (hovered) UpdateCamera(io, new Vector2(io.MousePos.X - imagePos.X, io.MousePos.Y - imagePos.Y));
+        var io = ImGui.GetIO();
+        bool overViewport = ImGui.IsItemHovered();
+        System.Numerics.Vector2 mouseScreen = io.MousePos;
+
+        // Souris en coordonnées locales au viewport (texture).
+        var localMouse = new Vector2(mouseScreen.X - imageScreenPos.X, mouseScreen.Y - imageScreenPos.Y);
+
+        // Contrôles caméra éditeur — uniquement en mode édition et quand
+        // la souris est au-dessus du viewport.
+        if (overViewport) HandleCameraInput(io, localMouse);
+        StepEditorCamera(io.DeltaTime);
 
         if (canvas == null)
-            ImGui.GetWindowDrawList().AddText(imagePos + new System.Numerics.Vector2(12, 12),
+            ImGui.GetWindowDrawList().AddText(imageScreenPos + new System.Numerics.Vector2(12, 12),
                 ImGui.GetColorU32(new System.Numerics.Vector4(1, 1, 1, 0.6f)), "No UICanvas selected in the hierarchy");
         else
-            DrawRectTool(imagePos, avail, io, hovered);
+            DrawRectTool(imageScreenPos, avail, io, overViewport);
 
         ImGui.End();
     }
 
-    void UpdateCamera(ImGuiIOPtr io, Vector2 mouseLocal)
-    {
-        if (io.MouseDown[2])   // pan : clic molette
-            View.Position = new Vector2(View.Position.X - io.MouseDelta.X / View.Zoom,
-                                        View.Position.Y + io.MouseDelta.Y / View.Zoom);
+    // ---------------------------------------------------------------
+    // Caméra éditeur
+    // ---------------------------------------------------------------
+    private float cameraTargetZoom;
+    private Vector2 cameraTargetPosition;
+    private Vector2 zoomAnchor;   // point sous lequel on zoome (coordonnées viewport)
 
-        if (io.MouseWheel != 0f)   // zoom centré sur la souris
+    // Vitesse de zoom (facteur multiplicatif par cran de molette).
+    const float ZoomStep = 0.1f;
+    const float ZoomMin = 0.05f;
+    const float ZoomMax = 20f;
+
+    const float ZoomSmoothing = 0.25f;
+    const float PanSmoothing = 0.25f;
+    static float Damp(float smoothing, float dt) => 1f - MathF.Exp(-smoothing * dt);
+
+    /// <summary>Recentre la caméra éditeur sur un point du monde (touche F, « Frame Selected »...).</summary>
+    public void FocusOn(Vector2 worldPos) => cameraTargetPosition = worldPos;
+
+    // Entrées : seulement quand la souris survole le viewport
+    const float ScrollPanPixels = 80f;   // distance à l'écran par cran de molette
+
+    void HandleCameraInput(ImGuiIOPtr io, Vector2 mouseViewport)
+    {
+        if (io.MouseDown[2])
         {
-            var before = View.ScreenToWorld(mouseLocal);
-            View.Zoom = Math.Clamp(View.Zoom * (1f + 0.1f * io.MouseWheel), int.MinValue, 20f);
-            var after = View.ScreenToWorld(mouseLocal);
-            View.Position = new Vector2(View.Position.X + (before.X - after.X),
-                                        View.Position.Y + (before.Y - after.Y));
+            var delta = new Vector2(-io.MouseDelta.X, io.MouseDelta.Y) / View.Zoom / Renderer.PixelsPerUnit;
+            View.Position += delta;
+            cameraTargetPosition += delta;
         }
+
+        if (io.MouseWheel == 0f && io.MouseWheelH == 0f) return;
+
+        if (io.KeyCtrl)
+        {
+            float factor = MathF.Pow(1f + ZoomStep, io.MouseWheel);
+            cameraTargetZoom = System.Math.Clamp(cameraTargetZoom * factor, ZoomMin, ZoomMax);
+            zoomAnchor = mouseViewport;
+        }
+        else
+        {
+            // Pas constant à l'écran, converti en mètres
+            float step = ScrollPanPixels / (View.Zoom * Renderer.PixelsPerUnit);
+
+            float dx = io.MouseWheelH;      // molette horizontale ou pavé tactile
+            float dy = io.MouseWheel;
+            if (io.KeyShift) { dx -= dy; dy = 0f; }   // Shift + molette : défilement horizontal
+
+            // On déplace la cible : StepEditorCamera lisse le mouvement
+            cameraTargetPosition += new Vector2(dx * step, dy * step);
+        }
+    }
+
+    // Animation : à CHAQUE frame en mode édition, même hors du viewport
+    void StepEditorCamera(float dt)
+    {
+        float diff = cameraTargetZoom - View.Zoom;
+        if (MathF.Abs(diff) > cameraTargetZoom * 0.0005f)
+        {
+            Vector2 worldBefore = View.ScreenToWorld(zoomAnchor);
+            View.Zoom += diff * Damp(ZoomSmoothing * 1000, dt);
+            Vector2 worldAfter = View.ScreenToWorld(zoomAnchor);
+
+            Vector2 correction = worldBefore - worldAfter;
+            View.Position += correction;
+            cameraTargetPosition += correction;
+        }
+        else View.Zoom = cameraTargetZoom;
+
+        View.Position = Vector2.Lerp(View.Position, cameraTargetPosition, Damp(PanSmoothing * 1000, dt));
     }
 
     // ---------------------------------------------------------------

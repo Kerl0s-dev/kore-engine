@@ -148,7 +148,7 @@ public class ScenePanel
             else
             {
                 var u = d.Normalize();
-                var v = new KoreEngine.Vector2(-u.Y, u.X);
+                var v = new Vector2(-u.Y, u.X);
                 float th = MathF.Atan2(u.Y, u.X);
                 renderer.WorldLine(camera, s.SegA + v * s.Radius, s.SegB + v * s.Radius, r, g, b, 255);
                 renderer.WorldLine(camera, s.SegA - v * s.Radius, s.SegB - v * s.Radius, r, g, b, 255);
@@ -202,9 +202,8 @@ public class ScenePanel
             var cam = obj.GetComponent<Camera>();
             if (cam == null || cam.ViewWidth <= 0 || cam.ViewHeight <= 0) continue;
 
-            bool selected = obj == EditorSelection.Selected;
-            uint color = selected ? Col(1f, 1f, 1f, 1f) : Col(0.75f, 0.75f, 0.75f, 0.6f);
-            float thickness = selected ? 2f : 1.5f;
+            uint color = Col(1f, 1f, 1f, 1f);
+            float thickness = 2f;
 
             // 1. Récupère les 4 coins de la caméra dans l'espace monde, puis vers l'écran de l'éditeur
             var pTL = WorldToAbsScreen(cam.ScreenToWorld(new Vector2(0, 0)), imageScreenPos);                         // Top-Left
@@ -221,7 +220,7 @@ public class ScenePanel
 
             if (icon != IntPtr.Zero)
             {
-                const float iconSize = 24f;   // taille écran fixe, indépendante du zoom
+                const float iconSize = 36f;   // taille écran fixe, indépendante du zoom
                 float h = iconSize * 0.5f;
                 dl.AddImage(icon,
                     new System.Numerics.Vector2(c.X - h, c.Y - h),
@@ -460,7 +459,7 @@ public class ScenePanel
         if (EditorSelection.ActiveGizmoSpace == GizmoSpace.World)
             return xAxis ? new Vector2(1, 0) : new Vector2(0, 1);
 
-        float rad = -obj.transform.WorldRotation * MathF.PI / 180f; // signe inversé
+        float rad = obj.transform.WorldRotation * MathF.PI / 180f;
         float cos = MathF.Cos(rad), sin = MathF.Sin(rad);
         return xAxis ? new Vector2(cos, sin) : new Vector2(-sin, cos);
     }

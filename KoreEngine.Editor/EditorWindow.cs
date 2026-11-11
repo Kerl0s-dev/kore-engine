@@ -178,7 +178,7 @@ public class EditorWindow
             gamePanel?.ApplyPendingResize();
             gamePanel?.RenderScene(SceneManager.Current);
 
-            uiEditorPanel?.ApplyPendingResize();
+            uiEditorPanel?.ApplyPendingResize(uiEditorPanel.View);
             uiEditorPanel?.RenderScene(SceneManager.Current);
 
             // Écran réel : clear + panneaux ImGui.
@@ -189,12 +189,12 @@ public class EditorWindow
             hierarchyPanel?.Draw();
             inspectorPanel?.Draw();
             projectPanel?.Draw();
-            scenePanel?.Draw(editorMode: true);
-            uiEditorPanel?.Draw();
-            gamePanel?.Draw();
             consolePanel?.Draw();
             timelinePanel?.Draw();
             animationPreview?.Draw();
+            uiEditorPanel?.Draw();
+            gamePanel?.Draw();
+            scenePanel?.Draw(editorMode: true);
             CompilationProgressWindow.Draw();
             #endregion
 

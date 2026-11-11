@@ -263,10 +263,10 @@ public class InspectorPanel
         switch (f)
         {
             case TextField tf:
-            {
-                DrawField(tf.Label, () => ImGui.TextDisabled(tf.Get()));
-                break;
-            }
+                {
+                    DrawField(tf.Label, () => ImGui.TextDisabled(tf.Get()));
+                    break;
+                }
 
             case FloatField ff:
                 {
@@ -286,8 +286,8 @@ public class InspectorPanel
                 }
 
             case IntField iF:
-            {
-                int v = iF.Get();
+                {
+                    int v = iF.Get();
                     DrawField(iF.Label, () =>
                     {
                         bool changed;
@@ -300,17 +300,17 @@ public class InspectorPanel
                         if (changed) iF.Set?.Invoke(v);
                     });
                     break;
-            }
+                }
 
             case BoolField bf:
-            {
-                bool v = bf.Get();
-                DrawField(bf.Label, () =>
                 {
-                    if (ImGui.Checkbox($"##{baseId}", ref v)) bf.Set?.Invoke(v);
-                });
-                break;
-            }
+                    bool v = bf.Get();
+                    DrawField(bf.Label, () =>
+                    {
+                        if (ImGui.Checkbox($"##{baseId}", ref v)) bf.Set?.Invoke(v);
+                    });
+                    break;
+                }
 
             case Bool2Field bf2:
                 {
@@ -326,170 +326,170 @@ public class InspectorPanel
                 }
 
             case StringField sf:
-            {
-                string v = sf.Get();
-                DrawField(sf.Label, () =>
                 {
-                    if (ImGui.InputText($"##{baseId}", ref v, (uint)sf.MaxLength))
-                        sf.Set?.Invoke(v);
-                });
-                break;
-            }
+                    string v = sf.Get();
+                    DrawField(sf.Label, () =>
+                    {
+                        if (ImGui.InputText($"##{baseId}", ref v, (uint)sf.MaxLength))
+                            sf.Set?.Invoke(v);
+                    });
+                    break;
+                }
 
             case EnumField ef:
-            {
-                int idx = ef.Get();
-                DrawField(ef.Label, () =>
                 {
-                    if (ImGui.Combo($"##{baseId}", ref idx, ef.Names, ef.Names.Length))
-                        ef.Set?.Invoke(idx);
-                });
-                break;
-            }
+                    int idx = ef.Get();
+                    DrawField(ef.Label, () =>
+                    {
+                        if (ImGui.Combo($"##{baseId}", ref idx, ef.Names, ef.Names.Length))
+                            ef.Set?.Invoke(idx);
+                    });
+                    break;
+                }
 
             case Vector2Field v2f:
-            {
-                Vector2 v = v2f.Get();
-
-                System.Numerics.Vector2 vector = new System.Numerics.Vector2(v.X, v.Y);
-                DrawField($"{v2f.Label}", () =>
                 {
-                    bool changed;
-                    if (v2f.Min != v2f.Max)
+                    Vector2 v = v2f.Get();
+
+                    System.Numerics.Vector2 vector = new System.Numerics.Vector2(v.X, v.Y);
+                    DrawField($"{v2f.Label}", () =>
                     {
-                        changed = ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f, v2f.Min, v2f.Max);
-                    }
-                    else
-                    {
-                        ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f);
-                    }
-                    
-                    v2f.Set?.Invoke(new Vector2(vector.X, vector.Y));
-                });
-                break;
-            }
+                        bool changed;
+                        if (v2f.Min != v2f.Max)
+                        {
+                            changed = ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f, v2f.Min, v2f.Max);
+                        }
+                        else
+                        {
+                            ImGui.DragFloat2($"##{baseId}", ref vector, 0.1f);
+                        }
+
+                        v2f.Set?.Invoke(new Vector2(vector.X, vector.Y));
+                    });
+                    break;
+                }
 
             case TextureField texF:
-            {
-                var (tex, path) = texF.Get();
-                var (newTex, newPath) = DrawTextureField(texF.Label, tex, path, baseId);
-                if (newPath != path || newTex != tex)
-                    texF.Set?.Invoke(newTex, newPath);
-                break;
-            }
+                {
+                    var (tex, path) = texF.Get();
+                    var (newTex, newPath) = DrawTextureField(texF.Label, tex, path, baseId);
+                    if (newPath != path || newTex != tex)
+                        texF.Set?.Invoke(newTex, newPath);
+                    break;
+                }
 
             case ColorField colF:
-            {
-                Color col = colF.Get();
-
-                System.Numerics.Vector4 col4 = new System.Numerics.Vector4(
-                    col.R / 255f, col.G / 255f, col.B / 255f, col.A / 255f);
-
-                DrawField(colF.Label, () =>
                 {
-                    if (ImGui.ColorPicker4($"{baseId}_col", ref col4))
+                    Color col = colF.Get();
+
+                    System.Numerics.Vector4 col4 = new System.Numerics.Vector4(
+                        col.R / 255f, col.G / 255f, col.B / 255f, col.A / 255f);
+
+                    DrawField(colF.Label, () =>
                     {
-                        colF.Set?.Invoke(new Color(
-                            (int)(col4.X * 255),
-                            (int)(col4.Y * 255),
-                            (int)(col4.Z * 255),
-                            (int)(col4.W * 255)
-                        ));
-                    }
-                });
-                break;
-            }
+                        if (ImGui.ColorPicker4($"{baseId}_col", ref col4))
+                        {
+                            colF.Set?.Invoke(new Color(
+                                (int)(col4.X * 255),
+                                (int)(col4.Y * 255),
+                                (int)(col4.Z * 255),
+                                (int)(col4.W * 255)
+                            ));
+                        }
+                    });
+                    break;
+                }
 
             case AudioClipField acf:
-            {
-                string path = acf.Get();
-                string newPath = DrawAssetPathField(acf.Label, path, AudioExtensions, baseId);
-                if (newPath != path)
-                    acf.Set?.Invoke(newPath);
-                break;
-            }
+                {
+                    string path = acf.Get();
+                    string newPath = DrawAssetPathField(acf.Label, path, AudioExtensions, baseId);
+                    if (newPath != path)
+                        acf.Set?.Invoke(newPath);
+                    break;
+                }
 
             case AssetPathField apf:
-            {
-                string path = apf.Get();
-                string newPath = DrawAssetPathField(apf.Label, path, apf.Extensions, baseId);
-                if (newPath != path)
-                    apf.Set?.Invoke(newPath);
-                break;
-            }
+                {
+                    string path = apf.Get();
+                    string newPath = DrawAssetPathField(apf.Label, path, apf.Extensions, baseId);
+                    if (newPath != path)
+                        apf.Set?.Invoke(newPath);
+                    break;
+                }
 
             case ComponentRefField crf:
-            {
-                var current = crf.Get();
-                var picked = DrawComponentPicker(crf.Label, $"cref_{baseId}", crf.ComponentType, current);
-                if (!ReferenceEquals(picked, current)) crf.Set?.Invoke(picked);
-                break;
-            }
+                {
+                    var current = crf.Get();
+                    var picked = DrawComponentPicker(crf.Label, $"cref_{baseId}", crf.ComponentType, current);
+                    if (!ReferenceEquals(picked, current)) crf.Set?.Invoke(picked);
+                    break;
+                }
 
             case ButtonField af:
-            {
-                float width = ImGui.GetContentRegionAvail().X;
-                if (ImGui.Button($"{af.Label}##{baseId}", new System.Numerics.Vector2(width, 0)))
-                    af.Action();
-                if (af.Tooltip != null && ImGui.IsItemHovered())
-                    ImGui.SetTooltip(af.Tooltip);
-                break;
-            }
+                {
+                    float width = ImGui.GetContentRegionAvail().X;
+                    if (ImGui.Button($"{af.Label}##{baseId}", new System.Numerics.Vector2(width, 0)))
+                        af.Action();
+                    if (af.Tooltip != null && ImGui.IsItemHovered())
+                        ImGui.SetTooltip(af.Tooltip);
+                    break;
+                }
 
             case KoreEventField kef:
-            {
-                DrawKoreEvent(kef.Label, kef.Get(), baseId);
-                break;
-            }
+                {
+                    DrawKoreEvent(kef.Label, kef.Get(), baseId);
+                    break;
+                }
 
             case ListField lf:
-            {
-                int count = lf.Count();
-                if (ImGui.CollapsingHeader($"{lf.Label} ({count})##{baseId}"))
                 {
-                    ImGui.Indent();
-                    int removeAt = -1;
-
-                    for (int i = 0; i < count; i++)
+                    int count = lf.Count();
+                    if (ImGui.CollapsingHeader($"{lf.Label} ({count})##{baseId}"))
                     {
-                        string itemKey = $"{baseId}_{i}";
-                        if (!listItemOpen.TryGetValue(itemKey, out bool isOpen)) isOpen = true;
+                        ImGui.Indent();
+                        int removeAt = -1;
 
-                        ImGui.SetNextItemOpen(isOpen, ImGuiCond.Always);
-                        bool open = ImGui.CollapsingHeader($"{lf.ItemHeader(i)}##{itemKey}");
-                        listItemOpen[itemKey] = open;
-
-                        if (ImGui.BeginPopupContextItem($"ctx_{itemKey}"))
+                        for (int i = 0; i < count; i++)
                         {
-                            if (lf.ItemContextActions != null)
+                            string itemKey = $"{baseId}_{i}";
+                            if (!listItemOpen.TryGetValue(itemKey, out bool isOpen)) isOpen = true;
+
+                            ImGui.SetNextItemOpen(isOpen, ImGuiCond.Always);
+                            bool open = ImGui.CollapsingHeader($"{lf.ItemHeader(i)}##{itemKey}");
+                            listItemOpen[itemKey] = open;
+
+                            if (ImGui.BeginPopupContextItem($"ctx_{itemKey}"))
                             {
-                                foreach (var (label, action) in lf.ItemContextActions(i))
-                                    if (ImGui.MenuItem(label)) action();
-                                ImGui.Separator();
+                                if (lf.ItemContextActions != null)
+                                {
+                                    foreach (var (label, action) in lf.ItemContextActions(i))
+                                        if (ImGui.MenuItem(label)) action();
+                                    ImGui.Separator();
+                                }
+                                if (ImGui.MenuItem("Remove")) removeAt = i;
+                                ImGui.EndPopup();
                             }
-                            if (ImGui.MenuItem("Remove")) removeAt = i;
-                            ImGui.EndPopup();
+
+                            if (open)
+                            {
+                                ImGui.Indent();
+                                foreach (var itemField in lf.ItemFields(i))
+                                    DrawFieldDescriptor(c, itemField);
+                                ImGui.Unindent();
+                            }
                         }
 
-                        if (open)
-                        {
-                            ImGui.Indent();
-                            foreach (var itemField in lf.ItemFields(i))
-                                DrawFieldDescriptor(c, itemField);
-                            ImGui.Unindent();
-                        }
+                        if (removeAt >= 0)
+                            lf.RemoveItem?.Invoke(removeAt);
+
+                        if (lf.AddItem != null && ImGui.Button($"+ Add##{baseId}"))
+                            lf.AddItem();
+
+                        ImGui.Unindent();
                     }
-
-                    if (removeAt >= 0)
-                        lf.RemoveItem?.Invoke(removeAt);
-
-                    if (lf.AddItem != null && ImGui.Button($"+ Add##{baseId}"))
-                        lf.AddItem();
-
-                    ImGui.Unindent();
+                    break;
                 }
-                break;
-            }
         }
     }
 
@@ -561,7 +561,7 @@ public class InspectorPanel
                 if (assetAttr != null)
                 {
                     string current = val as string ?? "";
-                    
+
                     string chosen = DrawAssetPathField(field.Name, current, assetAttr.Extensions,
                         $"{c.GetHashCode()}_{field.Name}");
                     if (chosen != current) field.SetValue(c, chosen);

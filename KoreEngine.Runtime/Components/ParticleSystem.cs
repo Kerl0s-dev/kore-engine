@@ -127,8 +127,8 @@ public class ParticleSystem : Component
                 float h = p.Size;
                 renderer.DrawTexture(
                     Texture,
-                    p.Position.X - (w/2), // Centre X du GameObject
-                    p.Position.Y + (h/2), // Centre Y du GameObject
+                    p.Position.X - (w / 2), // Centre X du GameObject
+                    p.Position.Y + (h / 2), // Centre Y du GameObject
                     w,
                     h,
                     p.CurrentColor,

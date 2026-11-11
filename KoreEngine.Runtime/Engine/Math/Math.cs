@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace KoreEngine
+﻿namespace KoreEngine
 {
     public class Math
     {

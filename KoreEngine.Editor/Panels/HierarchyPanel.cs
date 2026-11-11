@@ -196,14 +196,13 @@ public class HierarchyPanel
     }
 
     /// <summary>
-    /// Sauvegarde l'objet (et ses enfants) dans Assets/Prefabs/{Name}.kprefab,
+    /// Sauvegarde l'objet (et ses enfants) dans Assets/{Name}.kprefab,
     /// réutilisable ensuite via "Create > Instantiate Prefab" sur n'importe
-    /// quelle scène. Chemin fixe pour rester simple — utilise "Rename" dans
-    /// le Project Panel pour déplacer/renommer le fichier après coup.
+    /// quelle scène.
     /// </summary>
     void CreatePrefab(GameObject obj)
     {
-        string dir = Path.Combine(SceneManager.AssetsDirectory, "Prefabs");
+        string dir = Path.Combine(SceneManager.AssetsDirectory);
         string path = Path.Combine(dir, $"{obj.Name}.kprefab");
         PrefabManager.Save(obj, path);
     }
@@ -260,7 +259,7 @@ public class HierarchyPanel
             var prefabs = PrefabManager.PrefabFiles().ToList();
 
             if (prefabs.Count == 0)
-                ImGui.TextDisabled("Aucun prefab (clic droit sur un objet > Create Prefab)");
+                ImGui.TextDisabled("No prefabs");
 
             foreach (var path in prefabs)
             {
@@ -306,13 +305,15 @@ public class HierarchyPanel
             ),
 
             "Sprite" => CreateWithComponents("Sprite",
-                new SpriteRenderer() {
+                new SpriteRenderer()
+                {
                     TexturePath = "Packages/default-square.png"
                 }
             ),
 
             "Physics" => CreateWithComponents("Physics Object",
-                new SpriteRenderer() {
+                new SpriteRenderer()
+                {
                     TexturePath = "Packages/default-square.png"
                 },
                 new PhysicsBody(),
@@ -320,7 +321,8 @@ public class HierarchyPanel
             ),
 
             "Particle System" => CreateWithComponents("Particle System",
-                new ParticleSystem() {
+                new ParticleSystem()
+                {
                     TexturePath = "Packages/default-square.png",
                 }
             ),
@@ -330,7 +332,8 @@ public class HierarchyPanel
             ),
 
             "UIButton" => CreateWithComponents("Button",
-                new UI.UIButton() {
+                new UI.UIButton()
+                {
                     TextureNormalPath = "Packages/default-button.png",
                     TextureHoverPath = "Packages/default-button-hover.png",
                     TexturePressedPath = "Packages/default-button-pressed.png"
@@ -366,7 +369,7 @@ public class HierarchyPanel
                 _ => new Vector2(100, 100)
             };
         }
-        
+
         EditorSelection.Selected = obj;
     }
 

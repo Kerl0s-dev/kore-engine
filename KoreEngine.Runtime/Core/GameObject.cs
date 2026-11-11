@@ -158,7 +158,8 @@ public partial class GameObject
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public void DispatchGizmo() {
+    public void DispatchGizmo()
+    {
         for (int i = 0; i < Components.Count; i++)
         {
             Components[i]?.OnGizmo();
