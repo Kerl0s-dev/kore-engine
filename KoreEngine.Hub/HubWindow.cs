@@ -215,8 +215,7 @@ public sealed class HubWindow : IDisposable
 
     void ShowNewProjectDialog()
     {
-        string folder = HubSettingsStore.Load().LastProjectsDir
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "KoreEngine Projects");
+        string folder = HubSettingsStore.Load().LastProjectsDir!;
 
         newProjectDialog!.Show(folder);
     }

@@ -46,26 +46,6 @@ public class ImGuiBackend
         else
             io.Fonts.AddFontDefault(); // fallback si la police système est introuvable
 
-        // Symboles de la toolbar (▶ ■ ⏭) — fusionnés dans le même atlas,
-        // seulement les codepoints utilisés (pas toute la police Symbol,
-        // pour ne pas gonfler inutilement la texture générée).
-        string symbolFontPath = @"C:\Windows\Fonts\seguisym.ttf";
-        if (File.Exists(symbolFontPath))
-        {
-            ushort[] iconRanges = { 0x25B6, 0x25B6, 0x25A0, 0x25A0, 0x2016, 0x2016, 0x23ED, 0x23ED, 0 };
-
-            fixed (ushort* rangesPtr = iconRanges)
-            {
-                var config = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
-                {
-                    MergeMode = true,
-                    PixelSnapH = true
-                };
-
-                io.Fonts.AddFontFromFileTTF(symbolFontPath, 16f, config, (IntPtr)rangesPtr);
-            }
-        }
-
         io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
 
         IntPtr texture = SDL.CreateTexture(
