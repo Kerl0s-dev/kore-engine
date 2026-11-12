@@ -70,6 +70,7 @@ public class EditorWindow
         FontManager.Init(Renderer); // Initialise le cache de polices
         EditorIcons.Init(Renderer); //Initialise les icônes de l'éditeur
         AudioManager.Init(); // Initialise le moteur audio (SDL_mixer)
+        SDL.SetRenderVSync(Renderer.Handle, 1);
 
         imguiBackend = new ImGuiBackend(Renderer);
         imguiBackend.Init(width, height);

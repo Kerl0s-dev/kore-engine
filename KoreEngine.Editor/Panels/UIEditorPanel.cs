@@ -21,7 +21,7 @@ public class UIEditorPanel
     Vector2 dragStartMouse, dragStartMin, dragStartMax, dragStartPos;
 
     public bool SnapEnabled = true;
-    const float SnapPx = 6f;
+    const float SnapPx = 0.1f;
 
     readonly List<RectF> snapTargets = new();
     readonly List<(bool vertical, float pos)> guides = new();
@@ -36,6 +36,9 @@ public class UIEditorPanel
         pendingWidth = renderTexture.Width;
         pendingHeight = renderTexture.Height;
         View = new EditorCamera(renderTexture.Width, renderTexture.Height);
+
+        cameraTargetZoom = View.Zoom;
+        cameraTargetPosition = View.Position;
     }
 
     // ---------------------------------------------------------------
@@ -77,24 +80,6 @@ public class UIEditorPanel
 
         canvas = scene?.AllObjects.Select(o => o.GetComponent<UICanvas>()).FirstOrDefault(c => c != null);
         needsFit = true;
-    }
-
-    void FitToCanvas()
-    {
-        if (canvas == null) return;
-
-        var r = canvas.RectTransform.Rect;
-        if (r.Width <= 0.001f || r.Height <= 0.001f || View.ViewWidth <= 0 || View.ViewHeight <= 0)
-            return;
-
-        // Center position of the canvas rect
-        View.Position = new Vector2((r.Min.X + r.Max.X) * 0.5f, (r.Min.Y + r.Max.Y) * 0.5f);
-
-        float zoomX = View.ViewWidth / (r.Width * 1.15f);
-        float zoomY = View.ViewHeight / (r.Height * 1.15f);
-
-        // Use Min so that the canvas fits entirely inside the view area without overflowing
-        View.Zoom = MathF.Min(zoomX, zoomY);
     }
 
     public void RenderScene(Scene? scene)
@@ -155,7 +140,7 @@ public class UIEditorPanel
         // Contrôles caméra éditeur — uniquement en mode édition et quand
         // la souris est au-dessus du viewport.
         if (overViewport) HandleCameraInput(io, localMouse);
-        StepEditorCamera(io.DeltaTime);
+        StepEditorCamera(Time.deltaTime);
 
         if (canvas == null)
             ImGui.GetWindowDrawList().AddText(imageScreenPos + new System.Numerics.Vector2(12, 12),
@@ -175,7 +160,7 @@ public class UIEditorPanel
 
     // Vitesse de zoom (facteur multiplicatif par cran de molette).
     const float ZoomStep = 0.1f;
-    const float ZoomMin = 0.05f;
+    const float ZoomMin = 0.0005f;
     const float ZoomMax = 20f;
 
     const float ZoomSmoothing = 0.25f;
@@ -215,7 +200,7 @@ public class UIEditorPanel
             if (io.KeyShift) { dx -= dy; dy = 0f; }   // Shift + molette : défilement horizontal
 
             // On déplace la cible : StepEditorCamera lisse le mouvement
-            cameraTargetPosition += new Vector2(dx * step, dy * step);
+            cameraTargetPosition = new Vector2(dx * step, dy * step);
         }
     }
 

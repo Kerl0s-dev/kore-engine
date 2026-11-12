@@ -13,7 +13,7 @@ public class RectTransform : Transform
     public Vector2 AnchorMin = new(0.5f, 0.5f);
     public Vector2 AnchorMax = new(0.5f, 0.5f);
     public Vector2 Pivot = new(0.5f, 0.5f);
-    public Vector2 SizeDelta = new(100f, 100f);
+    public Vector2 SizeDelta = new(1f, 1f);
     // Position (héritée) = AnchoredPosition : pivot relatif au point d'ancrage.
 
     RectF ParentRect
@@ -36,8 +36,13 @@ public class RectTransform : Transform
         {
             var p = ParentRect;
             var r = AnchorReference(p);
-            float w = p.Width * (AnchorMax.X - AnchorMin.X) + SizeDelta.X;
-            float h = p.Height * (AnchorMax.Y - AnchorMin.Y) + SizeDelta.Y;
+
+            // Si SizeDelta est en pixels, convertissez-le en unités monde :
+            float sizeFactor = 1f / Renderer.PixelsPerUnit;
+
+            float w = p.Width * (AnchorMax.X - AnchorMin.X) + (SizeDelta.X * sizeFactor);
+            float h = p.Height * (AnchorMax.Y - AnchorMin.Y) + (SizeDelta.Y * sizeFactor);
+
             float minX = r.X + Position.X - Pivot.X * w;
             float minY = r.Y + Position.Y - Pivot.Y * h;
             return new RectF(new Vector2(minX, minY), new Vector2(minX + w, minY + h));
@@ -54,14 +59,6 @@ public class RectTransform : Transform
     {
         var r = AnchorReference(ParentRect);
         return new Vector2(worldPos.X - r.X, worldPos.Y - r.Y);
-    }
-
-    /// Aide à la migration : ancien format (coin haut-gauche du canvas, Y vers le bas).
-    public void SetTopLeft(float x, float y, float w, float h)
-    {
-        AnchorMin = AnchorMax = Pivot = new Vector2(0f, 1f);
-        Position = new Vector2(x, -y);
-        SizeDelta = new Vector2(w, h);
     }
 
     public void SetWorldRect(Vector2 min, Vector2 max)
