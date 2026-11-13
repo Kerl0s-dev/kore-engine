@@ -13,9 +13,6 @@ public class ScriptWatcher : IDisposable
 
     int unloadPendingFrames = -1;
 
-    public bool IsBuilding => ScriptCompiler.IsCompiling;
-    public string BuildStatus => lastError.Length > 0 ? lastError : ScriptCompiler.Status;
-
     public ScriptWatcher(string projectRoot)
     {
         watchDirs = [Path.Combine(projectRoot, "Assets")];
@@ -75,7 +72,7 @@ public class ScriptWatcher : IDisposable
 
     void OnCompileError()
     {
-        lastError = $"Erreur : {ScriptCompiler.Status}";
+        Console.WriteLine($"[ScriptWatcher] Erreur : {lastError}");
     }
 
     public void FinalizeUnloadIfPending()
@@ -111,7 +108,7 @@ public class ScriptWatcher : IDisposable
         if (ScriptCompiler.PendingErrorNotification)
         {
             ScriptCompiler.PendingErrorNotification = false;
-            Console.WriteLine($"[Editor] Erreur interceptée : {ScriptCompiler.Status}");
+            Console.WriteLine($"[Editor] Erreur interceptée : {lastError}");
             ScriptCompiler.RaiseCompileError();
             Console.WriteLine("[Editor] Erreur lors du Hot Reload.");
         }

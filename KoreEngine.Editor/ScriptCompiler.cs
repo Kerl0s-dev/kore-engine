@@ -23,7 +23,6 @@ public static class ScriptCompiler
     private static WeakReference? previousAlcWeakRef;
 
     public static bool IsCompiling { get; private set; } = false;
-    public static string Status { get; private set; } = "Ready";
 
     public static event Action? OnCompileSuccess;
     public static event Action? OnCompileError;
@@ -44,7 +43,6 @@ public static class ScriptCompiler
     {
         if (IsCompiling) return;
         IsCompiling = true;
-        Status = "Compilation en cours...";
 
         // Exécution en arrière-plan pour ne pas figer l'interface de l'éditeur
         Task.Run(() =>
@@ -64,7 +62,6 @@ public static class ScriptCompiler
                 if (sourceFiles.Count == 0)
                 {
                     IsCompiling = false;
-                    Status = "Aucun script trouvé.";
                     return;
                 }
 
@@ -99,16 +96,16 @@ public static class ScriptCompiler
                 {
                     var result = compilation.Emit(ms, pdbStream: pdbStream);
 
+                    Logger.Clear();
+
                     if (!result.Success)
                     {
                         var failures = result.Diagnostics.Where(diagnostic =>
                             diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
 
                         string errors = string.Join("\n", failures.Select(f => f.ToString()));
-                        Status = $"Erreur de compilation :\n{errors}";
 
                         Logger.Error(errors);
-                        Console.WriteLine($"[ScriptCompiler] {Status}");
 
                         IsCompiling = false;
                         PendingErrorNotification = true;
@@ -137,7 +134,6 @@ public static class ScriptCompiler
                     LoadedAssembly = currentAlc.LoadFromStream(ms, pdbStream);
 
                     IsCompiling = false;
-                    Status = "Compilation réussie !";
 
                     PendingSuccessNotification = true;
                 }
@@ -145,9 +141,7 @@ public static class ScriptCompiler
             catch (Exception ex)
             {
                 IsCompiling = false;
-                Status = $"Exception de compilation : {ex.Message}";
-
-                Console.WriteLine($"[ScriptCompiler] {Status}");
+                Console.WriteLine($"[ScriptCompiler] Exception de compilation : {ex.Message}");
 
                 PendingErrorNotification = true;
             }

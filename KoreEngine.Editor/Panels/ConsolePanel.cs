@@ -87,15 +87,7 @@ public class ConsolePanel
                     _ => ColorInfo
                 };
 
-                string prefix = entry.Level switch
-                {
-                    LogLevel.Warning => "[WARNING]",
-                    LogLevel.Error => "[ERROR] ",
-                    LogLevel.Sucess => "[SUCESS]",
-                    _ => "[INFO]"
-                };
-
-                string line = $"{entry.Time:HH:mm:ss}  {prefix}  {entry.Message}";
+                string line = $"{entry.Time:HH:mm:ss} | {entry.Message}";
 
                 ImGui.PushStyleColor(ImGuiCol.Text, color);
 

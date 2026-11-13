@@ -12,7 +12,6 @@ public class UIEditorPanel
     private int pendingWidth;
     private int pendingHeight;
     bool resizeRequested;
-    bool needsFit = true;
     UICanvas? canvas;
 
     enum Handle { None, Body, TL, T, TR, R, BR, B, BL, L }
@@ -71,7 +70,7 @@ public class UIEditorPanel
         var fromSelection = UIContext.FindCanvas(EditorSelection.Selected);
         if (fromSelection != null)
         {
-            if (fromSelection != canvas) { canvas = fromSelection; needsFit = true; }
+            if (fromSelection != canvas) { canvas = fromSelection; }
             return;
         }
 
@@ -79,7 +78,6 @@ public class UIEditorPanel
         if (canvas != null && scene != null && scene.AllObjects.Contains(canvas.gameObject)) return;
 
         canvas = scene?.AllObjects.Select(o => o.GetComponent<UICanvas>()).FirstOrDefault(c => c != null);
-        needsFit = true;
     }
 
     public void RenderScene(Scene? scene)
@@ -200,7 +198,7 @@ public class UIEditorPanel
             if (io.KeyShift) { dx -= dy; dy = 0f; }   // Shift + molette : défilement horizontal
 
             // On déplace la cible : StepEditorCamera lisse le mouvement
-            cameraTargetPosition = new Vector2(dx * step, dy * step);
+            cameraTargetPosition += new Vector2(dx * step, dy * step);
         }
     }
 

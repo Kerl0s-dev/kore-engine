@@ -301,12 +301,6 @@ public class EditorWindow
             EditorSelection.ActiveGizmoSpace = EditorSelection.ActiveGizmoSpace == GizmoSpace.World
                 ? GizmoSpace.Local : GizmoSpace.World;
 
-        if (ScriptCompiler.IsCompiling)
-        {
-            ImGui.SameLine();
-            ImGui.TextColored(new Vector4(1, 0.8f, 0, 1), ScriptCompiler.Status);
-        }
-
         // --- Centre : Play/Pause/Stop/Step ---
         const float btnSize = 16f;
         const float spacing = 4f;

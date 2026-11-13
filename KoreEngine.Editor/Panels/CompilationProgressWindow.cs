@@ -12,7 +12,7 @@ public static class CompilationProgressWindow
         // Détecte le moment exact où la compilation démarre pour ouvrir la popup une seule fois
         if (isCompiling && !_wasCompilingLastFrame)
         {
-            ImGui.OpenPopup("Compiling scripts");
+            ImGui.OpenPopup("##compilationWindow");
         }
         _wasCompilingLastFrame = isCompiling;
 
@@ -28,16 +28,11 @@ public static class CompilationProgressWindow
         // Utilisation d'une variable booléenne pour la modale
         bool pOpen = true;
 
-        if (ImGui.BeginPopupModal("Compiling scripts", ref pOpen, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar))
+        if (ImGui.BeginPopupModal("##compilationWindow", ref pOpen, ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar))
         {
             // Affichage du statut dynamique (ex: "Compilation en cours...")
-            ImGui.Text(ScriptCompiler.Status);
-            ImGui.Spacing();
-
-            // Barre de progression animée (va-et-vient)
-            float progress = (float)(Math.Sin(ImGui.GetTime() * 6.0) * 0.5 + 0.5);
-            ImGui.ProgressBar(progress, new Vector2(-1, 0), "Compilation in progress...");
-
+            ImGui.Text("Compiling scripts...");
+            ImGui.Text("Please wait while the scripts are being compiled.");
             ImGui.EndPopup();
         }
     }
