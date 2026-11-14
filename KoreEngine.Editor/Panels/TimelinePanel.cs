@@ -367,7 +367,7 @@ public sealed class TimelinePanel
         // Lecture
         if (playing)
         {
-            time += ImGui.GetIO().DeltaTime;
+            time += Time.deltaTime;
             if (time >= duration)
             {
                 if (clip.Loop) time %= duration;

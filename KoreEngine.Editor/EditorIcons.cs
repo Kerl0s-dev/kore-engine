@@ -15,11 +15,11 @@ public static class EditorIcons
     // Noms de fichiers à charger (sans extension .png)
     static readonly string[] IconNames =
     {
-        "default", "folder",            // Base
-        "cs", "kscene", "kprefab",      // Scripts, scènes, prefabs
-        "audio", "font", "animation",   // Catégories d'assets
-        "play", "stop", "pause", "step",// Boutons de l'éditeur
-        "camera"                        // Gizmos
+        "default", "folder",                               // Base
+        "cs", "kscene", "kprefab",                         // Scripts, scènes, prefabs
+        "audio", "font", "animation",                      // Catégories d'assets
+        "play", "stop", "pause", "step", "local", "world", // Boutons de l'éditeur
+        "camera"                                           // Gizmos
     };
 
     // Extension (sans point, minuscules) -> nom d'icône. Absente = même nom que l'extension.

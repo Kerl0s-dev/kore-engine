@@ -70,7 +70,7 @@ public class ColorField : InspectorField
 /// <summary>Champ de sélection de texture (asset browser).</summary>
 public class TextureField : InspectorField
 {
-    public required Func<(IntPtr texture, string path)> Get;
+    public required Func<(IntPtr, string path)> Get;
     public Action<IntPtr, string>? Set;
 }
 
@@ -79,6 +79,13 @@ public class AudioClipField : InspectorField
 {
     public required Func<string> Get;
     public Action<string>? Set;
+}
+
+/// <summary>Champ de sélection de clip animation (asset browser).</summary>
+public class AnimationClipField : InspectorField
+{
+    public required Func<(AnimationClip clip, string path)> Get;
+    public Action<AnimationClip, string>? Set;
 }
 
 public class StringField : InspectorField

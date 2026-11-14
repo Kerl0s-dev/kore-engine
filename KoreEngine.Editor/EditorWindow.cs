@@ -297,23 +297,22 @@ public class EditorWindow
     /// </summary>
     void DrawToolbar()
     {
-        ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 48), ImGuiChildFlags.Borders);
+        ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 38));
 
-        string spaceLabel = EditorSelection.ActiveGizmoSpace == GizmoSpace.World ? "World" : "Local";
-        if (ImGui.Button(spaceLabel))
-            EditorSelection.ActiveGizmoSpace = EditorSelection.ActiveGizmoSpace == GizmoSpace.World
-                ? GizmoSpace.Local : GizmoSpace.World;
-
-        // --- Centre : Play/Pause/Stop/Step ---
         const float btnSize = 16f;
         const float spacing = 4f;
+
+        bool isInWorldSpace = EditorSelection.ActiveGizmoSpace == GizmoSpace.World;
+        
+        if (Widgets.IconTextButton(isInWorldSpace ? "world" : "local", 20))
+            EditorSelection.ActiveGizmoSpace = isInWorldSpace ? GizmoSpace.Local : GizmoSpace.World;
 
         float centerWidth = btnSize * 3 + spacing * 2; // Stop, Pause, Step
 
         float centerX = (ImGui.GetWindowWidth() - centerWidth) * 0.5f;
         ImGui.SameLine(centerX);
         ImGui.PushID("play");
-        if (IconButton(Playing ? "stop" : "play", btnSize, highlighted: Playing))
+        if (Widgets.IconButton(Playing ? "stop" : "play", btnSize, highlighted: Playing))
         {
             if (!Playing)
             {
@@ -338,13 +337,13 @@ public class EditorWindow
 
         ImGui.SameLine(0, spacing);
         ImGui.PushID("pause");
-        if (IconButton("pause", btnSize, highlighted: Paused))
+        if (Widgets.IconButton("pause", btnSize, highlighted: Paused))
             Paused = !Paused;
 
         ImGui.SameLine(0, spacing);
         ImGui.PopID();
         ImGui.BeginDisabled(!Paused);
-        if (IconButton("step", btnSize))
+        if (Widgets.IconButton("step", btnSize))
             stepRequested = true;
         ImGui.EndDisabled();
 
@@ -377,29 +376,7 @@ public class EditorWindow
     /// si l'icône n'a pas été trouvée par EditorIcons — évite un bouton vide
     /// et invisible si un .png manque dans Editor/Icons/.
     /// </summary>
-    bool IconButton(string iconName, float size, bool highlighted = false)
-    {
-        if (highlighted)
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.26f, 0.59f, 0.98f, 0.6f));
-
-        bool clicked;
-        IntPtr icon = EditorIcons.Get(iconName);
-
-        if (icon != IntPtr.Zero)
-        {
-            clicked = ImGui.ImageButton($"##{iconName}", icon, new System.Numerics.Vector2(size, size));
-        }
-        else
-        {
-            // Fallback si l'icône n'existe pas encore sur disque
-            clicked = ImGui.Button(iconName.Substring(0, 1).ToUpper(), new System.Numerics.Vector2(size, 0));
-        }
-
-        if (highlighted)
-            ImGui.PopStyleColor();
-
-        return clicked;
-    }
+    
 
     #region Shortcuts
     static readonly (string Key, string Action)[] Shortcuts =
@@ -465,6 +442,31 @@ public class EditorWindow
     {
         ImGuiStylePtr style = ImGui.GetStyle();
         var colors = style.Colors;
+
+        // --- Spacing / layout ---
+        style.WindowPadding = new System.Numerics.Vector2(10, 10);
+        style.FramePadding = new System.Numerics.Vector2(8, 5);    // hauteur des boutons, champs, headers
+        style.CellPadding = new System.Numerics.Vector2(6, 4);    // tables / colonnes
+        style.ItemSpacing = new System.Numerics.Vector2(8, 6);    // espace entre widgets
+        style.ItemInnerSpacing = new System.Numerics.Vector2(6, 4);    // label <-> widget (ex: checkbox + texte)
+        style.IndentSpacing = 16f;                  // indentation des TreeNodes (Hierarchy)
+        style.ScrollbarSize = 12f;
+        style.GrabMinSize = 10f;
+
+        // --- Bordures / arrondis ---
+        style.WindowBorderSize = 1f;
+        style.FrameBorderSize = 0f;
+        style.PopupBorderSize = 1f;
+        style.WindowRounding = 0f;                   // 0 recommandé avec docking
+        style.ChildRounding = 3f;
+        style.FrameRounding = 3f;
+        style.PopupRounding = 3f;
+        style.ScrollbarRounding = 6f;
+        style.GrabRounding = 3f;
+        style.TabRounding = 3f;
+
+        // --- Docking ---
+        style.DockingSeparatorSize = 2f;
 
         colors[(int)ImGuiCol.Text] = new(1.00f, 1.00f, 1.00f, 1.00f);
         colors[(int)ImGuiCol.TextDisabled] = new(0.50f, 0.50f, 0.50f, 1.00f);

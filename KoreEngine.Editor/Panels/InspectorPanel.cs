@@ -400,12 +400,21 @@ public class InspectorPanel
                     break;
                 }
 
-            case AudioClipField acf:
+            case AudioClipField aucf:
                 {
-                    string path = acf.Get();
-                    string newPath = DrawAssetPathField(acf.Label, path, AudioExtensions, baseId);
+                    string path = aucf.Get();
+                    string newPath = DrawAssetPathField(aucf.Label, path, AudioExtensions, baseId);
                     if (newPath != path)
-                        acf.Set?.Invoke(newPath);
+                        aucf.Set?.Invoke(newPath);
+                    break;
+                }
+
+            case AnimationClipField ancf:
+                {
+                    var (clip, path) = ancf.Get();
+                    string newPath = DrawAssetPathField(ancf.Label, path, [AnimationClip.Extension], baseId);
+                    if (newPath != path)
+                        ancf.Set?.Invoke(clip, newPath);
                     break;
                 }
 
