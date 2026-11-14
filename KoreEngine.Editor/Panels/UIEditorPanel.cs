@@ -20,7 +20,7 @@ public class UIEditorPanel
     Vector2 dragStartMouse, dragStartMin, dragStartMax, dragStartPos;
 
     public bool SnapEnabled = true;
-    const float SnapPx = 0.1f;
+    const float SnapPx = 6f;   // distance d'aimantation, en pixels écran
 
     readonly List<RectF> snapTargets = new();
     readonly List<(bool vertical, float pos)> guides = new();
@@ -28,12 +28,17 @@ public class UIEditorPanel
     const float HandlePx = 8f;
     const float HitPx = 10f;
 
-    public UIEditorPanel(Renderer renderer, int width, int height)
+    // Position/Rect en mètres : arrondi et taille minimale au PIXEL (1 px = 1 / PixelsPerUnit unité monde).
+    static float PixelRound(float v) => MathF.Round(v * Renderer.PixelsPerUnit) / Renderer.PixelsPerUnit;
+    static float MinSizeWorld => 1f / Renderer.PixelsPerUnit;
+
+    public UIEditorPanel(Renderer renderer, RenderTexture renderTexture)
     {
         this.renderer = renderer;
-        renderTexture = new RenderTexture(renderer, width, height);
+        this.renderTexture = renderTexture;
         pendingWidth = renderTexture.Width;
         pendingHeight = renderTexture.Height;
+
         View = new EditorCamera(renderTexture.Width, renderTexture.Height);
 
         cameraTargetZoom = View.Zoom;
@@ -88,7 +93,7 @@ public class UIEditorPanel
         if (canvas != null)
         {
             var r = canvas.RectTransform.Rect;
-            int x = (int)r.Min.X, y = (int)r.Max.Y, w = (int)r.Width, h = (int)r.Height;
+            float x = r.Min.X, y = r.Max.Y, w = r.Width, h = r.Height;
 
             renderer.DrawRect(x, y, w, h, scene?.Camera?.Color ?? Color.Black, 255, View);
             UIContext.RenderCanvas(canvas, renderer, View);
@@ -120,7 +125,7 @@ public class UIEditorPanel
             pendingHeight = availH;
             resizeRequested = true;
         }
-        
+
         ResolveCanvas(SceneManager.Current!);
 
         // Position écran du coin haut-gauche de l'image (avant ImGui.Image).
@@ -340,7 +345,7 @@ public class UIEditorPanel
                 float dx = d.X - dragStartMouse.X, dy = d.Y - dragStartMouse.Y;
 
                 bool snap = SnapEnabled && !io.KeyCtrl;
-                float thr = SnapPx / View.Zoom;   // 6 px écran, converti en unités canvas
+                float thr = SnapPx / (View.Zoom * Renderer.PixelsPerUnit);   // 6 px écran → unités monde
                 guides.Clear();
 
                 if (active == Handle.Body)
@@ -361,16 +366,16 @@ public class UIEditorPanel
 
                     float px = dragStartPos.X + ndx, py = dragStartPos.Y + ndy;
                     // Quand on est aimanté, on ne re-arrondit pas : sinon un centre à .5 décalerait l'élément du guide.
-                    dragTarget.Position = new Vector2(snappedX ? px : MathF.Round(px), snappedY ? py : MathF.Round(py));
+                    dragTarget.Position = new Vector2(snappedX ? px : PixelRound(px), snappedY ? py : PixelRound(py));
                 }
                 else
                 {
                     float minX = dragStartMin.X, minY = dragStartMin.Y, maxX = dragStartMax.X, maxY = dragStartMax.Y;
 
-                    if (LeftEdge(active)) minX = MathF.Min(SnapOrRound(minX + dx, true, snap, thr), maxX - 1f);
-                    if (RightEdge(active)) maxX = MathF.Max(SnapOrRound(maxX + dx, true, snap, thr), minX + 1f);
-                    if (BottomEdge(active)) minY = MathF.Min(SnapOrRound(minY + dy, false, snap, thr), maxY - 1f);
-                    if (TopEdge(active)) maxY = MathF.Max(SnapOrRound(maxY + dy, false, snap, thr), minY + 1f);
+                    if (LeftEdge(active)) minX = MathF.Min(SnapOrRound(minX + dx, true, snap, thr), maxX - MinSizeWorld);
+                    if (RightEdge(active)) maxX = MathF.Max(SnapOrRound(maxX + dx, true, snap, thr), minX + MinSizeWorld);
+                    if (BottomEdge(active)) minY = MathF.Min(SnapOrRound(minY + dy, false, snap, thr), maxY - MinSizeWorld);
+                    if (TopEdge(active)) maxY = MathF.Max(SnapOrRound(maxY + dy, false, snap, thr), minY + MinSizeWorld);
 
                     dragTarget.SetWorldRect(new Vector2(minX, minY), new Vector2(maxX, maxY));
                 }
@@ -447,7 +452,7 @@ public class UIEditorPanel
             guides.Add((xAxis, t));
             return t;
         }
-        return MathF.Round(v);
+        return PixelRound(v);
     }
 
     public void Destroy() => renderTexture.Destroy();

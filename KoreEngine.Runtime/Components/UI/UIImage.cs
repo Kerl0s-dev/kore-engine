@@ -1,6 +1,4 @@
-﻿using SDL3;
-
-namespace KoreEngine.UI;
+﻿namespace KoreEngine.UI;
 
 public class UIImage : UIElement
 {
@@ -8,24 +6,30 @@ public class UIImage : UIElement
     public string TexturePath = "";
     public Color color = Color.White;
 
-    public FilteringMode Filtering = FilteringMode.Linear;
-
-    static readonly string[] FilteringNames =
-        Enum.GetNames<FilteringMode>();
-
-    static SDL.ScaleMode ToSdlScaleMode(FilteringMode mode) => mode switch
-    {
-        FilteringMode.Nearest => SDL.ScaleMode.Nearest,
-        FilteringMode.PixelArt => SDL.ScaleMode.PixelArt,
-        _ => SDL.ScaleMode.Linear
-    };
-
     public override void Draw(Renderer renderer)
     {
         if (Texture == IntPtr.Zero) return;
 
-        SDL.SetTextureScaleMode(Texture, ToSdlScaleMode(Filtering));
+        float centerX = ScreenX + ScreenWidth / 2f;
+        float centerY = ScreenY + ScreenHeight / 2f;
 
-        renderer.DrawTexture(Texture, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight, color);
+        renderer.DrawTexture(Texture, centerX, centerY, ScreenWidth, ScreenHeight, color);
+    }
+
+    public override IEnumerable<InspectorField> GetInspectorFields()
+    {
+        yield return new TextureField
+        {
+            Label = "Texture",
+            Get = () => (Texture, TexturePath),
+            Set = (tex, path) => { Texture = tex; TexturePath = path; }
+        };
+
+        yield return new ColorField
+        {
+            Label = "Color",
+            Get = () => color,
+            Set = v => color = v
+        };
     }
 }

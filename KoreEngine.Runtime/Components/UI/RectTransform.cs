@@ -14,7 +14,9 @@ public class RectTransform : Transform
     public Vector2 AnchorMax = new(0.5f, 0.5f);
     public Vector2 Pivot = new(0.5f, 0.5f);
     public Vector2 SizeDelta = new(1f, 1f);
-    // Position (héritée) = AnchoredPosition : pivot relatif au point d'ancrage.
+    // Position (héritée) = AnchoredPosition : pivot relatif au point d'ancrage, en MÈTRES (unités monde).
+    // SizeDelta est en PIXELS (convertis via Renderer.PixelsPerUnit dans Rect). Taille minimale : 1 px.
+    static float MinSizeWorld => 1f / Renderer.PixelsPerUnit;
 
     RectF ParentRect
     {
@@ -65,17 +67,17 @@ public class RectTransform : Transform
     {
         var p = ParentRect;
         var r = AnchorReference(p);
-        float w = MathF.Max(1f, max.X - min.X);
-        float h = MathF.Max(1f, max.Y - min.Y);
-        SizeDelta = new Vector2(w - p.Width * (AnchorMax.X - AnchorMin.X),
-                                h - p.Height * (AnchorMax.Y - AnchorMin.Y));
+        float w = MathF.Max(MinSizeWorld, max.X - min.X);
+        float h = MathF.Max(MinSizeWorld, max.Y - min.Y);
+        SizeDelta = new Vector2((w - p.Width * (AnchorMax.X - AnchorMin.X)) * Renderer.PixelsPerUnit,
+                                (h - p.Height * (AnchorMax.Y - AnchorMin.Y)) * Renderer.PixelsPerUnit);
         Position = new Vector2(min.X - r.X + Pivot.X * w, min.Y - r.Y + Pivot.Y * h);
     }
 
     public override IEnumerable<InspectorField> GetInspectorFields()
     {
-        yield return new FloatField { Label = "Pos X", Get = () => Position.X, Set = v => Position = new Vector2(v, Position.Y) };
-        yield return new FloatField { Label = "Pos Y", Get = () => Position.Y, Set = v => Position = new Vector2(Position.X, v) };
+        yield return new FloatField { Label = "Pos X", Get = () => Position.X * Renderer.PixelsPerUnit, Set = v => Position = new Vector2(v / Renderer.PixelsPerUnit, Position.Y) };
+        yield return new FloatField { Label = "Pos Y", Get = () => Position.Y * Renderer.PixelsPerUnit, Set = v => Position = new Vector2(Position.X, v / Renderer.PixelsPerUnit) };
         yield return new FloatField { Label = "Width", Get = () => SizeDelta.X, Set = v => SizeDelta = new Vector2(v, SizeDelta.Y) };
         yield return new FloatField { Label = "Height", Get = () => SizeDelta.Y, Set = v => SizeDelta = new Vector2(SizeDelta.X, v) };
         yield return new FloatField { Label = "Anchor Min X", Get = () => AnchorMin.X, Set = v => AnchorMin = new Vector2(v, AnchorMin.Y) };

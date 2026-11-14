@@ -24,10 +24,13 @@ public class UIText : UIElement
         IntPtr f = GetFont();
         var color = Color ?? new Color(255, 255, 255, 255);
 
+        float centerX = ScreenX + ScreenWidth / 2f;
+        float centerY = ScreenY + ScreenHeight / 2f;
+
         // Échelle uniforme avec le Canvas : le texte suit la résolution
         float scale = Canvas != null ? MathF.Min(Canvas.ScaleX, Canvas.ScaleY) : 1f;
 
-        FontManager.DrawText(f, Text, ScreenX, ScreenY,
+        FontManager.DrawText(f, Text, centerX, centerY,
             (byte)color.R, (byte)color.G, (byte)color.B, (byte)color.A, scale);
     }
 

@@ -60,15 +60,18 @@ public class UIButton : UIElement
         IntPtr tex = hovered ? (pressed ? TexturePressed : TextureHover) : TextureNormal;
         if (tex == IntPtr.Zero) tex = TextureNormal;
 
+        float centerX = ScreenX + ScreenWidth / 2f;
+        float centerY = ScreenY + ScreenHeight / 2f;
+
         if (ButtonType == ButtonType.Color)
         {
             Color color = hovered ? (pressed ? PressedColor : HoverColor) : NormalColor;
-            renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight, color);
+            renderer.DrawTexture(tex, centerX, centerY, ScreenWidth, ScreenHeight, color);
         }
         else if (ButtonType == ButtonType.Image)
         {
             if (tex != IntPtr.Zero)
-                renderer.DrawTexture(tex, (int)ScreenX, (int)ScreenY, (int)ScreenWidth, (int)ScreenHeight, Color.White);
+                renderer.DrawTexture(tex, centerX, centerY, ScreenWidth, ScreenHeight, Color.White);
         }
     }
 

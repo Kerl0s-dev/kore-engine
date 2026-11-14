@@ -25,8 +25,8 @@ public abstract class UIElement : Component
     Vector2 TopLeftScreen { get { var r = WorldRect; return ResolveCamera().WorldToScreen(new Vector2(r.Min.X, r.Max.Y)); } }
     public float ScreenX => TopLeftScreen.X;
     public float ScreenY => TopLeftScreen.Y;
-    public float ScreenWidth => WorldRect.Width * ResolveCamera().Zoom;
-    public float ScreenHeight => WorldRect.Height * ResolveCamera().Zoom;
+    public float ScreenWidth => WorldRect.Width * Renderer.PixelsPerUnit * ResolveCamera().Zoom;
+    public float ScreenHeight => WorldRect.Height * Renderer.PixelsPerUnit * ResolveCamera().Zoom;
 
     public override void Render(Renderer renderer, Camera? camera)
     {

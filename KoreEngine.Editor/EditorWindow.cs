@@ -79,9 +79,11 @@ public class EditorWindow
 
         #region Panels Initialization
         var viewportTexture = new RenderTexture(Renderer, width, height);
+        var uiTexture = new RenderTexture(Renderer, width, height);
+
         scenePanel = new ScenePanel(Renderer, viewportTexture);
         gamePanel = new GamePanel(Renderer, width, height);
-        uiEditorPanel = new UIEditorPanel(Renderer, width, height);
+        uiEditorPanel = new UIEditorPanel(Renderer, uiTexture);
         hierarchyPanel = new HierarchyPanel();
         inspectorPanel = new InspectorPanel(Renderer);
         projectPanel = new ProjectPanel();
@@ -171,16 +173,17 @@ public class EditorWindow
             }
 
             // 6. Rendu.
-            // Scene view : toujours EditorCamera (comme Unity, même en Play)
+            // Scene view : toujours EditorCamera
             scenePanel?.ApplyPendingResize(scenePanel.EditorCamera);
             scenePanel?.RenderScene(SceneManager.Current, scenePanel.EditorCamera, editorMode: true);
+
+            // UI Editor view : toujours la caméra de l'UI Editor
+            uiEditorPanel?.ApplyPendingResize(uiEditorPanel.View);
+            uiEditorPanel?.RenderScene(SceneManager.Current);
 
             // Game view : toujours la caméra de la scène
             gamePanel?.ApplyPendingResize();
             gamePanel?.RenderScene(SceneManager.Current);
-
-            uiEditorPanel?.ApplyPendingResize(uiEditorPanel.View);
-            uiEditorPanel?.RenderScene(SceneManager.Current);
 
             // Écran réel : clear + panneaux ImGui.
             Renderer.Clear(new Color(115, 115, 115));
