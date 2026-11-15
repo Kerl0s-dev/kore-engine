@@ -10,9 +10,56 @@ namespace KoreEngine
 
         public static float PixelsPerUnit = 100f;   // 1 unité = 100 pixels
 
+        /// <summary>Nom du driver SDL réellement utilisé ("gpu", "direct3d11"…).</summary>
+        public string DriverName { get; private set; } = "";
+
+        /// <summary>True si le driver "gpu" est actif : requis pour les shaders (SDL_GPURenderState).</summary>
+        public bool IsGpu => DriverName == "gpu";
+
         public Renderer(IntPtr window)
         {
-            Handle = SDL.CreateRenderer(window, null);
+            // Le driver "gpu" est requis pour les shaders personnalisés (SDL_GPURenderState).
+            // Repli sur le driver par défaut s'il n'est pas disponible : tout fonctionne
+            // sauf les shaders.
+            Handle = SDL.CreateRenderer(window, "gpu");
+            if (Handle == IntPtr.Zero)
+            {
+                Logger.Warning($"Driver de rendu 'gpu' indisponible ({SDL.GetError()}) : repli sur le driver par défaut, shaders désactivés.");
+                Handle = SDL.CreateRenderer(window, null);
+            }
+
+            DriverName = SDL.GetRendererName(Handle) ?? "";
+            Logger.Log($"Renderer : driver '{DriverName}'");
+
+            ShaderCache.Init(this);
+        }
+
+        /// <summary>
+        /// Active le shader pour les draws suivants (null = rendu SDL normal). À remettre à null après usage.
+        /// Sans effet si le driver n'est pas "gpu".
+        /// </summary>
+        public void SetShader(Shader? shader)
+        {
+            if (!IsGpu) return;
+            SDL.SetGPURenderState(Handle, shader?.State ?? IntPtr.Zero);
+        }
+
+        readonly HashSet<string> reportedSdlErrors = new();
+
+        /// <summary>Vide l'erreur SDL courante (à appeler juste avant un draw dont on veut surveiller l'échec).</summary>
+        public void ClearSdlError() => SDL.ClearError();
+
+        /// <summary>
+        /// Si SDL a signalé une erreur depuis ClearSdlError (ex. pipeline GPU non créé : le draw est alors
+        /// abandonné sans rien afficher), la logue dans la Console, une seule fois par message.
+        /// </summary>
+        public void ReportSdlError(string context)
+        {
+            string err = SDL.GetError();
+            if (string.IsNullOrEmpty(err)) return;
+            SDL.ClearError();
+            if (reportedSdlErrors.Add(context + err))
+                Logger.Warning($"[SDL] {context} : {err}");
         }
 
         public void Clear(Color? color)

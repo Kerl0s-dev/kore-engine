@@ -64,7 +64,7 @@ public class EditorWindow
         SDL.Init(SDL.InitFlags.Video);
         window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable | SDL.WindowFlags.Maximized);
         SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
-
+        
         Renderer = new Renderer(window);
         TextureCache.Init(Renderer); // Initialise le cache de texture
         FontManager.Init(Renderer); // Initialise le cache de polices

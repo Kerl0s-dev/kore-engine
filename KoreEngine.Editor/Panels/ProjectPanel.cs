@@ -89,7 +89,8 @@ public class ProjectPanel
             ".png", ".bmp",
             ".ttf", ".otf",
             ".wav", ".mp3", ".ogg", ".flac",
-            ".kanim"
+            ".kanim",
+            ".kmat"
         };
 
         foreach (var root in folderRoots)
@@ -296,7 +297,7 @@ public class ProjectPanel
                 ImGui.Image(folderIcon, new System.Numerics.Vector2(iconSize, iconSize));
             }
             else
-                DrawIconPlaceholder(iconSize, 0xFF3A7BD5, "📁");
+                DrawIconPlaceholder(iconSize, 0xFF3A7BD5, "Folder");
         }
         else
         {

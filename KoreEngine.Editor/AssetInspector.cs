@@ -32,8 +32,7 @@ public static class AssetInspector
         string ext = Path.GetExtension(path).ToLowerInvariant();
         if (!AudioImportSettings.SupportedExtensions.Contains(ext)) StopPreview();
 
-        ImGui.TextUnformatted(Path.GetFileName(path));
-        ImGui.TextDisabled($"{FormatSize(new FileInfo(path).Length)}  -  {path}");
+        ImGui.TextUnformatted($"{Path.GetFileName(path)} - {FormatSize(new FileInfo(path).Length)}");
         ImGui.Separator();
 
         bool readOnly = ProjectPanel.IsPathReadOnly(path);
@@ -44,8 +43,25 @@ public static class AssetInspector
             DrawAudio(path, readOnly);
         else if (ext == AnimationClip.Extension)
             ClipInspector.Draw(path, readOnly);
+        else if (ext == ".hlsl" || ext == ".cs")
+            DrawFiles(path);
         else
             ImGui.TextDisabled("No import settings for this type of file.");
+    }
+
+    // ---------------------------------------------------------------
+    // Files
+    // ---------------------------------------------------------------
+    static void DrawFiles(string path) {
+        ImGui.BeginChild("##file", new System.Numerics.Vector2(0, 0), ImGuiChildFlags.None, ImGuiWindowFlags.HorizontalScrollbar);
+        
+        string[] lines = File.ReadAllLines(path);
+
+        foreach (string line in lines) {
+            ImGui.TextDisabled(line);
+        }
+
+        ImGui.EndChild();
     }
 
     // ---------------------------------------------------------------

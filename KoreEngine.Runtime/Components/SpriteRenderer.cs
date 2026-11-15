@@ -34,6 +34,9 @@ namespace KoreEngine
 
         Vector2 Size = Vector2.One; // Taille en mètres (pour le rendu)
 
+        /// <summary>Matériau (.kmat) appliqué au sprite ; vide = rendu normal.</summary>
+        public string MaterialPath = "";
+
         public bool FlipX = false;
         public bool FlipY = false;
 
@@ -44,6 +47,8 @@ namespace KoreEngine
             yield return new ColorField { Label = "Color", Get = () => Color, Set = c => Color = c };
 
             yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set = (x, y) => { FlipX = x; FlipY = y; } };
+
+            yield return new AssetPathField { Label = "Material", Extensions = new[] { ".kmat" }, Get = () => MaterialPath, Set = v => MaterialPath = v };
 
             yield return new Vector2Field { Label = "Frame Size (px)", Get = () => FrameSize, Set = v => FrameSize = v, Min = 1, Max = float.MaxValue };
 
@@ -68,6 +73,9 @@ namespace KoreEngine
 
             double angle = -gameObject.transform.WorldRotation;
 
+            var shader = string.IsNullOrEmpty(MaterialPath) ? null : MaterialCache.Get(MaterialPath)?.Shader;
+            if (shader != null) { renderer.SetShader(shader); renderer.ClearSdlError(); }
+
             if (Frame >= 0)
             {
                 int fw = Math.Max(1, (int)FrameSize.X), fh = Math.Max(1, (int)FrameSize.Y);
@@ -84,6 +92,8 @@ namespace KoreEngine
                 else
                     renderer.DrawTexture(Texture, x, y, w, h, Color, FlipX, FlipY, angle);
             }
+
+            if (shader != null) { renderer.ReportSdlError($"Draw avec {MaterialPath}"); renderer.SetShader(null); }
         }
     }
 }
