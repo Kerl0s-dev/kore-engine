@@ -10,10 +10,25 @@ public sealed class Material
     public string AssetPath { get; }
     public string ShaderPath { get; private set; } = "";
 
+    /// <summary>Valeurs par défaut écrites dans le .kmat ("NomDuParamètre: valeurs"), avant lecture du shader.</summary>
+    readonly Dictionary<string, string> rawDefaults = new();
+
     /// <summary>Shader compilé, ou null si le chemin est vide, le shader en erreur ou le driver non "gpu".</summary>
     public Shader? Shader => ShaderCache.Get(ShaderPath);
 
     Material(string assetPath) => AssetPath = assetPath;
+
+    /// <summary>Paramètres du shader (vide si le shader est absent ou en erreur).</summary>
+    public IReadOnlyList<ShaderParam> Params => Shader?.Params ?? Array.Empty<ShaderParam>();
+
+    /// <summary>Valeur par défaut d'un paramètre : celle du .kmat si elle y est écrite, sinon celle du shader (copie).</summary>
+    public float[] GetDefault(ShaderParam param)
+    {
+        var value = (float[])param.Default.Clone();
+        if (rawDefaults.TryGetValue(param.Name, out var text))
+            ShaderParams.FillValue(value, text, param.Components);
+        return value;
+    }
 
     public static Material? Load(string assetPath)
     {
@@ -34,6 +49,7 @@ public sealed class Material
             string value = raw[(colon + 1)..].Trim();
 
             if (key == "Shader") mat.ShaderPath = FindShader(value) ?? value;
+            else mat.rawDefaults[key] = value;
         }
         return mat;
     }

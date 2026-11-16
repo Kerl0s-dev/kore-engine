@@ -150,6 +150,16 @@ namespace KoreEngine
             if (surface == IntPtr.Zero)
                 throw new Exception($"Impossible de charger la texture: {path} ({SDL.GetError()})");
 
+            // Les PNG indexés (palette) créent sinon une texture "palette" que SDL ne résout que dans ses
+            // propres shaders : un shader personnalisé y lirait les index bruts (sprite noir). On convertit
+            // donc tout en RGBA32 (= ABGR8888 sur les machines little-endian) : rendu identique, et les shaders reçoivent toujours de vraies couleurs.
+            var rgba = SDL.ConvertSurface(surface, SDL.PixelFormat.ABGR8888);
+            if (rgba != IntPtr.Zero)
+            {
+                SDL.DestroySurface(surface);
+                surface = rgba;
+            }
+
             var texture = SDL.CreateTextureFromSurface(Handle, surface);
             SDL.DestroySurface(surface);
             SDL.SetTextureBlendMode(texture, SDL.BlendMode.Blend);

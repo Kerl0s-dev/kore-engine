@@ -68,16 +68,43 @@ public sealed class Shader : IDisposable
     /// <summary>Nombre de uniform buffers déclarés par le shader (réflexion SPIR-V).</summary>
     public int NumUniformBuffers { get; }
 
+    /// <summary>Paramètres déclarés par "// @param" (vide si le shader n'en a pas).</summary>
+    public IReadOnlyList<ShaderParam> Params { get; }
+
     readonly IntPtr device;
     IntPtr gpuShader;
+    IntPtr uniformBuffer;
+    readonly int uniformBytes;
 
-    Shader(string sourcePath, IntPtr device, IntPtr gpuShader, IntPtr state, int numUniformBuffers)
+    Shader(string sourcePath, IntPtr device, IntPtr gpuShader, IntPtr state, int numUniformBuffers, IReadOnlyList<ShaderParam> parameters)
     {
         SourcePath = sourcePath;
         this.device = device;
         this.gpuShader = gpuShader;
         State = state;
         NumUniformBuffers = numUniformBuffers;
+        Params = parameters;
+
+        // Le compilateur supprime le cbuffer si aucun paramètre n'est lu : dans ce cas rien à envoyer.
+        if (numUniformBuffers > 0 && parameters.Count > 0)
+        {
+            uniformBytes = parameters.Count * 16;
+            uniformBuffer = Marshal.AllocHGlobal(uniformBytes);
+        }
+    }
+
+    /// <summary>
+    /// Envoie les valeurs des paramètres (voir ShaderParams.Pack) pour les prochains draws.
+    /// SDL lit ces données au moment du flush, donc l'appelant doit flusher avant de changer les valeurs.
+    /// </summary>
+    public void SetUniforms(float[] packed)
+    {
+        if (uniformBuffer == IntPtr.Zero || State == IntPtr.Zero) return;
+
+        var buffer = new float[uniformBytes / 4];
+        Array.Copy(packed, buffer, System.Math.Min(packed.Length, buffer.Length));
+        Marshal.Copy(buffer, 0, uniformBuffer, buffer.Length);
+        SDL.SetGPURenderStateFragmentUniforms(State, 0, uniformBuffer, (uint)uniformBytes);
     }
 
     /// <summary>Compile le fichier .hlsl. Retourne null (erreur loguée) en cas d'échec ou sans driver "gpu".</summary>
@@ -113,7 +140,11 @@ public sealed class Shader : IDisposable
             return null;
         }
 
-        string hlslSource = File.ReadAllText(file);
+        string userSource = File.ReadAllText(file);
+        var shaderParams = ShaderParams.Parse(userSource, path);
+        string hlslSource = shaderParams.Count > 0
+            ? ShaderParams.BuildPrelude(shaderParams) + userSource
+            : userSource;
         string includeDir = Path.GetDirectoryName(file) ?? "";
 
         // 1. HLSL -> SPIR-V (réflexion des ressources, et bytecode du backend Vulkan)
@@ -229,8 +260,8 @@ public sealed class Shader : IDisposable
                 return null;
             }
 
-            Logger.Log($"[Shader] '{path}' prêt : {resources.NumSamplers} sampler(s), {resources.NumUniformBuffers} uniform buffer(s), format {((formats & SDL.GPUShaderFormat.DXIL) != 0 ? "DXIL" : "SPIR-V/MSL")}");
-            return new Shader(path, device, gpuShader, state, (int)resources.NumUniformBuffers);
+            Logger.Log($"[Shader] '{path}' prêt : {resources.NumSamplers} sampler(s), {resources.NumUniformBuffers} uniform buffer(s), {shaderParams.Count} paramètre(s), format {((formats & SDL.GPUShaderFormat.DXIL) != 0 ? "DXIL" : "SPIR-V/MSL")}");
+            return new Shader(path, device, gpuShader, state, (int)resources.NumUniformBuffers, shaderParams);
         }
         finally
         {
@@ -242,6 +273,7 @@ public sealed class Shader : IDisposable
     {
         if (State != IntPtr.Zero) { SDL.DestroyGPURenderState(State); State = IntPtr.Zero; }
         if (gpuShader != IntPtr.Zero) { SDL.ReleaseGPUShader(device, gpuShader); gpuShader = IntPtr.Zero; }
+        if (uniformBuffer != IntPtr.Zero) { Marshal.FreeHGlobal(uniformBuffer); uniformBuffer = IntPtr.Zero; }
     }
 }
 
