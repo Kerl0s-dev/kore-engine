@@ -17,7 +17,7 @@ public static class EditorIcons
     {
         "default", "folder",                               // Base
         "cs", "kscene", "kprefab",                         // Scripts, scènes, prefabs
-        "audio", "font", "animation",                      // Catégories d'assets
+        "audio", "font", "animation", "shader",            // Catégories d'assets
         "play", "stop", "pause", "step", "local", "world", // Boutons de l'éditeur
         "camera"                                           // Gizmos
     };

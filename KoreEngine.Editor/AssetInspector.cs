@@ -43,7 +43,7 @@ public static class AssetInspector
             DrawAudio(path, readOnly);
         else if (ext == AnimationClip.Extension)
             ClipInspector.Draw(path, readOnly);
-        else if (ext == ".hlsl" || ext == ".cs")
+        else if (ext == ".shader" || ext == ".cs")
             DrawFiles(path);
         else
             ImGui.TextDisabled("No import settings for this type of file.");

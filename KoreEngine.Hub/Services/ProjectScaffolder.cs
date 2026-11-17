@@ -260,12 +260,9 @@ Project(""{typeGuid}"") = ""{projectName}.Scripts"", ""{projectName}.Scripts.csp
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{scriptsGuid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{scriptsGuid}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{scriptsGuid}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{scriptsGuid}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection

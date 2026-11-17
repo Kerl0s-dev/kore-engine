@@ -58,22 +58,21 @@ namespace KoreEngine
 
             yield return new Bool2Field { Label = "Flip", GetFirst = () => FlipX, GetSecond = () => FlipY, Set = (x, y) => { FlipX = x; FlipY = y; } };
 
-            yield return new AssetPathField { Label = "Material", Extensions = new[] { ".kmat" }, Get = () => MaterialPath, Set = v => MaterialPath = v };
-
-            var material = string.IsNullOrEmpty(MaterialPath) ? null : MaterialCache.Get(MaterialPath);
-            if (material != null)
-            {
-                foreach (var param in material.Params)
-                    foreach (var field in ParamFields(material, param))
-                        yield return field;
-
-                if (!string.IsNullOrEmpty(MaterialParams))
-                    yield return new ButtonField { Label = "Reset material params", Action = () => MaterialParams = "", Tooltip = "Revient aux valeurs du matériau" };
-            }
-
             yield return new Vector2Field { Label = "Frame Size (px)", Get = () => FrameSize, Set = v => FrameSize = v, Min = 1, Max = float.MaxValue };
 
             yield return new IntField { Label = "Frame", Get = () => Frame, Set = v => Frame = v, Min = -1, Max = int.MaxValue };
+
+            yield return new AssetPathField { Label = "Material", Extensions = new[] { ".kmat" }, Get = () => MaterialPath, Set = v => MaterialPath = v };
+
+        var material = string.IsNullOrEmpty(MaterialPath) ? null : MaterialCache.Get(MaterialPath);
+        if (material == null) yield break;
+
+        foreach (var param in material.Params)
+            foreach (var field in ParamFields(material, param))
+                yield return field;
+
+        if (!string.IsNullOrEmpty(MaterialParams))
+            yield return new ButtonField { Label = "Reset material params", Action = () => MaterialParams = "", Tooltip = "Revient aux valeurs du matériau" };
         }
 
         // ---- Paramètres de shader ------------------------------------------------------------------------

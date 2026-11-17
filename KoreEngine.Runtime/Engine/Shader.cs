@@ -141,10 +141,9 @@ public sealed class Shader : IDisposable
         }
 
         string userSource = File.ReadAllText(file);
-        var shaderParams = ShaderParams.Parse(userSource, path);
-        string hlslSource = shaderParams.Count > 0
-            ? ShaderParams.BuildPrelude(shaderParams) + userSource
-            : userSource;
+        var parsed = ShaderTemplate.Compile(userSource, path);
+        var shaderParams = parsed.Params;
+        string hlslSource = parsed.FinalHlslSource;
         string includeDir = Path.GetDirectoryName(file) ?? "";
 
         // 1. HLSL -> SPIR-V (réflexion des ressources, et bytecode du backend Vulkan)
