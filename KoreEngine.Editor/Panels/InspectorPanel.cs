@@ -387,7 +387,7 @@ public class InspectorPanel
 
                     DrawField(colF.Label, () =>
                     {
-                        if (ImGui.ColorPicker4($"{baseId}_col", ref col4))
+                        if (ImGui.ColorEdit4($"##{baseId}_col", ref col4))
                         {
                             colF.Set?.Invoke(new Color(
                                 (int)(col4.X * 255),
