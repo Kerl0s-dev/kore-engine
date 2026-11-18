@@ -87,8 +87,12 @@ public class GameLoop
             }
 
             // 4. Rendu direct à l'écran, avec la caméra de la scène
-            Renderer.Clear(SceneManager.Current?.Camera?.Color);
-            SceneManager.Render(Renderer);
+            var camera = SceneManager.Current?.Camera;
+            Renderer.PostProcess.Render(camera, () =>
+            {
+                Renderer.Clear(camera?.Color);
+                SceneManager.Render(Renderer);
+            });
             Renderer.Present();
         }
     }

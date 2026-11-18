@@ -61,8 +61,11 @@ public class GamePanel
             float s = LogicalScale;
             SDL.SetRenderScale(renderer.Handle, s, s);
 
-            renderer.Clear(cam.Color);
-            scene.Render(renderer);
+            renderer.PostProcess.Render(cam, () =>
+            {
+                renderer.Clear(cam.Color);
+                scene.Render(renderer);
+            });
 
             renderer.Flush();                  // soumettre avec l'échelle active
             SDL.SetRenderScale(renderer.Handle, 1f, 1f);   // sinon ImGui est dessiné à la mauvaise échelle

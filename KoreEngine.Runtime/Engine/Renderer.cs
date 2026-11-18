@@ -13,6 +13,9 @@ namespace KoreEngine
         /// <summary>Nom du driver SDL réellement utilisé ("gpu", "direct3d11"…).</summary>
         public string DriverName { get; private set; } = "";
 
+        /// <summary>Rendu avec les effets plein écran de la caméra (voir PostProcessing).</summary>
+        public PostProcessor PostProcess { get; private set; } = null!;
+
         /// <summary>True si le driver "gpu" est actif : requis pour les shaders (SDL_GPURenderState).</summary>
         public bool IsGpu => DriverName == "gpu";
 
@@ -32,6 +35,7 @@ namespace KoreEngine
             Logger.Log($"Renderer : driver '{DriverName}'");
 
             ShaderCache.Init(this);
+            PostProcess = new PostProcessor(this);
         }
 
         /// <summary>
