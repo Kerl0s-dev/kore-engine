@@ -282,6 +282,14 @@ public static class ShaderCache
     static Renderer? renderer;
     static readonly Dictionary<string, Shader?> cache = new();
 
+    // Anciennes versions remplacées par un rechargement. Volontairement non détruites avant Clear() :
+    // SDL garde ses pipelines GPU indexés par l'adresse du shader, et un nouveau shader alloué à la même
+    // adresse réutiliserait à tort l'ancien pipeline.
+    static readonly List<Shader> retired = new();
+
+    /// <summary>Incrémenté à chaque rechargement réussi : les caches de valeurs (uniforms) doivent se reconstruire.</summary>
+    public static int Generation { get; private set; }
+
     public static void Init(Renderer r) => renderer = r;
 
     public static Shader? Get(string path)
@@ -291,7 +299,7 @@ public static class ShaderCache
 
         if (renderer == null)
         {
-            Logger.Error($"[ShaderCache] Init() n'a pas été appelé avant de charger '{path}'.");
+            Logger.Error($"[ShaderCache] Init() has not been called before loading '{path}'.");
             return null;
         }
 
@@ -300,10 +308,66 @@ public static class ShaderCache
         return shader;
     }
 
+    /// <summary>
+    /// Recompile les shaders déjà chargés qui correspondent à ce fichier. Si la compilation échoue, l'ancienne
+    /// version reste active (une faute de frappe ne casse pas le jeu en cours) ; un shader qui était en erreur
+    /// est récupéré dès que le fichier est corrigé. À appeler depuis le thread de rendu, entre deux frames.
+    /// </summary>
+    public static void Reload(string fullPath)
+    {
+        if (renderer == null) return;
+
+        string target = Path.GetFullPath(fullPath);
+
+        foreach (var key in cache.Keys.ToList())
+        {
+            try
+            {
+                string resolved = Path.GetFullPath(TextureCache.Resolve(key));
+                if (!string.Equals(resolved, target, StringComparison.OrdinalIgnoreCase)) continue;
+            }
+            catch (Exception)
+            {
+                continue;   // chemin invalide : ce n'est pas le fichier modifié
+            }
+
+            Shader? fresh;
+            try
+            {
+                fresh = Shader.Load(renderer, key);
+            }
+            catch (IOException)
+            {
+                throw;   // fichier verrouillé : l'appelant réessaiera
+            }
+            catch (Exception ex)
+            {
+                // Quoi qu'il arrive pendant la compilation, l'éditeur ne doit pas planter : on garde l'ancien shader
+                Logger.Error($"[Shader] Exception at reload of '{key}' : {ex}");
+                continue;
+            }
+
+            if (fresh == null)
+            {
+                Logger.Warning($"[Shader] Reloading of '{key}' not possible : old version conserved.");
+                continue;
+            }
+
+            var old = cache[key];
+            if (old != null) retired.Add(old);
+
+            cache[key] = fresh;
+            Generation++;
+        }
+    }
+
     /// <summary>Détruit tous les shaders (à appeler avant de recréer le renderer ou pour forcer une recompilation).</summary>
     public static void Clear()
     {
         foreach (var s in cache.Values) s?.Dispose();
+        foreach (var s in retired) s.Dispose();
         cache.Clear();
+        retired.Clear();
+        Generation++;
     }
 }

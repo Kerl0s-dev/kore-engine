@@ -45,6 +45,7 @@ namespace KoreEngine
         string? overridesParsedFrom;
         Material? uniformsMaterial;
         string? uniformsOverrides;
+        int uniformsGeneration = -1;
         float[]? uniforms;
 
         public bool FlipX = false;
@@ -154,13 +155,14 @@ namespace KoreEngine
         {
             if (material.Params.Count == 0) return null;
 
-            if (uniforms == null || uniformsMaterial != material || uniformsOverrides != MaterialParams)
+            if (uniforms == null || uniformsMaterial != material || uniformsOverrides != MaterialParams || uniformsGeneration != ShaderCache.Generation)
             {
                 EnsureOverrides();
                 uniforms = ShaderParams.Pack(material.Params,
                     p => overrides.TryGetValue(p.Name, out var v) ? v : material.GetDefault(p));
                 uniformsMaterial = material;
                 uniformsOverrides = MaterialParams;
+                uniformsGeneration = ShaderCache.Generation;
             }
             return uniforms;
         }

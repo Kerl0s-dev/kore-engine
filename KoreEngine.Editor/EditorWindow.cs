@@ -54,6 +54,7 @@ public class EditorWindow
     #endregion
 
     ScriptWatcher? scriptWatcher;
+    ShaderWatcher? shaderWatcher;
 
     public EditorWindow(string title, int width, int height)
     {
@@ -102,6 +103,7 @@ public class EditorWindow
         Current = this;
 
         scriptWatcher = new ScriptWatcher(ProjectPanel.FindProjectRoot());
+        shaderWatcher = new ShaderWatcher(ProjectPanel.FindProjectRoot());
 
         while (Running)
         {
@@ -132,6 +134,7 @@ public class EditorWindow
             // 3. dt
             Time.ComputeDeltaTime();
             scriptWatcher?.Update();
+            shaderWatcher?.Update();
 
             // 4. ImGui NewFrame
             imguiBackend?.NewFrame(Width, Height);

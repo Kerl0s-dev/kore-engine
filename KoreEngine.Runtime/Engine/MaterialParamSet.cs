@@ -18,6 +18,7 @@ public sealed class MaterialParamSet
     string text = "";
     Dictionary<string, float[]> overrides = new();
     Material? packedFor;
+    int packedGeneration = -1;
     float[]? packed;
     float[]? frame;
     bool hasBuiltIns;
@@ -65,10 +66,11 @@ public sealed class MaterialParamSet
         var ps = material.Params;
         if (ps.Count == 0) return null;
 
-        if (packed == null || packedFor != material)
+        if (packed == null || packedFor != material || packedGeneration != ShaderCache.Generation)
         {
             packed = ShaderParams.Pack(ps, p => overrides.TryGetValue(p.Name, out var v) ? v : material.GetDefault(p));
             packedFor = material;
+            packedGeneration = ShaderCache.Generation;
             hasBuiltIns = ps.Any(IsBuiltIn);
         }
 
