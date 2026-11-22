@@ -9,5 +9,5 @@
 ///   [HideInInspector]
 ///   public float internalValue;
 /// </summary>
-[AttributeUsage(AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 public sealed class HideInInspectorAttribute : Attribute { }

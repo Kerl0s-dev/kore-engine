@@ -6,7 +6,11 @@ namespace KoreEngine
     {
         public IntPtr Handle { get; private set; }
 
-        public bool AutoFlush = true;
+        /// <summary>
+        /// Flush après chaque dessin. Désactivé : SDL regroupe lui-même les dessins consécutifs de même texture.
+        /// Les sprites avec shader flushent explicitement (SDL lit les uniforms au flush).
+        /// </summary>
+        public bool AutoFlush = false;
 
         public static float PixelsPerUnit = 100f;   // 1 unité = 100 pixels
 
@@ -214,7 +218,6 @@ namespace KoreEngine
             SDL.SetTextureAlphaMod(texture, 255);
 
             AutoFlushIfEnabled();
-            if (!AutoFlush) Flush();
         }
 
         public void DrawTexturePart(IntPtr texture, Rectangle src, float x, float y, float w, float h, Color color, bool flipX = false, bool flipY = false, double angle = 0.0, Camera? camera = null)
@@ -257,7 +260,6 @@ namespace KoreEngine
             SDL.SetTextureAlphaMod(texture, 255);
 
             AutoFlushIfEnabled();
-            if (!AutoFlush) Flush();
         }
 
         // ---------------------------------------------------------------

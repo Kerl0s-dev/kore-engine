@@ -307,14 +307,14 @@ public class HierarchyPanel
             "Sprite" => CreateWithComponents("Sprite",
                 new SpriteRenderer()
                 {
-                    TexturePath = "Packages/default-square.png"
+                    TexturePath = "Packages/Sprites/default-square.png"
                 }
             ),
 
             "Physics" => CreateWithComponents("Physics Object",
                 new SpriteRenderer()
                 {
-                    TexturePath = "Packages/default-square.png"
+                    TexturePath = "Packages/Sprites/default-square.png"
                 },
                 new PhysicsBody(),
                 new Collider()
@@ -323,7 +323,7 @@ public class HierarchyPanel
             "Particle System" => CreateWithComponents("Particle System",
                 new ParticleSystem()
                 {
-                    TexturePath = "Packages/default-square.png",
+                    TexturePath = "Packages/Sprites/default-square.png",
                 }
             ),
 
@@ -334,9 +334,9 @@ public class HierarchyPanel
             "UIButton" => CreateWithComponents("Button",
                 new UI.UIButton()
                 {
-                    TextureNormalPath = "Packages/default-button.png",
-                    TextureHoverPath = "Packages/default-button-hover.png",
-                    TexturePressedPath = "Packages/default-button-pressed.png"
+                    TextureNormalPath = "Packages/Sprites/default-button.png",
+                    TextureHoverPath = "",
+                    TexturePressedPath = ""
                 }
             ),
 

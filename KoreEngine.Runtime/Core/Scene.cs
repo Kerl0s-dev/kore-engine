@@ -114,10 +114,24 @@ public class Scene
         Collisions.Update();
     }
 
+    readonly RenderQueue renderQueue = new();
+
+    /// <summary>Monde (renderers triés et culling) puis overlay (UI). Pour un rendu complet sans post-processing.</summary>
     public void Render(Renderer renderer)
     {
+        RenderWorld(renderer);
+        RenderOverlay(renderer);
+    }
+
+    /// <summary>Renderers du monde : culling, tri par Sorting Layer / Order in Layer, dessin.</summary>
+    public void RenderWorld(Renderer renderer) => renderQueue.RenderWorld(this, renderer, Camera);
+
+    /// <summary>Composants dessinés par-dessus le monde (UI), dans l'ordre de la hiérarchie.</summary>
+    public void RenderOverlay(Renderer renderer)
+    {
+        var cam = Camera;
         foreach (var obj in RootObjects)
-            obj.Render(renderer, Camera);
+            obj.RenderOverlay(renderer, cam);
     }
 
     // ---------------------------------------------------------------

@@ -11,6 +11,9 @@ public partial class GameObject
 
     public bool Enabled { get; set; } = true;
 
+    /// <summary>Layer de l'objet (0-31), utilisé par le Culling Mask des caméras.</summary>
+    public int Layer { get; set; } = 0;
+
     public bool ActiveInHierarchy
     {
         get
@@ -134,6 +137,21 @@ public partial class GameObject
 
         foreach (var c in Components) c.Render(renderer, camera);
         foreach (var child in children) child.Render(renderer, camera);
+    }
+
+    /// <summary>
+    /// Passe overlay : dessine seulement les composants qui ne sont pas des RenderableComponent (UI...),
+    /// dans l'ordre de la hiérarchie. Les renderers du monde passent par la RenderQueue.
+    /// </summary>
+    internal void RenderOverlay(Renderer renderer, Camera? camera)
+    {
+        if (!Enabled) return;
+
+        foreach (var c in Components)
+            if (c is not RenderableComponent)
+                c.Render(renderer, camera);
+
+        foreach (var child in children) child.RenderOverlay(renderer, camera);
     }
 
     // Appelle directement la méthode virtuelle sans réflexion

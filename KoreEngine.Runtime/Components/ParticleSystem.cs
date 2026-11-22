@@ -12,7 +12,7 @@ public struct Particle
     public bool IsActive;
 }
 
-public class ParticleSystem : Component
+public class ParticleSystem : RenderableComponent
 {
     public IntPtr Texture;
     public string TexturePath = "";

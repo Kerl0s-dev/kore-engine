@@ -71,6 +71,7 @@ public static class SceneSerializer
         sb.AppendLine($"    Name: {obj.Name}");
         sb.AppendLine($"    Parent: {parent}");
         sb.AppendLine($"    Enabled: {obj.Enabled.ToString().ToLower()}");
+        if (obj.Layer != 0) sb.AppendLine($"    Layer: {obj.Layer}");
 
         // Sauvegarde dynamique de TOUS les composants de l'objet
         foreach (var c in obj.Components)
@@ -342,6 +343,11 @@ public static class SceneSerializer
             else if (depth == 0 && line.StartsWith("Enabled:"))
             {
                 obj.Enabled = line["Enabled:".Length..].Trim() == "true";
+            }
+            else if (depth == 0 && line.StartsWith("Layer:"))
+            {
+                if (int.TryParse(line["Layer:".Length..].Trim(), out int layer))
+                    obj.Layer = layer;
             }
             else if (line.StartsWith("Component:"))
             {

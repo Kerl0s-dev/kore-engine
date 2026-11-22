@@ -281,7 +281,7 @@ public class ScenePanel
         Vector2 worldPoint = AbsScreenToWorld(io.MousePos, imageScreenPos);
 
         GameObject? hit = null;
-        foreach (var obj in scene.AllObjects.Reverse())
+        foreach (var obj in RenderQueue.TopToBottom(scene))
         {
             var b = GetClickBounds(obj);
             if (b == null) continue;

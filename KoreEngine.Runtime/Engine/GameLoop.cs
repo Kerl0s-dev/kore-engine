@@ -26,6 +26,9 @@ public class GameLoop
 
     public GameLoop(string title, int width, int height)
     {
+        // Fichier de log à côté de l'exécutable : le Player n'a pas de console
+        FileLogger.Enable(Path.Combine(AppContext.BaseDirectory, "player.log"));
+
         Title = title;
         Width = width;
         Height = height;
@@ -91,8 +94,11 @@ public class GameLoop
             Renderer.PostProcess.Render(camera, () =>
             {
                 Renderer.Clear(camera?.Color);
-                SceneManager.Render(Renderer);
+                SceneManager.RenderWorld(Renderer);
             });
+
+            // L'UI est dessinée après les effets : elle n'est pas affectée par le post-processing
+            SceneManager.RenderOverlay(Renderer);
             Renderer.Present();
         }
     }

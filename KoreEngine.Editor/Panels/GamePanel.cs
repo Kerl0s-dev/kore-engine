@@ -64,8 +64,11 @@ public class GamePanel
             renderer.PostProcess.Render(cam, () =>
             {
                 renderer.Clear(cam.Color);
-                scene.Render(renderer);
+                scene.RenderWorld(renderer);
             });
+
+            // L'UI est dessinée après les effets : elle n'est pas affectée par le post-processing
+            scene.RenderOverlay(renderer);
 
             renderer.Flush();                  // soumettre avec l'échelle active
             SDL.SetRenderScale(renderer.Handle, 1f, 1f);   // sinon ImGui est dessiné à la mauvaise échelle

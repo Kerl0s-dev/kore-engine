@@ -9,7 +9,7 @@ namespace KoreEngine
         Linear = 2
     }
 
-    public class SpriteRenderer : Component
+    public class SpriteRenderer : RenderableComponent
     {
         public IntPtr Texture;
         public string TexturePath = "";
@@ -45,7 +45,6 @@ namespace KoreEngine
         string? overridesParsedFrom;
         Material? uniformsMaterial;
         string? uniformsOverrides;
-        int uniformsGeneration = -1;
         float[]? uniforms;
 
         public bool FlipX = false;
@@ -63,17 +62,27 @@ namespace KoreEngine
 
             yield return new IntField { Label = "Frame", Get = () => Frame, Set = v => Frame = v, Min = -1, Max = int.MaxValue };
 
+            yield return new EnumField
+            {
+                Label = "Sorting Layer",
+                Names = SortingLayers.Names.ToArray(),
+                Get = () => SortingLayers.IndexOf(SortingLayer),
+                Set = i => SortingLayer = SortingLayers.Names[System.Math.Clamp(i, 0, SortingLayers.Names.Count - 1)]
+            };
+
+            yield return new IntField { Label = "Order in Layer", Get = () => SortingOrder, Set = v => SortingOrder = v, Min = -32768, Max = 32767 };
+
             yield return new AssetPathField { Label = "Material", Extensions = new[] { ".kmat" }, Get = () => MaterialPath, Set = v => MaterialPath = v };
 
-        var material = string.IsNullOrEmpty(MaterialPath) ? null : MaterialCache.Get(MaterialPath);
-        if (material == null) yield break;
+            var material = string.IsNullOrEmpty(MaterialPath) ? null : MaterialCache.Get(MaterialPath);
+            if (material == null) yield break;
 
-        foreach (var param in material.Params)
-            foreach (var field in ParamFields(material, param))
-                yield return field;
+            foreach (var param in material.Params)
+                foreach (var field in ParamFields(material, param))
+                    yield return field;
 
-        if (!string.IsNullOrEmpty(MaterialParams))
-            yield return new ButtonField { Label = "Reset material params", Action = () => MaterialParams = "", Tooltip = "Revient aux valeurs du matériau" };
+            if (!string.IsNullOrEmpty(MaterialParams))
+                yield return new ButtonField { Label = "Reset material params", Action = () => MaterialParams = "", Tooltip = "Revient aux valeurs du matériau" };
         }
 
         // ---- Paramètres de shader ------------------------------------------------------------------------
@@ -155,16 +164,30 @@ namespace KoreEngine
         {
             if (material.Params.Count == 0) return null;
 
-            if (uniforms == null || uniformsMaterial != material || uniformsOverrides != MaterialParams || uniformsGeneration != ShaderCache.Generation)
+            if (uniforms == null || uniformsMaterial != material || uniformsOverrides != MaterialParams)
             {
                 EnsureOverrides();
                 uniforms = ShaderParams.Pack(material.Params,
                     p => overrides.TryGetValue(p.Name, out var v) ? v : material.GetDefault(p));
                 uniformsMaterial = material;
                 uniformsOverrides = MaterialParams;
-                uniformsGeneration = ShaderCache.Generation;
             }
             return uniforms;
+        }
+
+        public override bool TryGetWorldBounds(out System.Drawing.RectangleF bounds)
+        {
+            bounds = default;
+            if (Texture == IntPtr.Zero || gameObject == null) return false;
+
+            var pos = gameObject.transform.WorldPosition;
+            var scale = gameObject.transform.WorldScale;
+            float w = Size.X * scale.X, h = Size.Y * scale.Y;
+
+            // Cercle englobant : le rectangle reste valable quelle que soit la rotation
+            float r = 0.5f * MathF.Sqrt(w * w + h * h);
+            bounds = new System.Drawing.RectangleF(pos.X - r, pos.Y - r, 2f * r, 2f * r);
+            return true;
         }
 
         public override void Render(Renderer renderer, Camera? camera)

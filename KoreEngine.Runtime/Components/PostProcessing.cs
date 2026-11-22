@@ -7,7 +7,12 @@
 /// </summary>
 public class PostProcessing : Component
 {
-    /// <summary>Effets sérialisés : "activé|matériau|surcharges" séparés par '*' (ces caractères sont interdits dans un nom de fichier).</summary>
+    /// <summary>
+    /// Effets sérialisés : "activé?matériau?surcharges" séparés par '*' (ces caractères sont interdits dans un nom de fichier).
+    /// Ne PAS marquer ce champ [HideInInspector] : le sérialiseur ignore les champs ainsi marqués, et les effets
+    /// seraient perdus au chargement de la scène (donc absents d'un build). Il n'apparaît pas dans l'Inspector
+    /// de toute façon, puisque GetInspectorFields est redéfini.
+    /// </summary>
     public string Effects = "";
 
     sealed class Entry
@@ -36,7 +41,7 @@ public class PostProcessing : Component
         {
             foreach (var raw in Effects.Split('*', StringSplitOptions.RemoveEmptyEntries))
             {
-                var parts = raw.Split('|');
+                var parts = raw.Split('?');
                 var entry = NewEntry();
                 entry.Enabled = parts[0] != "0";
                 entry.MaterialPath = parts.Length > 1 ? parts[1] : "";
@@ -49,7 +54,7 @@ public class PostProcessing : Component
 
     void Save()
     {
-        Effects = string.Join("*", entries.Select(e => $"{(e.Enabled ? 1 : 0)}|{e.MaterialPath}|{e.Params.Text}"));
+        Effects = string.Join("*", entries.Select(e => $"{(e.Enabled ? 1 : 0)}?{e.MaterialPath}?{e.Params.Text}"));
         parsedFrom = Effects;
     }
 

@@ -50,6 +50,14 @@ public class InspectorPanel
         if (ImGui.InputText("##name", ref name, 128))
             obj.Name = name;
 
+        ImGui.SameLine();
+
+        // --- Layer ---
+        int layer = obj.Layer;
+        ImGui.SetNextItemWidth(-1f);
+        if (ImGui.Combo("##layer", ref layer, LayerNames.All, LayerNames.All.Length))
+            obj.Layer = layer;
+
         ImGui.Separator();
 
         // --- Composants ---
@@ -387,7 +395,7 @@ public class InspectorPanel
 
                     DrawField(colF.Label, () =>
                     {
-                        if (ImGui.ColorEdit4($"##{baseId}_col", ref col4))
+                        if (ImGui.ColorPicker4($"{baseId}_col", ref col4))
                         {
                             colF.Set?.Invoke(new Color(
                                 (int)(col4.X * 255),

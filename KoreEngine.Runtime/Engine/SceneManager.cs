@@ -151,4 +151,10 @@ public static class SceneManager
 
     public static void Render(Renderer renderer)
         => current?.Render(renderer);
+
+    public static void RenderWorld(Renderer renderer)
+        => current?.RenderWorld(renderer);
+
+    public static void RenderOverlay(Renderer renderer)
+        => current?.RenderOverlay(renderer);
 }

@@ -4,7 +4,31 @@ namespace KoreEngine
 {
     public class Camera : Component
     {
-        [Range(1, 10)] public float Zoom = 1f;
+        /// <summary>Demi-hauteur visible en unités monde, comme l'Orthographic Size de Unity (5.4 = 1080 px à 100 px/unité).</summary>
+        [Range(0.1f, 100f)] public float OrthographicSize = 5.4f;
+
+        /// <summary>Layers d'objets visibles par cette caméra : le bit i correspond au layer i (-1 = tous).</summary>
+        public int CullingMask = -1;
+
+        float? explicitZoom;
+
+        /// <summary>
+        /// Échelle écran. Pour une caméra de jeu elle est DÉRIVÉE de OrthographicSize et de la hauteur de vue :
+        /// la hauteur visible en unités reste la même quelle que soit la résolution, seule la largeur change.
+        /// Les caméras d'outils (éditeur, UI) l'assignent directement : elle devient alors fixe.
+        /// </summary>
+        [HideInInspector]   // calculé : ne doit pas être sérialisé (sinon il se fixe au chargement de la scène)
+        public float Zoom
+        {
+            get
+            {
+                if (explicitZoom.HasValue) return explicitZoom.Value;
+                return ViewHeight > 0 && OrthographicSize > 0f
+                    ? ViewHeight / (2f * OrthographicSize * Renderer.PixelsPerUnit)
+                    : 1f;
+            }
+            set => explicitZoom = value;
+        }
 
         protected float _rotation;
         public virtual float Rotation
