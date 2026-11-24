@@ -8,12 +8,12 @@ public static class ProjectScaffolder
     {
         void Log(string msg) => onLog?.Invoke(msg);
 
-        string runtimeOutputDir = ResolveEngineOutputDir(engineDir, "KoreEngine.Runtime");
+        string runtimeOutputDir = ResolveEngineOutputDir(engineDir, "KoreEngine.Core");
         string editorOutputDir = ResolveEngineOutputDir(engineDir, "KoreEngine.Editor");
-        string runtimeDll = Path.Combine(runtimeOutputDir, "KoreEngine.Runtime.dll");
+        string runtimeDll = Path.Combine(runtimeOutputDir, "KoreEngine.Core.dll");
         string editorDll = Path.Combine(editorOutputDir, "KoreEngine.Editor.dll");
 
-        foreach (var (label, path) in new[] { ("Runtime", runtimeDll), ("Editor", editorDll) })
+        foreach (var (label, path) in new[] { ("Core", runtimeDll), ("Editor", editorDll) })
         {
             if (!File.Exists(path))
                 throw new Exception(
@@ -30,7 +30,7 @@ public static class ProjectScaffolder
 
         Log($"[ProjectScaffolder] Creation of the project '{projectName}' in {targetDir}");
 
-        File.Copy(Path.Combine(engineDir, "icon.ico"), Path.Combine(projectPath, "icon.ico"));
+        //File.Copy(Path.Combine(engineDir, "icon.ico"), Path.Combine(projectPath, "icon.ico"));
         CreateAssetsStructure(projectPath, Log);
         WriteProgramCs(projectPath, projectName, Log);
         WriteCsproj(projectPath, projectName, runtimeDll, editorDll, Log);
@@ -41,7 +41,7 @@ public static class ProjectScaffolder
         WriteEditorIcons(engineDir, projectPath, Log);
         WritePackages(engineDir, projectPath, Log);
         CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Release", "net10.0"),
-            ["KoreEngine.Runtime", "KoreEngine.Editor"], Log);
+            ["KoreEngine.Core", "KoreEngine.Editor"], Log);
 
         Log("[ProjectScaffolder] Project created successfully.");
     }
@@ -172,7 +172,7 @@ class Program
     <ItemGroup>
         <PackageReference Include=""ImGui.NET"" Version=""1.91.6.1"" />
         <PackageReference Include=""Microsoft.CodeAnalysis.CSharp"" Version=""5.9.0"" />
-        <PackageReference Include=""SDL3-CS"" Version=""3.4.18.1"" />
+        <PackageReference Include=""SDL3-CS"" Version=""3.4.20"" />
     </ItemGroup>
 
 {SdlPackages.PlatformItemGroups(includeShadercross: true)}
@@ -183,8 +183,8 @@ class Program
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
+        <Reference Include=""KoreEngine.Core"">
+            <HintPath>bin/Release/net10.0/KoreEngine.Core.dll</HintPath>
             <Private>True</Private>
         </Reference>
         <Reference Include=""KoreEngine.Editor"">
@@ -227,12 +227,12 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
+		<PackageReference Include=""SDL3-CS"" Version=""3.4.20"" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include=""KoreEngine.Runtime"">
-			<HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
+		<Reference Include=""KoreEngine.Core"">
+			<HintPath>bin/Release/net10.0/KoreEngine.Core.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
@@ -352,11 +352,11 @@ EndGlobal";
         void Log(string msg) => onLog?.Invoke(msg);
 
         CopyEngineDependencies(engineDir, Path.Combine(projectPath, "bin", "Release", "net10.0"),
-            new[] { "KoreEngine.Runtime", "KoreEngine.Editor" }, Log);
+            new[] { "KoreEngine.Core", "KoreEngine.Editor" }, Log);
 
         string playerBin = Path.Combine(projectPath, "Player", "bin", "Release", "net10.0");
         if (Directory.Exists(Path.Combine(projectPath, "Player")))
-            CopyEngineDependencies(engineDir, playerBin, new[] { "KoreEngine.Runtime" }, Log);
+            CopyEngineDependencies(engineDir, playerBin, new[] { "KoreEngine.Core" }, Log);
         else
             Log("[ProjectScaffolder] No Player folder found (project created before the player build) — ignored.");
 
@@ -385,7 +385,7 @@ EndGlobal";
         // Only Release symbols are optional. Never skip the engine assemblies.
         var skip = new[]
         {
-            "KoreEngine.Runtime.pdb",
+            "KoreEngine.Core.pdb",
             "KoreEngine.Editor.pdb"
         };
 
@@ -569,7 +569,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include=""SDL3-CS"" Version=""3.4.10.2"" />
+        <PackageReference Include=""SDL3-CS"" Version=""3.4.20"" />
     </ItemGroup>
 
     <ItemGroup>
@@ -580,8 +580,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 {SdlPackages.PlatformItemGroups(includeShadercross: true)}
 
     <ItemGroup>
-        <Reference Include=""KoreEngine.Runtime"">
-            <HintPath>bin/Release/net10.0/KoreEngine.Runtime.dll</HintPath>
+        <Reference Include=""KoreEngine.Core"">
+            <HintPath>bin/Release/net10.0/KoreEngine.Core.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
@@ -591,6 +591,6 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         log($"[ProjectScaffolder] File \'.csproj\' (Player) written : {playerDir}{Path.DirectorySeparatorChar}{projectName}.Player.csproj");
 
         CopyEngineDependencies(engineDir, Path.Combine(playerDir, "bin", "Release", "net10.0"),
-            new[] { "KoreEngine.Runtime" }, log);
+            new[] { "KoreEngine.Core" }, log);
     }
 }

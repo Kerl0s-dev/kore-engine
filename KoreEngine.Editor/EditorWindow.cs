@@ -1,6 +1,5 @@
 using ImGuiNET;
 using SDL3;
-using System.Numerics;
 
 namespace KoreEngine;
 
@@ -96,6 +95,11 @@ public class EditorWindow
         SceneManager.OnSceneChanging += () => EditorSelection.Selected = null;
 
         SceneManager.AssetsDirectory = Path.Combine(ProjectPanel.FindProjectRoot(), "Assets");
+    }
+
+    public static void Main(string[] args)
+    {
+        new EditorWindow("args[0]", 1280, 720).Run();
     }
 
     public void Run()

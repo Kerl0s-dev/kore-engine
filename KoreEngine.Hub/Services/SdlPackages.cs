@@ -11,16 +11,16 @@ static class SdlPackages
     public static string PlatformItemGroups(bool includeShadercross)
     {
         string windowsShadercross = includeShadercross
-            ? "\n        <PackageReference Include=\"SDL3-CS.Windows.Shadercross\" Version=\"3.0.0.14\" />" : "";
+            ? "\n        <PackageReference Include=\"SDL3-CS.Windows.Shadercross\" Version=\"3.0.0.15\" />" : "";
         string linuxShadercross = includeShadercross
             ? "\n        <PackageReference Include=\"SDL3-CS.Linux.Shadercross\" Version=\"3.0.0.2\" />" : "";
 
         return
 $@"    <ItemGroup Condition=""'$(OS)' == 'Windows_NT'"">
-        <PackageReference Include=""SDL3-CS.Windows"" Version=""3.4.18.1"" />
-        <PackageReference Include=""SDL3-CS.Windows.Image"" Version=""3.4.8"" />
-        <PackageReference Include=""SDL3-CS.Windows.Mixer"" Version=""3.2.4.14"" />{windowsShadercross}
-        <PackageReference Include=""SDL3-CS.Windows.TTF"" Version=""3.2.2.14"" />
+        <PackageReference Include=""SDL3-CS.Windows"" Version=""3.4.20"" />
+        <PackageReference Include=""SDL3-CS.Windows.Image"" Version=""3.4.8.1"" />
+        <PackageReference Include=""SDL3-CS.Windows.Mixer"" Version=""3.2.4.15"" />{windowsShadercross}
+        <PackageReference Include=""SDL3-CS.Windows.TTF"" Version=""3.2.2.15"" />
     </ItemGroup>
 
     <ItemGroup Condition=""'$(OS)' != 'Windows_NT'"">

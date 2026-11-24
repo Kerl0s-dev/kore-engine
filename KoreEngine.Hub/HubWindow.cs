@@ -225,7 +225,7 @@ public sealed class HubWindow : IDisposable
         string? engineDir = GetEngineDir();
         if (engineDir == null)
         {
-            newProjectDialog!.SetError("Engine folder not found (KoreEngine.Runtime / Editor not compiled ?).");
+            newProjectDialog!.SetError("Engine folder not found (KoreEngine.Core / Editor not compiled ?).");
             return;
         }
 

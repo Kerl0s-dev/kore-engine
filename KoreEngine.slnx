@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="KoreEngine.Runtime/KoreEngine.Runtime.csproj" />
-  <Project Path="KoreEngine.Editor/KoreEngine.Editor.csproj" />
-  <Project Path="KoreEngine.Hub/KoreEngine.Hub.csproj" />
-</Solution>

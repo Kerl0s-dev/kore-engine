@@ -32,11 +32,11 @@ public static class ProjectBuilder
 
         try
         {
-            string runtimeDll = Path.Combine(ProjectScaffolder.ResolveEngineOutputDir(engineDir, "KoreEngine.Runtime"), "KoreEngine.Runtime.dll");
+            string runtimeDll = Path.Combine(ProjectScaffolder.ResolveEngineOutputDir(engineDir, "KoreEngine.Core"), "KoreEngine.Core.dll");
             if (!File.Exists(runtimeDll))
             {
-                onLogLine($"KoreEngine.Runtime.dll not found : {runtimeDll}");
-                onLogLine("Compile the engine first (KoreEngine.Runtime.csproj).");
+                onLogLine($"KoreEngine.Core.dll not found : {runtimeDll}");
+                onLogLine("Compile the engine first (KoreEngine.Core.csproj).");
                 onFinished(false);
                 return;
             }
@@ -130,7 +130,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 {SdlPackages.PlatformItemGroups(includeShadercross: false)}
 
     <ItemGroup>
-        <Reference Include=""KoreEngine.Runtime"">
+        <Reference Include=""KoreEngine.Core"">
             <HintPath>{runtimeDll}</HintPath>
             <Private>True</Private>
         </Reference>

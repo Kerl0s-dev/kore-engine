@@ -19,7 +19,7 @@ public static class EngineLocator
 
     public static bool IsValidEngineDir(string dir)
     {
-        return File.Exists(Path.Combine(dir, "KoreEngine.Runtime", "KoreEngine.Runtime.csproj")) &&
+        return File.Exists(Path.Combine(dir, "KoreEngine.Core", "KoreEngine.Core.csproj")) &&
                File.Exists(Path.Combine(dir, "KoreEngine.Editor", "KoreEngine.Editor.csproj"));
     }
 }

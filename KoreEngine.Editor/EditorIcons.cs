@@ -48,7 +48,7 @@ public static class EditorIcons
     {
         if (renderer == null) return;
 
-        string root = Path.Combine(Directory.GetCurrentDirectory(), "Editor", "Icons");
+        string root = Path.Combine(Directory.GetCurrentDirectory(), "Icons");
         if (!Directory.Exists(root))
         {
             Console.WriteLine($"[EditorIcons] Dossier d'icônes introuvable : {root}");

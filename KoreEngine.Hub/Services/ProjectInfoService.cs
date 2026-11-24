@@ -46,7 +46,7 @@ public static class ProjectInfoService
     /// </summary>
     public static string GetEngineVersion(string projectPath)
     {
-        string dllPath = Path.Combine(projectPath, "bin", "Release", "net10.0", "KoreEngine.Runtime.dll");
+        string dllPath = Path.Combine(projectPath, "bin", "Release", "net10.0", "KoreEngine.Core.dll");
 
         if (!File.Exists(dllPath))
             return "—";
