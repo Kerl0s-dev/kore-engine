@@ -5,9 +5,10 @@ namespace KoreEngine;
 
 public class EditorWindow
 {
-    /// <summary>Instance courante — utilisée par les panels (ex: ProjectPanel pour
-    /// le dialogue de fichier natif) qui ont besoin du WindowHandle SDL.</summary>
     public static EditorWindow? Current { get; private set; }
+
+    public string ProjectRoot { get; }
+    public string ProjectName { get; }
 
     IntPtr window;
     public IntPtr WindowHandle => window;
@@ -55,21 +56,27 @@ public class EditorWindow
     ScriptWatcher? scriptWatcher;
     ShaderWatcher? shaderWatcher;
 
-    public EditorWindow(string title, int width, int height)
+    public EditorWindow(string projectRoot, string? title = null, int width = 1280, int height = 720)
     {
-        Title = title;
+        ProjectRoot = ResolveProjectRoot(projectRoot);
+        ProjectName = new DirectoryInfo(ProjectRoot).Name;
+        Title = string.IsNullOrWhiteSpace(title) ? $"{ProjectName} - KoreEngine Editor" : title;
         Width = width;
         Height = height;
 
+        // Configurer les chemins du projet AVANT d'initialiser les caches et les panels
+        SceneManager.AssetsDirectory = Path.Combine(ProjectRoot, "Assets");
+        SceneManager.OnSceneChanging += () => EditorSelection.Selected = null;
+
         SDL.Init(SDL.InitFlags.Video);
-        window = SDL.CreateWindow(title, width, height, SDL.WindowFlags.Resizable | SDL.WindowFlags.Maximized);
-        SDL.StartTextInput(window); // active les événements TextInput SDL3 (Cela permet de modifier des champs textuels)
-        
+        window = SDL.CreateWindow(Title, width, height, SDL.WindowFlags.Resizable | SDL.WindowFlags.Maximized);
+        SDL.StartTextInput(window);
+
         Renderer = new Renderer(window);
-        TextureCache.Init(Renderer); // Initialise le cache de texture
-        FontManager.Init(Renderer); // Initialise le cache de polices
-        EditorIcons.Init(Renderer); //Initialise les icônes de l'éditeur
-        AudioManager.Init(); // Initialise le moteur audio (SDL_mixer)
+        TextureCache.Init(Renderer);
+        FontManager.Init(Renderer);
+        EditorIcons.Init(Renderer);
+        AudioManager.Init();
         SDL.SetRenderVSync(Renderer.Handle, 1);
 
         imguiBackend = new ImGuiBackend(Renderer);
@@ -91,23 +98,57 @@ public class EditorWindow
         animationPreview = new AnimationPreview(Renderer, width, height);
         timelinePanel = new TimelinePanel(animationPreview);
         #endregion
-
-        SceneManager.OnSceneChanging += () => EditorSelection.Selected = null;
-
-        SceneManager.AssetsDirectory = Path.Combine(ProjectPanel.FindProjectRoot(), "Assets");
     }
 
     public static void Main(string[] args)
     {
-        new EditorWindow("args[0]", 1280, 720).Run();
+        string? projectPath = ParseProjectArg(args);
+
+        if (string.IsNullOrWhiteSpace(projectPath))
+        {
+            Console.Error.WriteLine("Usage: KoreEngine.Editor [--project <path/to/project>]");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        new EditorWindow(projectPath, width: 1280, height: 720).Run();
+    }
+
+    static string? ParseProjectArg(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] is "--project" or "-p" && i + 1 < args.Length)
+                return args[i + 1];
+        }
+
+        foreach (var arg in args)
+        {
+            if (!arg.StartsWith('-'))
+                return arg;
+        }
+
+        return null;
+    }
+
+    static string ResolveProjectRoot(string rawPath)
+    {
+        string fullPath = Path.GetFullPath(rawPath);
+        if (File.Exists(fullPath) && fullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            fullPath = Path.GetDirectoryName(fullPath)!;
+
+        if (!Directory.Exists(fullPath))
+            throw new DirectoryNotFoundException($"Project directory not found: {fullPath}");
+
+        return fullPath;
     }
 
     public void Run()
     {
         Current = this;
 
-        scriptWatcher = new ScriptWatcher(ProjectPanel.FindProjectRoot());
-        shaderWatcher = new ShaderWatcher(ProjectPanel.FindProjectRoot());
+        scriptWatcher = new ScriptWatcher(ProjectRoot);
+        shaderWatcher = new ShaderWatcher(ProjectRoot);
 
         while (Running)
         {
@@ -115,19 +156,16 @@ public class EditorWindow
             Input.NewFrame();
             while (SDL.PollEvent(out var e))
             {
-                // Affiche un popup de confirmation de l'action avant de quitter
                 switch (e.Type)
                 {
                     case (uint)SDL.EventType.Quit:
                     case (uint)SDL.EventType.WindowCloseRequested:
-                        showQuitPopup = true; // On demande confirmation
+                        showQuitPopup = true;
                         break;
                 }
 
                 imguiBackend?.HandleEvent(e);
 
-                // Ne transmet les événements clavier au jeu que si ImGui
-                // n'est pas en train de capturer le clavier (champ texte actif, etc.)
                 if (!ImGui.GetIO().WantCaptureKeyboard || e.Type == (uint)SDL.EventType.KeyUp || e.Type == (uint)SDL.EventType.WindowFocusLost)
                     Input.HandleEvent(e);
             }
@@ -165,10 +203,9 @@ public class EditorWindow
             SceneManager.ApplyPendingScene();
             scriptWatcher?.FinalizeUnloadIfPending();
 
-            // Logique de jeu — uniquement si Playing, et pas en pause (sauf step demandé).
             if (Playing)
             {
-                gamePanel?.BindUiSize(); // l'UI doit voir la taille du Game view, pas celle du Scene view
+                gamePanel?.BindUiSize();
 
                 if (!Paused)
                     SceneManager.Update();
@@ -180,19 +217,15 @@ public class EditorWindow
             }
 
             // 6. Rendu.
-            // Scene view : toujours EditorCamera
             scenePanel?.ApplyPendingResize(scenePanel.EditorCamera);
             scenePanel?.RenderScene(SceneManager.Current, scenePanel.EditorCamera, editorMode: true);
 
-            // UI Editor view : toujours la caméra de l'UI Editor
             uiEditorPanel?.ApplyPendingResize(uiEditorPanel.View);
             uiEditorPanel?.RenderScene(SceneManager.Current);
 
-            // Game view : toujours la caméra de la scène
             gamePanel?.ApplyPendingResize();
             gamePanel?.RenderScene(SceneManager.Current);
 
-            // Écran réel : clear + panneaux ImGui.
             Renderer.Clear(new Color(115, 115, 115));
 
             #region Panel Drawing
@@ -215,11 +248,29 @@ public class EditorWindow
             // 9. Present
             Renderer.Present();
         }
+
+        Shutdown();
+    }
+
+    void Shutdown()
+    {
+        ScriptCompiler.RemoveLoadedAssembly();
+        AudioManager.Quit();
+        imguiBackend?.Shutdown();
+
+        if (window != IntPtr.Zero)
+        {
+            SDL.DestroyWindow(window);
+            window = IntPtr.Zero;
+        }
+
+        SDL.Quit();
+        if (Current == this)
+            Current = null;
     }
 
     private void HandleQuitPopup()
     {
-        // Popup de confirmation de fermeture de l'éditeur
         if (showQuitPopup)
         {
             var viewport = ImGui.GetMainViewport().GetCenter();
@@ -229,8 +280,8 @@ public class EditorWindow
         }
 
         if (ImGui.BeginPopupModal("##quit_popup",
-            ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoNavInputs |
-            ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoSavedSettings |
+            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove |
             ImGuiWindowFlags.NoTitleBar))
         {
             ImGui.Text("Are you sure you want to quit Kore Engine?");
@@ -245,16 +296,13 @@ public class EditorWindow
 
             if (ImGui.Button("Yes", new System.Numerics.Vector2(150, 20)))
             {
-                ScriptCompiler.RemoveLoadedAssembly();
-
-                Running = false; // Quitter la boucle
+                Running = false;
             }
 
             ImGui.EndPopup();
         }
     }
 
-    /// <summary>Resynchronise Width/Height sur la taille réelle de la fenêtre SDL.</summary>
     void UpdateWindowSizeIfNeeded()
     {
         SDL.GetWindowSize(window, out int w, out int h);
@@ -265,7 +313,6 @@ public class EditorWindow
         }
     }
 
-    /// <summary>Dockspace ImGui plein écran qui accueille tous les panneaux éditeur.</summary>
     void DrawDockspace()
     {
         var viewport = ImGui.GetMainViewport();
@@ -298,10 +345,6 @@ public class EditorWindow
         DrawShortcutsWindow();
     }
 
-    /// <summary>
-    /// Barre d'outils horizontale sous la zone de dockspace - façon Unity :
-    /// Play/Pause/Stop/Step centrés, Reset Camera à gauche, statut à droite.
-    /// </summary>
     void DrawToolbar()
     {
         ImGui.BeginChild("##toolbar", new System.Numerics.Vector2(0, 38));
@@ -310,11 +353,11 @@ public class EditorWindow
         const float spacing = 4f;
 
         bool isInWorldSpace = EditorSelection.ActiveGizmoSpace == GizmoSpace.World;
-        
+
         if (Widgets.IconTextButton(isInWorldSpace ? "world" : "local", 20))
             EditorSelection.ActiveGizmoSpace = isInWorldSpace ? GizmoSpace.Local : GizmoSpace.World;
 
-        float centerWidth = btnSize * 3 + spacing * 2; // Stop, Pause, Step
+        float centerWidth = btnSize * 3 + spacing * 2;
 
         float centerX = (ImGui.GetWindowWidth() - centerWidth) * 0.5f;
         ImGui.SameLine(centerX);
@@ -354,7 +397,6 @@ public class EditorWindow
             stepRequested = true;
         ImGui.EndDisabled();
 
-        // --- Droite : Build ---
         string buildLabel = BuildService.IsBuilding ? "Building..." : "Build";
         float buildWidth = ImGui.CalcTextSize(buildLabel).X + 24f;
         ImGui.SameLine(ImGui.GetWindowWidth() - buildWidth - 12f);
@@ -362,12 +404,11 @@ public class EditorWindow
         ImGui.BeginDisabled(BuildService.IsBuilding);
         if (ImGui.Button(buildLabel))
         {
-            string projectRoot = ProjectPanel.FindProjectRoot();
             string buildPlatform = OperatingSystem.IsWindows() ? "Windows" :
                 OperatingSystem.IsLinux() ? "Linux" : "plateforme non supportée";
             Logger.Log($"[Build] Démarrage du build (Release, {buildPlatform}, self-contained)...");
 
-            BuildService.Build(projectRoot, Title, onLogLine: Logger.Log, onFinished: success =>
+            BuildService.Build(ProjectRoot, ProjectName, onLogLine: Logger.Log, onFinished: success =>
             {
                 if (success) Logger.Sucess("[Build] Build terminé avec succès — voir le dossier Build/ du projet.");
                 else Logger.Error("[Build] Échec du build — voir les lignes ci-dessus dans la Console.");
@@ -377,13 +418,6 @@ public class EditorWindow
 
         ImGui.EndChild();
     }
-
-    /// <summary>
-    /// Bouton icône carré, avec fallback texte (première lettre en majuscule)
-    /// si l'icône n'a pas été trouvée par EditorIcons — évite un bouton vide
-    /// et invisible si un .png manque dans Editor/Icons/.
-    /// </summary>
-    
 
     #region Shortcuts
     static readonly (string Key, string Action)[] Shortcuts =
@@ -408,11 +442,12 @@ public class EditorWindow
         }
         else
         {
-            if (ImGui.IsKeyPressed(ImGuiKey.W)) EditorSelection.ActiveGizmoMode = GizmoMode.Move; // Change the selection gizmo to 'Move'
-            if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate; // Change the selection gizmo to 'Rotate'
-            if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale; // Change the selection gizmo to 'Scale'
+            if (ImGui.IsKeyPressed(ImGuiKey.W)) EditorSelection.ActiveGizmoMode = GizmoMode.Move;
+            if (ImGui.IsKeyPressed(ImGuiKey.E)) EditorSelection.ActiveGizmoMode = GizmoMode.Rotate;
+            if (ImGui.IsKeyPressed(ImGuiKey.R)) EditorSelection.ActiveGizmoMode = GizmoMode.Scale;
 
-            if (ImGui.IsKeyPressed(ImGuiKey.F) && EditorSelection.Selected != null) scenePanel?.FocusOn(EditorSelection.Selected.transform.WorldPosition);
+            if (ImGui.IsKeyPressed(ImGuiKey.F) && EditorSelection.Selected != null)
+                scenePanel?.FocusOn(EditorSelection.Selected.transform.WorldPosition);
         }
     }
 
@@ -444,35 +479,30 @@ public class EditorWindow
     }
     #endregion
 
-    // Style de ImGUI pour l'éditeur
     private void InitializeImGUIStyle()
     {
         ImGuiStylePtr style = ImGui.GetStyle();
         var colors = style.Colors;
 
-        // --- Spacing / layout ---
         style.WindowPadding = new System.Numerics.Vector2(10, 10);
-        style.FramePadding = new System.Numerics.Vector2(8, 5);    // hauteur des boutons, champs, headers
-        style.CellPadding = new System.Numerics.Vector2(6, 4);    // tables / colonnes
-        style.ItemSpacing = new System.Numerics.Vector2(8, 6);    // espace entre widgets
-        style.ItemInnerSpacing = new System.Numerics.Vector2(6, 4);    // label <-> widget (ex: checkbox + texte)
-        style.IndentSpacing = 16f;                  // indentation des TreeNodes (Hierarchy)
+        style.FramePadding = new System.Numerics.Vector2(8, 5);
+        style.CellPadding = new System.Numerics.Vector2(6, 4);
+        style.ItemSpacing = new System.Numerics.Vector2(8, 6);
+        style.ItemInnerSpacing = new System.Numerics.Vector2(6, 4);
+        style.IndentSpacing = 16f;
         style.ScrollbarSize = 12f;
         style.GrabMinSize = 10f;
 
-        // --- Bordures / arrondis ---
         style.WindowBorderSize = 1f;
         style.FrameBorderSize = 0f;
         style.PopupBorderSize = 1f;
-        style.WindowRounding = 0f;                   // 0 recommandé avec docking
+        style.WindowRounding = 0f;
         style.ChildRounding = 3f;
         style.FrameRounding = 3f;
         style.PopupRounding = 3f;
         style.ScrollbarRounding = 6f;
         style.GrabRounding = 3f;
         style.TabRounding = 3f;
-
-        // --- Docking ---
         style.DockingSeparatorSize = 2f;
 
         colors[(int)ImGuiCol.Text] = new(1.00f, 1.00f, 1.00f, 1.00f);

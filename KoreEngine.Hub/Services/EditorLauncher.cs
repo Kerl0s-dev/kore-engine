@@ -3,126 +3,100 @@ using System.Diagnostics;
 
 namespace KoreEngine.Hub.Services;
 
-/// <summary>
-/// Resynchronise les dépendances moteur, nettoie puis rebuild systématiquement
-/// la solution d'un projet avant de le lancer :
-///   - la resynchronisation évite de tourner avec des dépendances copiées une
-///     seule fois à la création du projet et jamais rafraîchies depuis (ex:
-///     Microsoft.CodeAnalysis.CSharp ajoutée à KoreEngine.Runtime après coup)
-///   - le "clean" évite de tourner avec des binaires de script résiduels
-///     (obj/bin corrompus, ancien code compilé qui traîne)
-///   - le rebuild garantit qu'on ne tourne jamais avec des
-///     KoreEngine.Runtime/Editor.dll périmées non plus
-/// </summary>
 public static class EditorLauncher
 {
-    /// <param name="onStage">Étape en cours (synchronisation, nettoyage, compilation, lancement).</param>
-    /// <param name="onBuildFinished">true seulement si le build ET le lancement de l'éditeur ont réussi.</param>
-    public static void OpenProject(RecentProjectEntry entry, string? engineDir, Action<string> onLogLine, Action<bool> onBuildFinished, Action<string>? onStage = null)
-    {
-        string slnPath = Path.Combine(entry.Path, $"{entry.Name}.sln");
+    const int StartupGraceMs = 4000;
 
-        if (!File.Exists(slnPath))
+    public static void OpenProject(
+        RecentProjectEntry entry,
+        string? engineDir,
+        Action<string> onLogLine,
+        Action<bool> onBuildFinished,
+        Action<string>? onStage = null)
+    {
+        if (!Directory.Exists(entry.Path))
         {
-            onLogLine($"Solution not found : {slnPath}");
+            onLogLine($"[EditorLauncher] Project folder not found : {entry.Path}");
             onBuildFinished(false);
             return;
         }
 
-        onStage?.Invoke("Synchronization of dependances for the engine...");
-        SyncEngineDependencies(entry, engineDir, onLogLine);
-
-        onStage?.Invoke("Cleaning solution...");
-        RunDotnet("clean", slnPath, entry.Path, onLogLine, cleanSuccess =>
+        string? editorExe = ResolveStandaloneEditorExe(engineDir, onLogLine);
+        if (editorExe == null || !File.Exists(editorExe))
         {
-            // On tente le build même si le clean a échoué (ex: rien à nettoyer,
-            // ou fichier verrouillé) — seul un échec du BUILD annule le lancement.
-            if (!cleanSuccess)
-                onLogLine("[EditorLauncher] Clean as failed, we try to build anyway...");
+            onLogLine($"[EditorLauncher] Standalone editor executable not found ({editorExe ?? "null"}).");
+            onBuildFinished(false);
+            return;
+        }
 
-            onStage?.Invoke($"Publishing the editor...");
-            string gameCsproj = Path.Combine(entry.Path, $"{entry.Name}.csproj");
-            string outputDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
-            string publishArgs = $"-c Release -r {CurrentRid()} --self-contained true -o \"{outputDir}\"";
+        // Optionnel : mettre à jour uniquement les dépendances Core/Player si nécessaire
+        if (!string.IsNullOrWhiteSpace(engineDir))
+        {
+            onStage?.Invoke("Synchronization of core dependencies...");
+            SyncEngineDependencies(entry, engineDir, onLogLine);
+        }
 
-            RunDotnet("publish", gameCsproj, entry.Path, onLogLine, publishSuccess =>
-            {
-                if (!publishSuccess)
-                {
-                    onBuildFinished(false);
-                    return;
-                }
-
-                onStage?.Invoke("Launching editor...");
-                try
-                {
-                    LaunchExe(entry, onLogLine);
-                    onBuildFinished(true);
-                }
-                catch (Exception ex)
-                {
-                    onLogLine($"[EditorLauncher] Not possible to launch : {ex.Message}");
-                    onBuildFinished(false);
-                }
-            }, publishArgs);
-        });
+        onStage?.Invoke("Launching standalone editor...");
+        try
+        {
+            LaunchStandaloneEditor(editorExe, entry, onLogLine);
+            onBuildFinished(true);
+        }
+        catch (Exception ex)
+        {
+            onLogLine($"[EditorLauncher] Not possible to launch : {ex.Message}");
+            onBuildFinished(false);
+        }
     }
 
-    static string CurrentRid()
+    static string? ResolveStandaloneEditorExe(string? engineDir, Action<string> onLogLine)
     {
-        string arch = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        string exeName = OperatingSystem.IsWindows() ? "KoreEngine.Editor.exe" : "KoreEngine.Editor";
+
+        // 1. À côté du Hub (cas d'une distribution/installation côte à côte)
+        string besideHub = Path.Combine(AppContext.BaseDirectory, exeName);
+        if (File.Exists(besideHub))
+            return besideHub;
+
+        // 2. Depuis engineDir (ex: KoreEngine.Editor/bin/Release/net10.0/... ou publish/)
+        if (!string.IsNullOrWhiteSpace(engineDir))
         {
-            System.Runtime.InteropServices.Architecture.X64 => "x64",
-            System.Runtime.InteropServices.Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException("Architecture not supported for this build.")
-        };
+            string editorBinRoot = Path.Combine(engineDir, "KoreEngine.Editor", "bin");
+            if (Directory.Exists(editorBinRoot))
+            {
+                string? candidate = Directory.GetFiles(editorBinRoot, exeName, SearchOption.AllDirectories)
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault();
 
-        if (OperatingSystem.IsWindows()) return $"win-{arch}";
-        if (OperatingSystem.IsLinux()) return $"linux-{arch}";
+                if (candidate != null)
+                    return candidate;
+            }
+        }
 
-        throw new PlatformNotSupportedException("KoreEngine only have native binairies for Windows and Linux.");
+        onLogLine($"[EditorLauncher] Searched '{exeName}' beside Hub and under '{engineDir}'.");
+        return null;
     }
 
-    /// <summary>
-    /// Resynchronise les dépendances du moteur pour ce projet avant de le
-    /// lancer — pas seulement à la création. Délègue à
-    /// ProjectScaffolder.RefreshDependencies (même logique que le "Refresh
-    /// Dependencies" manuel du menu contextuel), pour ne pas la dupliquer ici.
-    /// </summary>
     public static void SyncEngineDependencies(RecentProjectEntry entry, string? engineDir, Action<string> onLogLine)
     {
-        if (engineDir == null)
+        if (string.IsNullOrWhiteSpace(engineDir))
         {
-            onLogLine("[EditorLauncher] Engine folder not found — resynchronization of dependances ignored.");
+            onLogLine("[EditorLauncher] Engine folder not found — resynchronization ignored.");
             return;
         }
 
         ProjectScaffolder.RefreshDependencies(engineDir, entry.Path, entry.Name, onLogLine);
     }
 
-    static void RunDotnet(string command, string slnPath, string workingDir, Action<string> onLogLine, Action<bool> onFinished, string extraArgs = "")
-        => DotnetRunner.Run(command, slnPath, workingDir, onLogLine, onFinished, extraArgs);
-
-    // Si l'éditeur se ferme avec une erreur dans ce délai, on considère qu'il a planté au démarrage.
-    const int StartupGraceMs = 4000;
-
-    static void LaunchExe(RecentProjectEntry entry, Action<string> onLogLine)
+    static void LaunchStandaloneEditor(string editorExe, RecentProjectEntry entry, Action<string> onLogLine)
     {
-        string exeDir = Path.Combine(entry.Path, "bin", "Release", "net10.0");
-        string exeName = OperatingSystem.IsWindows() ? $"{entry.Name}.exe" : entry.Name;
-        string exePath = Path.Combine(exeDir, exeName);
+        string editorDir = Path.GetDirectoryName(editorExe)!;
 
-        if (!File.Exists(exePath))
-            throw new FileNotFoundException($"Build complete but executable not found : {exePath}");
-
-        // On redirige la sortie pour VOIR pourquoi l'éditeur plante au démarrage (DLL ou
-        // référence manquante, ex. SDL3...). Les flux doivent rester lus pendant toute la vie
-        // du processus, sinon il se bloquerait quand le tampon du tube est plein : après le
-        // délai de démarrage on continue donc à les vider, mais sans les afficher.
         var startInfo = new ProcessStartInfo
         {
-            FileName = exePath,
-            WorkingDirectory = exeDir,
+            FileName = editorExe,
+            Arguments = $"--project \"{entry.Path}\"",
+            WorkingDirectory = editorDir,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -132,7 +106,7 @@ public static class EditorLauncher
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Not able to start the editor.");
 
-        int reporting = 1; // 1 = on affiche la sortie, 0 = on la jette
+        int reporting = 1;
         void OnData(string? line)
         {
             if (!string.IsNullOrWhiteSpace(line) && Volatile.Read(ref reporting) == 1)
@@ -146,7 +120,7 @@ public static class EditorLauncher
 
         bool exited = process.WaitForExit(StartupGraceMs);
         if (exited)
-            process.WaitForExit(); // vide la sortie asynchrone restante
+            process.WaitForExit();
 
         Volatile.Write(ref reporting, 0);
 

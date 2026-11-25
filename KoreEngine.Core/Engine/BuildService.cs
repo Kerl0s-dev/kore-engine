@@ -19,9 +19,18 @@ public static class BuildService
             return;
         }
 
-        string playerDir = Path.Combine(projectPath, "Player");
+        if (string.IsNullOrWhiteSpace(projectPath) || string.IsNullOrWhiteSpace(projectName))
+        {
+            onLogLine("[BuildService] Chemin ou nom de projet invalide.");
+            onFinished(false);
+            return;
+        }
+
+        string resolvedRoot = Path.GetFullPath(projectPath);
+
+        string playerDir = Path.Combine(resolvedRoot, "Player");
         string playerCsproj = Path.Combine(playerDir, $"{projectName}.Player.csproj");
-        string outputDir = Path.Combine(projectPath, "Build");
+        string outputDir = Path.Combine(resolvedRoot, "Build");
 
         if (!File.Exists(playerCsproj))
         {
@@ -31,8 +40,6 @@ public static class BuildService
             return;
         }
 
-        // Arguments de publication .NET
-        // Le Player contient déjà les scripts précompilés sous forme de DLL par l'éditeur.
         string rid = CurrentRid();
 
         string args = string.Join(" ", new[]
@@ -42,9 +49,6 @@ public static class BuildService
             "-c Release",
             $"-r {rid}",
             "--self-contained true",
-            // Options optionnelles si tu veux un fichier binaire unique :
-            // "-p:PublishSingleFile=true",
-            // "-p:IncludeNativeLibrariesForSelfExtract=true",
             $"-o \"{outputDir}\""
         });
 
@@ -64,26 +68,37 @@ public static class BuildService
 
         var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
-        proc.OutputDataReceived += (_, e) => { if (e.Data != null) onLogLine(e.Data); };
-        proc.ErrorDataReceived += (_, e) => { if (e.Data != null) onLogLine(e.Data); };
+        DataReceivedEventHandler outHandler = (_, e) => { if (e.Data != null) onLogLine(e.Data); };
+        DataReceivedEventHandler errHandler = (_, e) => { if (e.Data != null) onLogLine(e.Data); };
+
+        proc.OutputDataReceived += outHandler;
+        proc.ErrorDataReceived += errHandler;
 
         proc.Exited += (_, _) =>
         {
-            bool success = proc.ExitCode == 0;
-
-            if (success)
+            try
             {
-                CopyAssets(projectPath, outputDir, onLogLine);
-                onLogLine($"[BuildService] Build terminé avec succès : {outputDir}");
-            }
-            else
-            {
-                onLogLine($"[BuildService] Le build a échoué avec le code de sortie {proc.ExitCode}.");
-            }
+                bool success = proc.ExitCode == 0;
 
-            IsBuilding = false;
-            onFinished(success);
-            proc.Dispose();
+                if (success)
+                {
+                    CopyAssets(resolvedRoot, outputDir, onLogLine);
+                    onLogLine($"[BuildService] Build terminé avec succès : {outputDir}");
+                }
+                else
+                {
+                    onLogLine($"[BuildService] Le build a échoué avec le code de sortie {proc.ExitCode}.");
+                }
+
+                onFinished(success);
+            }
+            finally
+            {
+                proc.OutputDataReceived -= outHandler;
+                proc.ErrorDataReceived -= errHandler;
+                IsBuilding = false;
+                proc.Dispose();
+            }
         };
 
         try
@@ -94,6 +109,9 @@ public static class BuildService
         }
         catch (Exception ex)
         {
+            proc.OutputDataReceived -= outHandler;
+            proc.ErrorDataReceived -= errHandler;
+            proc.Dispose();
             onLogLine($"[BuildService] Impossible de lancer dotnet publish : {ex.Message}");
             IsBuilding = false;
             onFinished(false);

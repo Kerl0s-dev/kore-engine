@@ -48,19 +48,22 @@ public class ProjectPanel
 
     public ProjectPanel()
     {
-        folderRoots.Clear();
-        string projectRoot = FindProjectRoot();
+        string projectRoot = Path.GetFullPath(FindProjectRoot());
 
-        // Déclarer vos dossiers racines de manière centralisée
+        if (!Directory.Exists(projectRoot))
+            throw new DirectoryNotFoundException($"[ProjectPanel] Dossier projet introuvable : {projectRoot}");
+
+        folderRoots.Clear();
+
+        // Déclarer les dossiers racines du projet (et non de l'éditeur)
         RegisterRoot("Assets", Path.Combine(projectRoot, "Assets"), readOnly: false, defaultOpen: true);
         RegisterRoot("Packages", Path.Combine(projectRoot, "Packages"), readOnly: true);
 
-        // Sélection par défaut sur le premier dossier valide (Assets)
-        var defaultRoot = folderRoots.FirstOrDefault()?.FullPath ?? Directory.GetCurrentDirectory();
-        selectedDir = defaultRoot;
+        // Sélection par défaut sur le premier dossier racine (Assets), avec repli sur projectRoot
+        selectedDir = folderRoots.FirstOrDefault()?.FullPath ?? projectRoot;
 
-        RefreshCurrentDir();
         dialogCallback = new SDL.DialogFileCallback(OnFileDialogResult);
+        RefreshCurrentDir();
     }
 
     public void RegisterRoot(string displayName, string fullPath, bool readOnly = true, bool defaultOpen = false)
@@ -850,17 +853,21 @@ public class {newItemName.Trim()} : Component
     }
 
     public static string FindProjectRoot()
+{
+    if (!string.IsNullOrWhiteSpace(EditorWindow.Current?.ProjectRoot))
+        return Path.GetFullPath(EditorWindow.Current!.ProjectRoot);
+
+    string dir = Directory.GetCurrentDirectory();
+    for (int i = 0; i < 6 && dir != null; i++)
     {
-        string dir = Directory.GetCurrentDirectory();
-        for (int i = 0; i < 6 && dir != null; i++)
-        {
-            if (Directory.GetFiles(dir, "*.csproj").Length > 0 ||
-                Directory.GetFiles(dir, "*.sln").Length > 0)
-                return dir;
-            dir = Directory.GetParent(dir)?.FullName!;
-        }
-        return Directory.GetCurrentDirectory();
+        if (Directory.GetFiles(dir, "*.csproj").Length > 0 ||
+            Directory.GetFiles(dir, "*.sln").Length > 0)
+            return dir;
+        dir = Directory.GetParent(dir)?.FullName!;
     }
+
+    return Directory.GetCurrentDirectory();
+}
 
     static void OpenInEditor(string path) => ExternalEditor.OpenFileAtLine(path, 1);
 

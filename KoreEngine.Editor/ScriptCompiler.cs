@@ -12,7 +12,6 @@ public class ScriptLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // Permet de résoudre les dépendances si nécessaire (ex: le moteur lui-même)
         return null;
     }
 }
@@ -22,34 +21,57 @@ public static class ScriptCompiler
     private static ScriptLoadContext? currentAlc;
     private static WeakReference? previousAlcWeakRef;
 
-    public static bool IsCompiling { get; private set; } = false;
+    private static volatile bool isCompiling = false;
+    public static bool IsCompiling
+    {
+        get => isCompiling;
+        private set => isCompiling = value;
+    }
 
     public static event Action? OnCompileSuccess;
     public static event Action? OnCompileError;
 
-    // Indique au thread principal qu'une compilation vient de réussir
     public static volatile bool PendingSuccessNotification = false;
     public static volatile bool PendingErrorNotification = false;
 
     public static Assembly? LoadedAssembly { get; private set; }
 
-    static readonly string OutputDll = Path.Combine(Directory.GetCurrentDirectory(), "Scripts.dll");
     static readonly CSharpParseOptions ParseOptions = new(preprocessorSymbols: new[] { "KORE_ENGINE_EDITOR" });
 
-    /// <summary>
-    /// Compile tous les fichiers .cs trouvés dans les dossiers surveillés.
-    /// </summary>
+    static string GetOutputDllPath(string[] watchDirs)
+    {
+        string? projectRoot = EditorWindow.Current?.ProjectRoot;
+
+        if (string.IsNullOrWhiteSpace(projectRoot))
+        {
+            string? firstExistingDir = watchDirs.FirstOrDefault(Directory.Exists);
+            if (!string.IsNullOrWhiteSpace(firstExistingDir))
+            {
+                var parent = Directory.GetParent(firstExistingDir);
+                projectRoot = parent?.FullName ?? firstExistingDir;
+            }
+            else
+            {
+                projectRoot = Directory.GetCurrentDirectory();
+            }
+        }
+
+        string outDir = Path.Combine(projectRoot, "bin", "Release", "net10.0");
+        Directory.CreateDirectory(outDir);
+        return Path.Combine(outDir, "Scripts.dll");
+    }
+
     public static void CompileScripts(string[] watchDirs)
     {
         if (IsCompiling) return;
         IsCompiling = true;
 
-        // Exécution en arrière-plan pour ne pas figer l'interface de l'éditeur
+        string outputDll = GetOutputDllPath(watchDirs);
+
         Task.Run(() =>
         {
             try
             {
-                // 1. Récupérer tous les fichiers .cs
                 var sourceFiles = new List<string>();
                 foreach (var dir in watchDirs)
                 {
@@ -65,7 +87,6 @@ public static class ScriptCompiler
                     return;
                 }
 
-                // 2. Préparer la compilation Roslyn
                 var syntaxTrees = sourceFiles.Select(f =>
                 {
                     using var stream = File.OpenRead(f);
@@ -73,10 +94,25 @@ public static class ScriptCompiler
                     return CSharpSyntaxTree.ParseText(sourceText, ParseOptions, path: f);
                 }).ToList();
 
-                var references = AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-                    .Select(a => MetadataReference.CreateFromFile(a.Location))
-                    .Cast<MetadataReference>()
+                var assemblyLocations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (!asm.IsDynamic && !string.IsNullOrWhiteSpace(asm.Location) && File.Exists(asm.Location))
+                        assemblyLocations.Add(asm.Location);
+                }
+
+                // Références explicites utiles pour les scripts utilisateur
+                string coreLocation = typeof(Component).Assembly.Location;
+                if (!string.IsNullOrWhiteSpace(coreLocation) && File.Exists(coreLocation))
+                    assemblyLocations.Add(coreLocation);
+
+                string sdlLocation = typeof(SDL3.SDL).Assembly.Location;
+                if (!string.IsNullOrWhiteSpace(sdlLocation) && File.Exists(sdlLocation))
+                    assemblyLocations.Add(sdlLocation);
+
+                var references = assemblyLocations
+                    .Select(loc => (MetadataReference)MetadataReference.CreateFromFile(loc))
                     .ToList();
 
                 var options = new CSharpCompilationOptions(
@@ -91,66 +127,57 @@ public static class ScriptCompiler
                     references,
                     options);
 
-                using (var ms = new MemoryStream())
-                using (var pdbStream = new MemoryStream())
+                using var ms = new MemoryStream();
+                using var pdbStream = new MemoryStream();
+
+                var result = compilation.Emit(ms, pdbStream: pdbStream);
+
+                Logger.Clear();
+
+                if (!result.Success)
                 {
-                    var result = compilation.Emit(ms, pdbStream: pdbStream);
+                    var failures = result.Diagnostics.Where(diagnostic =>
+                        diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
 
-                    Logger.Clear();
+                    string errors = string.Join("\n", failures.Select(f => f.ToString()));
 
-                    if (!result.Success)
-                    {
-                        var failures = result.Diagnostics.Where(diagnostic =>
-                            diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error);
-
-                        string errors = string.Join("\n", failures.Select(f => f.ToString()));
-
-                        Logger.Error(errors);
-
-                        IsCompiling = false;
-                        PendingErrorNotification = true;
-                        return;
-                    }
-
-                    // 3. Déchargement de l'ancien ALC
-                    if (currentAlc != null)
-                    {
-                        currentAlc.Unload();
-                        previousAlcWeakRef = new WeakReference(currentAlc);
-                        currentAlc = null;
-                    }
-
-                    // 4. Charger le nouveau contexte et l'assembly en mémoire via MemoryStream
-                    currentAlc = new ScriptLoadContext();
-                    ms.Seek(0, SeekOrigin.Begin);
-                    pdbStream.Seek(0, SeekOrigin.Begin);
-
-                    using (var fs = File.Create(OutputDll))
-                        ms.CopyTo(fs);
-
-                    ms.Seek(0, SeekOrigin.Begin);
-                    pdbStream.Seek(0, SeekOrigin.Begin);
-
-                    LoadedAssembly = currentAlc.LoadFromStream(ms, pdbStream);
+                    Logger.Error(errors);
 
                     IsCompiling = false;
-
-                    PendingSuccessNotification = true;
+                    PendingErrorNotification = true;
+                    return;
                 }
+
+                if (currentAlc != null)
+                {
+                    currentAlc.Unload();
+                    previousAlcWeakRef = new WeakReference(currentAlc);
+                    currentAlc = null;
+                }
+
+                currentAlc = new ScriptLoadContext();
+
+                ms.Seek(0, SeekOrigin.Begin);
+                using (var fs = File.Create(outputDll))
+                    ms.CopyTo(fs);
+
+                ms.Seek(0, SeekOrigin.Begin);
+                pdbStream.Seek(0, SeekOrigin.Begin);
+
+                LoadedAssembly = currentAlc.LoadFromStream(ms, pdbStream);
+
+                IsCompiling = false;
+                PendingSuccessNotification = true;
             }
             catch (Exception ex)
             {
                 IsCompiling = false;
                 Console.WriteLine($"[ScriptCompiler] Exception de compilation : {ex.Message}");
-
                 PendingErrorNotification = true;
             }
         });
     }
 
-    /// <summary>
-    /// Force le GC pour vérifier si l'ancien ALC a bien été libéré de la mémoire.
-    /// </summary>
     public static void FinalizeUnload()
     {
         GC.Collect();
@@ -171,13 +198,8 @@ public static class ScriptCompiler
         }
     }
 
-    /// <summary>
-    /// Décharge l'assembly Scripts.dll chargé par l'éditeur pour libérer la mémoire et éviter les conflits avec le moteur.
-    /// Cette méthode est appelée à la fermeture de l'éditeur pour pouvoir lancer un projet même si des erreurs de compilation sont présentes dans les scripts.
-    /// </summary>
     public static void RemoveLoadedAssembly()
     {
-        // Décharge l'assembly Scripts.dll chargé par l'éditeur pour libérer la mémoire et éviter les conflits avec le moteur
         LoadedAssembly = null;
         if (currentAlc != null)
         {
@@ -186,8 +208,27 @@ public static class ScriptCompiler
             currentAlc = null;
         }
 
-        // Supprime le .dll de scripts compilé pour éviter les conflits à la prochaine compilation
-        File.Delete(OutputDll);
+        string? projectRoot = EditorWindow.Current?.ProjectRoot;
+        if (!string.IsNullOrWhiteSpace(projectRoot))
+        {
+            string candidate = Path.Combine(projectRoot, "bin", "Release", "net10.0", "Scripts.dll");
+            TryDeleteFile(candidate);
+        }
+
+        TryDeleteFile(Path.Combine(Directory.GetCurrentDirectory(), "Scripts.dll"));
+    }
+
+    static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch
+        {
+            // Ignorer si verrouillé ou déjà supprimé
+        }
     }
 
     public static void RaiseCompileSuccess()
